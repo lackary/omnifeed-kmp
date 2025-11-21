@@ -67,4 +67,22 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
             assertNotNull(photo, "Photo should be not present null")
             assertEquals(photoId, photo.id)
         }
+
+    @Test
+    fun `getCollections should return a collection list with the correct Authorization header`() =
+        runTest {
+            val pageSize = 10
+            val collections = unsplashApiService.getPhotos(page = 1, perPage = pageSize)
+
+            assertEquals(pageSize, collections.size)
+        }
+
+    @Test
+    fun `getCollection should return a single collection with the correct Authorization header`() =
+        runTest {
+            val collectionId = "P2b4Wg7zWqs"
+            val collection = unsplashApiService.getCollection(collectionId)
+
+            assertEquals(collectionId,collection.id)
+        }
 }

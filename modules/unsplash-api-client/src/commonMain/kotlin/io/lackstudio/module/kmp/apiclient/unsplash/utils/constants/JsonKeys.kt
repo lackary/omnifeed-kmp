@@ -6,7 +6,6 @@ internal object JsonKeys {
         const val USER_ID = "user_id"
         const val CREATED_AT = "created_at"
         const val UPDATED_AT = "updated_at"
-
         const val PROFILE_IMAGE = "profile_image"
         const val FOR_HIRE = "for_hire"
     }
@@ -14,6 +13,22 @@ internal object JsonKeys {
     object Photo {
         const val BLUR_HASH = "blur_hash"
         const val ASSET_TYPE = "asset_type"
+        const val ALTERNATIVE_SLUGS = "alternative_slugs"
+        const val PROMOTED_AT = "promoted_at"
+        const val ALT_DESCRIPTION = "alt_description"
+        const val LIKED_BY_USER = "liked_by_user"
+        const val CURRENT_USER_COLLECTIONS = "current_user_collections"
+        const val TOPIC_SUBMISSIONS = "topic_submissions"
+        const val DOWNLOAD_LOCATION = "download_location"
+    }
+
+    object Collection {
+        const val PUBLISHED_AT = "published_at"
+        const val LAST_COLLECTED_AT = "last_collected_at"
+        const val SHARE_KEY = "share_key"
+        const val COVER_PHOTO = "cover_photo"
+        const val PREVIEW_PHOTOS = "preview_photos"
+        const val MEDIA_TYPES = "media_types"
     }
 
     // User

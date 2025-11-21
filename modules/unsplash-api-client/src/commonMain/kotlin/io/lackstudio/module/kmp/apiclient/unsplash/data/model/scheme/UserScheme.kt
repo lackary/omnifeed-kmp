@@ -6,7 +6,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class PhotoUserScheme(
+data class UserScheme(
     override val id: String,
     @SerialName(JsonKeys.Common.UPDATED_AT) override val updatedAt: String,
     override val username: String,

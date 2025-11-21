@@ -1,5 +1,9 @@
 package io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme
 
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.TexturesPatternsScheme
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
 
 /*
 "topic_submissions": {
@@ -24,3 +28,7 @@ package io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme
 //data class TopicSubmissions(
 //    val
 //)
+@Serializable
+data class TopicSubmissionsScheme(
+    @SerialName("textures-patterns") val texturesPatterns: TexturesPatternsScheme
+)
