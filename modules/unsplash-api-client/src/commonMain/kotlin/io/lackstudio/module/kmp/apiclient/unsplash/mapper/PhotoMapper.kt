@@ -1,13 +1,13 @@
 package io.lackstudio.module.kmp.apiclient.unsplash.mapper
 
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoUrlsScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.AlternativeSlugsScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoLinksScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.SponsorScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.SponsorshipScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.UserLinksScheme
-import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
-import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoUserScheme
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.UserScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.domain.model.AlternativeSlugs
 import io.lackstudio.module.kmp.apiclient.unsplash.domain.model.Photo
 import io.lackstudio.module.kmp.apiclient.unsplash.domain.model.PhotoLinks
@@ -121,7 +121,7 @@ fun SponsorScheme.toSponsor(): Sponsor {
     )
 }
 
-fun PhotoUserScheme.toPhotoUser(): PhotoUser {
+fun UserScheme.toPhotoUser(): PhotoUser {
     return PhotoUser(
         id = this.id,
         updatedAt = this.updatedAt,

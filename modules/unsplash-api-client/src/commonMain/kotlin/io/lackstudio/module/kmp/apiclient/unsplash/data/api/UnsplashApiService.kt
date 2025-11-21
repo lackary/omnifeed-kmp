@@ -1,6 +1,7 @@
 package io.lackstudio.module.kmp.apiclient.unsplash.data.api
 
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.request.TokenRequest
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.CollectionResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.MeProfileResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResponse
@@ -8,6 +9,8 @@ import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResp
 interface UnsplashApiService {
     suspend fun getPhotos(page: Int, perPage: Int): List<PhotoResponse>
     suspend fun getPhoto(id: String): PhotoResponse
+    suspend fun getCollections(page: Int, perPage: Int): List<CollectionResponse>
+    suspend fun getCollection(id: String): CollectionResponse
     suspend fun getMe(): MeProfileResponse
 
     /**
