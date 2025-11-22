@@ -14,6 +14,7 @@ import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.MeProfile
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TopicResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.UserProfileResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.ApiKeys
 
 class UnsplashApiServiceImpl(
@@ -21,6 +22,14 @@ class UnsplashApiServiceImpl(
     private val appLogger: AppLogger
 ) : UnsplashApiService {
     val TAG = "UnsplashApiServiceImpl"
+
+    override suspend fun getUserPublicProfile(username: String): UserProfileResponse {
+        appLogger.debug(tag = TAG, message = "getUserPublicProfile username $username")
+        return httpClient.get("${Environment.API_USERS}/$username") {
+            parameter(ApiKeys.Params.USERNAME, username)
+        }.body()
+    }
+
     override suspend fun getPhotos(
         page: Int,
         perPage: Int

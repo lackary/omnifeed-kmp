@@ -6,8 +6,10 @@ import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.MeProfile
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TopicResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.UserProfileResponse
 
 interface UnsplashApiService {
+    suspend fun getUserPublicProfile(username: String): UserProfileResponse
     suspend fun getPhotos(page: Int, perPage: Int): List<PhotoResponse>
     suspend fun getPhoto(id: String): PhotoResponse
     suspend fun getCollections(page: Int, perPage: Int): List<CollectionResponse>
