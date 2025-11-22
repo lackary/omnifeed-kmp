@@ -50,6 +50,15 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
     private val unsplashApiService: UnsplashApiService by inject()
 
     @Test
+    fun `getUserPublicProfile should return a single user's public profile by username with the correct Authorization header`() =
+        runTest {
+            val username = "pawel_czerwinski"
+            val user = unsplashApiService.getUserPublicProfile(username)
+
+            assertEquals(username, user.username)
+        }
+
+    @Test
     fun `getPhotos should return a photo list with the correct Authorization header`() =
         runTest {
             val pageSize = 10
