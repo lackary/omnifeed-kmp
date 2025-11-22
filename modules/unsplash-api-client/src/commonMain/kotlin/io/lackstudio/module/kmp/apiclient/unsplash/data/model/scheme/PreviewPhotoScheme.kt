@@ -1,6 +1,6 @@
 package io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme
 
-import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.JsonKeys
+import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.ApiKeys
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -8,9 +8,9 @@ import kotlinx.serialization.Serializable
 data class PreviewPhotoScheme(
     val id: String,
     val slug: String,
-    @SerialName(JsonKeys.Common.CREATED_AT) val createdAt: String,
-    @SerialName(JsonKeys.Common.UPDATED_AT) val updatedAt: String,
-    @SerialName(JsonKeys.Photo.BLUR_HASH) val blurHash: String,
-    @SerialName(JsonKeys.Photo.ASSET_TYPE) val assetType: String,
+    @SerialName(ApiKeys.Common.CREATED_AT) val createdAt: String,
+    @SerialName(ApiKeys.Common.UPDATED_AT) val updatedAt: String,
+    @SerialName(ApiKeys.Photo.BLUR_HASH) val blurHash: String,
+    @SerialName(ApiKeys.Photo.ASSET_TYPE) val assetType: String,
     val urls: PhotoUrlsScheme
 )

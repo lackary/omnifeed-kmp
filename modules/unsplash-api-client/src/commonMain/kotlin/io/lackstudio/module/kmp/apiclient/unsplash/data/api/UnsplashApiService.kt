@@ -5,12 +5,15 @@ import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.Collectio
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.MeProfileResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TopicResponse
 
 interface UnsplashApiService {
     suspend fun getPhotos(page: Int, perPage: Int): List<PhotoResponse>
     suspend fun getPhoto(id: String): PhotoResponse
     suspend fun getCollections(page: Int, perPage: Int): List<CollectionResponse>
     suspend fun getCollection(id: String): CollectionResponse
+    suspend fun getTopics(page: Int, perPage: Int): List<TopicResponse>
+    suspend fun getTopic(idOrSlug: String): TopicResponse
     suspend fun getMe(): MeProfileResponse
 
     /**
