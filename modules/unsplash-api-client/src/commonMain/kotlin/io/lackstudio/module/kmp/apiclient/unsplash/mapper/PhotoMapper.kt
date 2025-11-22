@@ -4,7 +4,7 @@ import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResp
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoUrlsScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.AlternativeSlugsScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoLinksScheme
-import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.SponsorScheme
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.ParticipantScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.SponsorshipScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.UserLinksScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.UserScheme
@@ -94,7 +94,7 @@ fun UserLinksScheme.toUserLinks(): UserLinks {
     )
 }
 
-fun SponsorScheme.toSponsor(): Sponsor {
+fun ParticipantScheme.toSponsor(): Sponsor {
     return Sponsor(
         id = this.id,
         updatedAt = this.updatedAt,

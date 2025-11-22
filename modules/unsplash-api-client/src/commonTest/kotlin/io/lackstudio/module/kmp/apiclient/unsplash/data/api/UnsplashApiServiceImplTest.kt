@@ -59,7 +59,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
         }
 
     @Test
-    fun `getPhoto should return a single photo with the correct Authorization header`() =
+    fun `getPhoto should return a single photo by id with the correct Authorization header`() =
         runTest {
             val photoId = "4ICax0QMs8U"
             val photo = unsplashApiService.getPhoto(id = "4ICax0QMs8U")
@@ -78,11 +78,28 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
         }
 
     @Test
-    fun `getCollection should return a single collection with the correct Authorization header`() =
+    fun `getCollection should return a single collection by id with the correct Authorization header`() =
         runTest {
             val collectionId = "P2b4Wg7zWqs"
             val collection = unsplashApiService.getCollection(collectionId)
 
             assertEquals(collectionId,collection.id)
+        }
+
+    @Test
+    fun `getTopics should return a topic list with the correct Authorization header` () =
+        runTest {
+            val pageSize = 10
+            val topics = unsplashApiService.getTopics(page = 1, perPage = pageSize)
+
+            assertEquals(pageSize, topics.size)
+        }
+    @Test
+    fun `getTopic should return a topic by id or slug with the correct Authorization header`() =
+        runTest {
+            val slug = "wallpapers"
+            val topic = unsplashApiService.getTopic(slug)
+
+            assertEquals(slug, topic.slug)
         }
 }

@@ -13,6 +13,8 @@ import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.Collectio
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.MeProfileResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TopicResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.ApiKeys
 
 class UnsplashApiServiceImpl(
     private val httpClient: HttpClient,
@@ -25,8 +27,8 @@ class UnsplashApiServiceImpl(
     ): List<PhotoResponse> {
         appLogger.debug(tag = TAG, message = "getPhotos page $page, perPage $perPage")
         return httpClient.get(Environment.API_PHOTOS) {
-            parameter("page", page)
-            parameter("per_page", perPage)
+            parameter(ApiKeys.Params.PAGE, page)
+            parameter(ApiKeys.Params.PER_PAGE, perPage)
         }.body()
     }
 
@@ -37,12 +39,28 @@ class UnsplashApiServiceImpl(
 
     override suspend fun getCollections(page: Int, perPage: Int): List<CollectionResponse> {
         appLogger.debug(tag = TAG, message = "getCollections page $page, perPage $perPage")
-        return httpClient.get(Environment.API_COLLECTIONS).body()
+        return httpClient.get(Environment.API_COLLECTIONS){
+            parameter(ApiKeys.Params.PAGE, page)
+            parameter(ApiKeys.Params.PER_PAGE, perPage)
+        }.body()
     }
 
     override suspend fun getCollection(id: String): CollectionResponse {
         appLogger.debug(tag = TAG, message = "getCollection id $id")
         return httpClient.get("${Environment.API_COLLECTIONS}/$id").body()
+    }
+
+    override suspend fun getTopics(page: Int, perPage: Int): List<TopicResponse> {
+        appLogger.debug(tag = TAG, message = "getTopics page $page, perPage $perPage")
+        return httpClient.get(Environment.API_TOPICS){
+            parameter(ApiKeys.Params.PAGE, page)
+            parameter(ApiKeys.Params.PER_PAGE, perPage)
+        }.body()
+    }
+
+    override suspend fun getTopic(idOrSlug: String): TopicResponse {
+        appLogger.debug(tag = TAG, message = "getTopic id $idOrSlug")
+        return httpClient.get("${Environment.API_TOPICS}/$idOrSlug").body()
     }
 
     override suspend fun getMe(): MeProfileResponse {
