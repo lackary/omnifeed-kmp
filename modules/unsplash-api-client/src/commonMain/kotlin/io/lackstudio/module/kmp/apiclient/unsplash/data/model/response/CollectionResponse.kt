@@ -25,6 +25,6 @@ data class CollectionResponse(
     val user: UserScheme,
     @SerialName(ApiKeys.Common.COVER_PHOTO) val coverPhoto: PhotoScheme,
     @SerialName(ApiKeys.Common.PREVIEW_PHOTOS) val previewPhotos: List<PreviewPhotoScheme>,
-    val meta: MetaScheme,
-    @SerialName(ApiKeys.Common.MEDIA_TYPES) val mediaTypes: List<String>
+    val meta: MetaScheme? = null,
+    @SerialName(ApiKeys.Common.MEDIA_TYPES) val mediaTypes: List<String>? = emptyList()
 )

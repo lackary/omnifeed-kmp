@@ -49,15 +49,70 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
 
     private val unsplashApiService: UnsplashApiService by inject()
 
+    val username = "pawel_czerwinski"
+    val photoId = "4ICax0QMs8U"
+    val query = "Taipei"
+    val collectionId = "8961198"
+    /**
+     * getUserPublicProfile Test
+     */
     @Test
     fun `getUserPublicProfile should return a single user's public profile by username with the correct Authorization header`() =
         runTest {
-            val username = "pawel_czerwinski"
             val user = unsplashApiService.getUserPublicProfile(username)
 
             assertEquals(username, user.username)
         }
 
+    /**
+     * getUserPhotos Test
+     */
+    @Test
+    fun `getUserPhotos should return a user's photo list with the correct Authorization header`() =
+        runTest {
+            val pageSize = 10
+            val stats = true
+            val userPhotos =
+                unsplashApiService.getUserPhotos(
+                    username = username, page = 1, perPage = pageSize, stats = stats
+                )
+
+            assertEquals(pageSize, userPhotos.size)
+        }
+
+    /**
+     * getUserLikedPhotos Test
+     */
+    @Test
+    fun `getUserLikedPhotos should return a user's liked Photos with the Authorization header`() =
+        runTest {
+            val pageSize = 10
+            val likedPhotos =
+                unsplashApiService.getUserLikedPhotos(
+                    username = username, page = 1, perPage = pageSize
+                )
+
+            assertEquals(pageSize, likedPhotos.size)
+        }
+
+    /**
+     * getUserCollections Test
+     */
+    @Test
+    fun `getUserCollections should return a user collections`() =
+        runTest {
+            val pageSize = 5
+            val userCollections =
+                unsplashApiService.getUserCollections(
+                    username = username, page = 1, perPage = pageSize
+                )
+
+            assertEquals(pageSize, userCollections.size)
+        }
+
+    /**
+     * getPhotos Test
+     */
     @Test
     fun `getPhotos should return a photo list with the correct Authorization header`() =
         runTest {
@@ -67,16 +122,57 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
             assertEquals(pageSize, photos.size)
         }
 
+    /**
+     * getPhoto Test
+     */
     @Test
     fun `getPhoto should return a single photo by id with the correct Authorization header`() =
         runTest {
-            val photoId = "4ICax0QMs8U"
-            val photo = unsplashApiService.getPhoto(id = "4ICax0QMs8U")
+            val photo = unsplashApiService.getPhoto(id = photoId)
 
             assertNotNull(photo, "Photo should be not present null")
             assertEquals(photoId, photo.id)
         }
 
+    /**
+     * searchPhotos Test
+     */
+    @Test
+    fun `searchPhotos should return a photo list by query word with the correct Authorization header`() =
+        runTest {
+            val pageSize = 10
+            val searchPhotos = unsplashApiService.searchPhotos(query = query, page = 1, perPage = pageSize)
+
+            assertEquals(pageSize, searchPhotos.results.size)
+        }
+
+    /**
+     * searchCollections Test
+     */
+    @Test
+    fun `searchCollections should return a collection list by query with the correct Authorization header`() =
+        runTest {
+            val pageSize = 10
+            val searchCollections = unsplashApiService.searchCollections(query = query, page = 1, perPage = pageSize)
+
+            assertEquals(pageSize, searchCollections.results.size)
+        }
+
+    /**
+     * searchUsers Test
+     */
+    @Test
+    fun `searchUsers should return a user list by query with the correct Authorization header`() =
+        runTest {
+            val pageSize = 10
+            val searchUsers = unsplashApiService.searchUsers(query = query, page = 1, perPage = pageSize)
+
+            assertEquals(pageSize, searchUsers.results.size)
+        }
+
+    /**
+     * getCollections Test
+     */
     @Test
     fun `getCollections should return a collection list with the correct Authorization header`() =
         runTest {
@@ -86,14 +182,39 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
             assertEquals(pageSize, collections.size)
         }
 
+    /**
+     * getCollection Test
+     */
     @Test
     fun `getCollection should return a single collection by id with the correct Authorization header`() =
         runTest {
-            val collectionId = "P2b4Wg7zWqs"
             val collection = unsplashApiService.getCollection(collectionId)
 
             assertEquals(collectionId,collection.id)
         }
+
+    /**
+     * getCollectionPhotos Test
+     */
+    @Test
+    fun `getCollectionPhotos should return a collection's photos by id with the correct Authorization header`() =
+        runTest {
+            val pageSize = 10
+            val collectionPhotos =
+                unsplashApiService.getCollectionPhotos(collectionId, page = 1, perPage = pageSize)
+
+            assertEquals(pageSize, collectionPhotos.size)
+        }
+
+//    @Test
+//    fun `getCollectionRelatedCollections should return a collection's related collections`() =
+//            runTest {
+//            val pageSize = 10
+//            val  collectionRelatedCollections =
+//                unsplashApiService.getCollectionRelatedCollections(id = collectionId)
+//
+//            assertEquals(pageSize, collectionRelatedCollections.size)
+//        }
 
     @Test
     fun `getTopics should return a topic list with the correct Authorization header` () =
@@ -110,5 +231,16 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
             val topic = unsplashApiService.getTopic(slug)
 
             assertEquals(slug, topic.slug)
+        }
+
+    @Test
+    fun `getTopicPhotos should return a topic photo list by id or slug with the correctAuthorization header`() =
+        runTest {
+            val slugs = "wallpapers"
+            val pageSize = 10
+            val topicPhotos = unsplashApiService.getTopicPhotos(idOrSlug = slugs, page = 1, perPage = pageSize)
+
+            assertEquals(pageSize, topicPhotos.size)
+            assertNotNull(topicPhotos[0].topicSubmissions.wallpapers)
         }
 }

@@ -7,5 +7,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CategoryScheme (
     val status: String,
-    @SerialName(ApiKeys.Topic.APPROVED_ON) val approvedOn: String
+    @SerialName(ApiKeys.Topic.APPROVED_ON) val approvedOn: String? = null
 )
