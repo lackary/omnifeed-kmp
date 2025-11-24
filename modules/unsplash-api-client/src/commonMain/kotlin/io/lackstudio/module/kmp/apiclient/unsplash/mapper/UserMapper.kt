@@ -81,11 +81,11 @@ fun UserProfileResponse.toUserProfile(): UserProfile {
         social = this.social.toSocial(),
         photos = this.photos.map { previewPhotoScheme -> previewPhotoScheme.toPreviewPhoto() },
         badge = this.badge?.toBadge(),
-        tags = this.tags.toTags(),
+        tags = this.tags?.toTags(),
         allowMessages = this.allowMessages,
         numericId = this.numericId,
         downloads = this.downloads,
-        meta = this.meta.toMeta()
+        meta = this.meta?.toMeta()
     )
 }
 

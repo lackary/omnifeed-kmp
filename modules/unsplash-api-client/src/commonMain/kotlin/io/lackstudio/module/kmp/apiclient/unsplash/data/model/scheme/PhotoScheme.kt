@@ -26,7 +26,7 @@ data class PhotoScheme(
     val bookmarked: Boolean,
 //    @SerialName(JsonKeys.Photo.CURRENT_USER_COLLECTIONS) val currentUserCollections: List<Any?>,
     val sponsorship: SponsorshipScheme? = null,
-//    @SerialName(JsonKeys.Photo.TOPIC_SUBMISSIONS) val topicSubmissions: TopicSubmissions,
+    @SerialName(ApiKeys.Photo.TOPIC_SUBMISSIONS) val topicSubmissions: TopicSubmissionsScheme,
     @SerialName(ApiKeys.Photo.ASSET_TYPE) val assetType: String,
     val user: UserScheme
 )

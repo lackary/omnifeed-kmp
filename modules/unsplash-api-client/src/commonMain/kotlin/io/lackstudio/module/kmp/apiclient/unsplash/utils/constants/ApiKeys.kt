@@ -45,6 +45,15 @@ internal object ApiKeys {
         const val USER_ID = "user_id"
     }
 
+    // User
+    object User {
+        const val ACCEPTED_TOS = "accepted_tos"
+        const val ALLOW_MESSAGES = "allow_messages"
+        const val FIRST_NAME = "first_name"
+        const val LAST_NAME = "last_name"
+        const val NUMERIC_ID = "numeric_id"
+    }
+
     object Photo {
         const val BLUR_HASH = "blur_hash"
         const val ASSET_TYPE = "asset_type"
@@ -62,13 +71,8 @@ internal object ApiKeys {
         const val SHARE_KEY = "share_key"
     }
 
-    // User
-    object User {
-        const val ACCEPTED_TOS = "accepted_tos"
-        const val ALLOW_MESSAGES = "allow_messages"
-        const val FIRST_NAME = "first_name"
-        const val LAST_NAME = "last_name"
-        const val NUMERIC_ID = "numeric_id"
+    object Search {
+        const val TOTAL_PAGES = "total_pages"
     }
 
     object Topic {
