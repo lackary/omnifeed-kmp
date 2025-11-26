@@ -7,7 +7,6 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.logging.LogLevel
 import io.lackstudio.module.kmp.apiclient.unsplash.data.api.UnsplashApiService
 import io.lackstudio.module.kmp.apiclient.unsplash.data.api.UnsplashApiServiceImpl
-import io.lackstudio.module.kmp.apiclient.core.network.error.RemoteException
 import io.lackstudio.module.kmp.apiclient.unsplash.di.BaseKoinTest
 import io.ktor.http.HttpStatusCode
 import io.lackstudio.module.kmp.apiclient.core.common.logging.setupKermitLogger
@@ -15,7 +14,7 @@ import io.lackstudio.module.kmp.apiclient.core.di.KTOR_LOGGER_TAG
 import io.lackstudio.module.kmp.apiclient.core.network.KtorConfig
 import io.lackstudio.module.kmp.apiclient.core.network.oauth.AccessTokenProvider
 import io.lackstudio.module.kmp.apiclient.unsplash.data.error.UnsplashApiException
-import io.lackstudio.module.kmp.apiclient.unsplash.di.provideHttpClientEngineTest
+import io.lackstudio.module.kmp.apiclient.unsplash.platform.provideHttpClientEngineTest
 import io.lackstudio.module.kmp.apiclient.unsplash.platform.getUnsplashAccessKey
 import io.lackstudio.module.kmp.apiclient.unsplash.utils.Environment
 import kotlinx.coroutines.test.runTest

@@ -1,10 +1,11 @@
 package io.lackstudio.module.kmp.apiclient.unsplash.mapper
 
-import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoDetailResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoUrlsScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.AlternativeSlugsScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoLinksScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.ParticipantScheme
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.SponsorshipScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.UserLinksScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.UserScheme
@@ -17,7 +18,31 @@ import io.lackstudio.module.kmp.apiclient.unsplash.domain.model.Sponsor
 import io.lackstudio.module.kmp.apiclient.unsplash.domain.model.Sponsorship
 import io.lackstudio.module.kmp.apiclient.unsplash.domain.model.UserLinks
 
-fun PhotoResponse.toPreviewPhoto(): Photo {
+fun PhotoScheme.toPreviewPhoto(): Photo {
+    return Photo(
+        altDescription = this.altDescription,
+        alternativeSlugs = this.alternativeSlugs.toAlternativeSlugs(),
+        assetType = this.assetType,
+        blurHash = this.blurHash,
+        color = this.color,
+        createdAt = this.createdAt,
+        description = this.description,
+        height = height,
+        id = this.id,
+        likedByUser = this.likedByUser,
+        likes = this.likes,
+        links = this.links.toPhotoLinks(),
+        promotedAt = this.promotedAt,
+        slug = this.slug,
+        sponsorship = this.sponsorship?.toSponsorship(),
+        updatedAt = this.updatedAt,
+        urls = this.urls.toPhotoUrls(),
+        user = this.user.toPhotoUser(),
+        width = this.width,
+    )
+}
+
+fun PhotoDetailResponse.toPreviewPhoto(): Photo {
     return Photo(
         altDescription = this.altDescription,
         alternativeSlugs = this.alternativeSlugs.toAlternativeSlugs(),

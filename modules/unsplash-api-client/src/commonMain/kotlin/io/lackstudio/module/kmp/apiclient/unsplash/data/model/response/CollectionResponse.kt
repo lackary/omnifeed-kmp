@@ -19,12 +19,12 @@ data class CollectionResponse(
     @SerialName(ApiKeys.Common.UPDATED_AT) val updatedAt: String? = null,
     val featured: Boolean,
     @SerialName(ApiKeys.Statistics.TOTAL_PHOTOS) val totalPhotos: Int,
-    val `private`: Boolean,
+    val private: Boolean,
     @SerialName(ApiKeys.Collection.SHARE_KEY) val shareKey: String,
     val links: LinksScheme,
     val user: UserScheme,
-    @SerialName(ApiKeys.Common.COVER_PHOTO) val coverPhoto: PhotoScheme,
-    @SerialName(ApiKeys.Common.PREVIEW_PHOTOS) val previewPhotos: List<PreviewPhotoScheme>,
+    @SerialName(ApiKeys.Common.COVER_PHOTO) val coverPhoto: PhotoScheme? = null,
+    @SerialName(ApiKeys.Common.PREVIEW_PHOTOS) val previewPhotos: List<PreviewPhotoScheme>? = emptyList(),
     val meta: MetaScheme? = null,
     @SerialName(ApiKeys.Common.MEDIA_TYPES) val mediaTypes: List<String>? = emptyList()
 )

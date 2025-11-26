@@ -770,7 +770,7 @@ class PhotoResponseTest {
             }
         """.trimIndent()
 
-        val photo = json.decodeFromString<PhotoResponse>(jsonString)
+        val photo = json.decodeFromString<PhotoDetailResponse>(jsonString)
 
         assertNotNull(photo)
     }

@@ -1,4 +1,4 @@
-package io.lackstudio.module.kmp.apiclient.unsplash.di
+package io.lackstudio.module.kmp.apiclient.unsplash.platform
 
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.darwin.Darwin
@@ -29,7 +29,7 @@ actual fun provideHttpClientEngineTest(): HttpClientEngine = Darwin.create {
             if (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
                 val trust = challenge.protectionSpace.serverTrust
                 if (trust != null) {
-                    println("🚫 警告: 正在跳過 SSL/TLS 憑證驗證。")
+                    println("🚫 WARNING: Skipping SSL/TLS certificate verification.")
                     val credential = NSURLCredential.credentialForTrust(trust)
                     completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
                 } else {

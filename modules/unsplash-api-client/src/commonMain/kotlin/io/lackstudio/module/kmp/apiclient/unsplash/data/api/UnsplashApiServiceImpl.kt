@@ -11,11 +11,12 @@ import io.ktor.client.request.setBody
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.request.TokenRequest
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.CollectionResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.MeProfileResponse
-import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoDetailResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.SearchResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TopicResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.UserProfileResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoScheme
 import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.ApiKeys
 
 class UnsplashApiServiceImpl(
@@ -45,7 +46,7 @@ class UnsplashApiServiceImpl(
 //        resolution: String?,
         quantity: Int?,
         orientation: String?
-    ): List<PhotoResponse> {
+    ): List<PhotoScheme> {
         return httpClient.get("${Environment.API_USERS}/$username${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -63,7 +64,7 @@ class UnsplashApiServiceImpl(
         perPage: Int,
         orderBy: String?,
         orientation: String?
-    ): List<PhotoResponse> {
+    ): List<PhotoScheme> {
         return httpClient.get("${Environment.API_USERS}/$username${Environment.API_LIKES}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -88,7 +89,7 @@ class UnsplashApiServiceImpl(
         page: Int,
         perPage: Int,
         orientation: String?
-    ): List<PhotoResponse> {
+    ): List<PhotoScheme> {
         return httpClient.get("${Environment.API_COLLECTIONS}/$id${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -103,7 +104,7 @@ class UnsplashApiServiceImpl(
     override suspend fun getPhotos(
         page: Int,
         perPage: Int
-    ): List<PhotoResponse> {
+    ): List<PhotoScheme> {
         appLogger.debug(tag = TAG, message = "getPhotos page $page, perPage $perPage")
         return httpClient.get(Environment.API_PHOTOS) {
             parameter(ApiKeys.Params.PAGE, page)
@@ -111,7 +112,7 @@ class UnsplashApiServiceImpl(
         }.body()
     }
 
-    override suspend fun getPhoto(id: String): PhotoResponse {
+    override suspend fun getPhoto(id: String): PhotoDetailResponse {
         appLogger.debug(tag = TAG, message = "getPhoto id $id")
         return httpClient.get("${Environment.API_PHOTOS}/$id").body()
     }
@@ -125,7 +126,7 @@ class UnsplashApiServiceImpl(
         contentFilter: String?,
         color: String?,
         orientation: String?
-    ): SearchResponse<PhotoResponse> {
+    ): SearchResponse<PhotoScheme> {
         return httpClient.get("${Environment.API_SEARCH}${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.QUERY, query)
             parameter(ApiKeys.Params.PAGE, page)
@@ -194,7 +195,7 @@ class UnsplashApiServiceImpl(
         perPage: Int,
         orientation: String?,
         orderBy: String?
-    ): List<PhotoResponse> {
+    ): List<PhotoScheme> {
         return httpClient.get("${Environment.API_TOPICS}/$idOrSlug${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)

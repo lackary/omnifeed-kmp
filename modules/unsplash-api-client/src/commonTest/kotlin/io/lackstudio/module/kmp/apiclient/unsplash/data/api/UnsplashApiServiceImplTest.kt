@@ -10,7 +10,8 @@ import io.lackstudio.module.kmp.apiclient.core.di.KTOR_LOGGER_TAG
 import io.lackstudio.module.kmp.apiclient.core.network.KtorConfig
 import io.lackstudio.module.kmp.apiclient.core.network.oauth.AccessTokenProvider
 import io.lackstudio.module.kmp.apiclient.unsplash.di.BaseKoinTest
-import io.lackstudio.module.kmp.apiclient.unsplash.di.provideHttpClientEngineTest
+import io.lackstudio.module.kmp.apiclient.unsplash.network.UnsplashMockEngine
+import io.lackstudio.module.kmp.apiclient.unsplash.platform.provideHttpClientEngineTest
 import io.lackstudio.module.kmp.apiclient.unsplash.platform.getUnsplashAccessKey
 import io.lackstudio.module.kmp.apiclient.unsplash.utils.Environment
 import org.koin.dsl.module
@@ -25,6 +26,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
     override val appLogWriter: LogWriter
         get() = platformLogWriter()
     override val engine: HttpClientEngine
+//        get() = UnsplashMockEngine
         get() = provideHttpClientEngineTest()
     override val ktorConfig: KtorConfig
         get() = KtorConfig(
@@ -50,7 +52,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
     private val unsplashApiService: UnsplashApiService by inject()
 
     val username = "pawel_czerwinski"
-    val photoId = "4ICax0QMs8U"
+    val photoId = "jxCXGkaPQb0"
     val query = "Taipei"
     val collectionId = "8961198"
     /**
