@@ -3,11 +3,12 @@ package io.lackstudio.module.kmp.apiclient.unsplash.data.api
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.request.TokenRequest
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.CollectionResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.MeProfileResponse
-import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.PhotoDetailResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.SearchResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TokenResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.TopicResponse
 import io.lackstudio.module.kmp.apiclient.unsplash.data.model.response.UserProfileResponse
+import io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme.PhotoScheme
 
 interface UnsplashApiService {
     suspend fun getMe(): MeProfileResponse
@@ -24,7 +25,7 @@ interface UnsplashApiService {
 //     * @param resolution The frequency of the stats. (Optional; default: "days"). Note: only "days"
      * @param quantity The amount of for each stat. (Optional; default: 30).
      * @param orientation Filter by photo orientation. (Optional). Valid values are: 'landscape', 'portrait', 'squarish'.
-     * @return A list of [PhotoResponse] belonging to the specified user.
+     * @return A list of [PhotoScheme] belonging to the specified user.
      */
     suspend fun getUserPhotos(
         username: String,
@@ -35,7 +36,7 @@ interface UnsplashApiService {
 //        resolution: String? = null,
         quantity: Int? = null,
         orientation: String? = null
-    ): List<PhotoResponse>
+    ): List<PhotoScheme>
 
     /**
      * Retrieve a list of photos liked by a user. Reference by Unsplash API Documentation
@@ -45,7 +46,7 @@ interface UnsplashApiService {
      * @param perPage Number of items per page. (Optional; default: 10)
      * @param orderBy How to sort the photos. (Optional; default: latest). Valid values are: 'latest', 'oldest', 'popular'.
      * @param orientation Filter by photo orientation. (Optional). Valid values are: 'landscape', 'portrait', 'squarish'.
-     * @return A list of [PhotoResponse] containing the photos liked by the specified user.
+     * @return A list of [PhotoScheme] containing the photos liked by the specified user.
      */
     suspend fun getUserLikedPhotos(
         username: String,
@@ -53,7 +54,7 @@ interface UnsplashApiService {
         perPage: Int,
         orderBy: String? = null,
         orientation: String? = null
-    ): List<PhotoResponse>
+    ): List<PhotoScheme>
 
     suspend fun getUserCollections(
         username: String,
@@ -61,8 +62,8 @@ interface UnsplashApiService {
         perPage: Int,
     ): List<CollectionResponse>
 
-    suspend fun getPhotos(page: Int, perPage: Int): List<PhotoResponse>
-    suspend fun getPhoto(id: String): PhotoResponse
+    suspend fun getPhotos(page: Int, perPage: Int): List<PhotoScheme>
+    suspend fun getPhoto(id: String): PhotoDetailResponse
 
 //    suspend fun getRandomPhotos(): List<PhotoResponse>
 //    suspend fun getRandomPhoto(): PhotoResponse
@@ -78,7 +79,7 @@ interface UnsplashApiService {
      * @param contentFilter Limit results by content safety. (Optional; default: low). Valid values are: 'low', 'high'.
      * @param color Filter results by color. Valid values are: 'black_and_white', 'black', 'white', 'yellow', 'orange', 'red', 'purple', 'magenta', 'green', 'teal', and 'blue'.
      * @param orientation Filter by photo orientation. Valid values are: 'landscape', 'portrait', 'squarish'.
-     * @return A [SearchResponse] containing a list of [PhotoResponse]/[CollectionResponse]/[UserProfileResponse] matching the criteria.
+     * @return A [SearchResponse] containing a list of [PhotoScheme]/[CollectionResponse]/[UserProfileResponse] matching the criteria.
      */
     suspend fun searchPhotos(
         query: String,
@@ -89,7 +90,7 @@ interface UnsplashApiService {
         contentFilter: String? = null,
         color: String? = null,
         orientation: String? = null,
-    ): SearchResponse<PhotoResponse>
+    ): SearchResponse<PhotoScheme>
     suspend fun searchCollections(query: String, page: Int, perPage: Int): SearchResponse<CollectionResponse>
     suspend fun searchUsers(query: String, page: Int, perPage: Int): SearchResponse<UserProfileResponse>
     suspend fun getCollections(page: Int, perPage: Int): List<CollectionResponse>
@@ -109,7 +110,7 @@ interface UnsplashApiService {
         page: Int,
         perPage: Int,
         orientation: String? = null
-    ): List<PhotoResponse>
+    ): List<PhotoScheme>
     
     suspend fun getCollectionRelatedCollections(
         id: String
@@ -134,7 +135,7 @@ interface UnsplashApiService {
         perPage: Int,
         orientation: String? = null,
         orderBy: String? = null
-    ): List<PhotoResponse>
+    ): List<PhotoScheme>
 
     /**
      *  Get an access token by making a POST request according to the Unsplash API documentation.

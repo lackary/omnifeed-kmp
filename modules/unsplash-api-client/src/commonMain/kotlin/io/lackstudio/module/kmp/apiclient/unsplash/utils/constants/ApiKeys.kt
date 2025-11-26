@@ -63,7 +63,10 @@ internal object ApiKeys {
         const val LIKED_BY_USER = "liked_by_user"
         const val CURRENT_USER_COLLECTIONS = "current_user_collections"
         const val TOPIC_SUBMISSIONS = "topic_submissions"
+        const val SHOW_ON_PROFILE = "show_on_profile"
         const val DOWNLOAD_LOCATION = "download_location"
+        const val PUBLIC_DOMAIN = "public_domain"
+        const val RELATED_COLLECTIONS = "related_collections"
     }
 
     object Collection {
@@ -103,5 +106,10 @@ internal object ApiKeys {
     object Sponsorship {
         const val IMPRESSION_URLS = "impression_urls"
         const val TAGLINE_URL = "tagline_url"
+    }
+
+    object Exif {
+        const val EXPOSURE_TIME = "exposure_time"
+        const val FOCAL_LENGTH = "focal_length"
     }
 }
