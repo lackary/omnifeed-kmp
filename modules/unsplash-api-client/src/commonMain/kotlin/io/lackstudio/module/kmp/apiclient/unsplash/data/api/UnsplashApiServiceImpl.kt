@@ -32,9 +32,7 @@ class UnsplashApiServiceImpl(
 
     override suspend fun getUserPublicProfile(username: String): UserProfileResponse {
         appLogger.debug(tag = TAG, message = "getUserPublicProfile username $username")
-        return httpClient.get("${Environment.API_USERS}/$username") {
-            parameter(ApiKeys.Params.USERNAME, username)
-        }.body()
+        return httpClient.get("${Environment.API_USERS}/$username").body()
     }
 
     override suspend fun getUserPhotos(
@@ -156,7 +154,7 @@ class UnsplashApiServiceImpl(
         page: Int,
         perPage: Int
     ): SearchResponse<UserProfileResponse> {
-        return httpClient.get("${Environment.API_SEARCH}/${Environment.API_USERS}") {
+        return httpClient.get("${Environment.API_SEARCH}${Environment.API_USERS}") {
             parameter(ApiKeys.Params.QUERY, query)
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
