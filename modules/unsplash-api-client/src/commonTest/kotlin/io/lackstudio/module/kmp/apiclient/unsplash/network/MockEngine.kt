@@ -5,7 +5,6 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import io.ktor.utils.io.ByteReadChannel
 import io.lackstudio.module.kmp.apiclient.unsplash.test.MockData
 import io.lackstudio.module.kmp.apiclient.unsplash.utils.Environment
 import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.ApiKeys
@@ -16,6 +15,7 @@ const val MOCK_PHOTO_ID = "4ICax0QMs8U"
 const val MOCK_COLLECTION_ID = "8961198"
 const val MOCK_QUERY = "Taipei"
 const val MOCK_TOPIC_ID_OR_SLUG = "wallpapers"
+const val MOCK_ID_NOT_FOUND = "non-existent-id"
 
 val UnsplashMockEngine = MockEngine { request ->
     val url = request.url
@@ -24,32 +24,55 @@ val UnsplashMockEngine = MockEngine { request ->
 
     // 設定 JSON Header
     val responseHeaders = headersOf(HttpHeaders.ContentType, "application/json")
-    println("path: $path")
+    val lastPathSegment = path.substringAfterLast("/")
+    
     when {
         // API /users/:username
-        path == "${Environment.API_USERS}/$MOCK_USERNAME"-> {
-            respond(MockData.USER_PROFILE, HttpStatusCode.OK, responseHeaders)
+        path.matches(Regex("${Environment.API_USERS}/[^/]+")) -> {
+            if (lastPathSegment == MOCK_USERNAME) {
+                respond(MockData.USER_PROFILE, HttpStatusCode.OK, responseHeaders)
+            } else {
+                respond(MockData.ERROR_USER_NOT_FOUND, HttpStatusCode.NotFound, responseHeaders)
+            }
         }
         // API /users/:username/photos
-        path == "${Environment.API_USERS}/$MOCK_USERNAME${Environment.API_PHOTOS}" -> {
-            respond(MockData.USER_PHOTO_LIST, HttpStatusCode.OK, responseHeaders)
+        path.matches(Regex("${Environment.API_USERS}/[^/]+${Environment.API_PHOTOS}")) -> {
+            val username = path.substringAfter("${Environment.API_USERS}/").substringBefore(Environment.API_PHOTOS)
+            if (username == MOCK_USERNAME) {
+                respond(MockData.USER_PHOTO_LIST, HttpStatusCode.OK, responseHeaders)
+            } else {
+                respond(MockData.ERROR_USER_NOT_FOUND, HttpStatusCode.NotFound, responseHeaders)
+            }
         }
         // API /user/:username/likes
-        path == "${Environment.API_USERS}/$MOCK_USERNAME${Environment.API_LIKES}" -> {
-            println("path into: $path")
-            respond(MockData.USER_LIKED_PHOTO_LIST, HttpStatusCode.OK, responseHeaders)
+        path.matches(Regex("${Environment.API_USERS}/[^/]+${Environment.API_LIKES}")) -> {
+            val username = path.substringAfter("${Environment.API_USERS}/").substringBefore(Environment.API_LIKES)
+            if (username == MOCK_USERNAME) {
+                respond(MockData.USER_LIKED_PHOTO_LIST, HttpStatusCode.OK, responseHeaders)
+            } else {
+                respond(MockData.ERROR_USER_NOT_FOUND, HttpStatusCode.NotFound, responseHeaders)
+            }
         }
         // API /user/:username/collections
-        path == "${Environment.API_USERS}/$MOCK_USERNAME${Environment.API_COLLECTIONS}" -> {
-            respond(MockData.USER_COLLECTION_LIST, HttpStatusCode.OK, responseHeaders)
+        path.matches(Regex("${Environment.API_USERS}/[^/]+${Environment.API_COLLECTIONS}")) -> {
+            val username = path.substringAfter("${Environment.API_USERS}/").substringBefore(Environment.API_COLLECTIONS)
+            if (username == MOCK_USERNAME) {
+                respond(MockData.USER_COLLECTION_LIST, HttpStatusCode.OK, responseHeaders)
+            } else {
+                respond(MockData.ERROR_USER_NOT_FOUND, HttpStatusCode.NotFound, responseHeaders)
+            }
         }
         // API /photos
         path == Environment.API_PHOTOS -> {
             respond(MockData.PHOTO_LIST, HttpStatusCode.OK, responseHeaders)
         }
         // API /photos/:id
-        path == "${Environment.API_PHOTOS}/$MOCK_PHOTO_ID" -> {
-            respond(MockData.PHOTO, HttpStatusCode.OK, responseHeaders)
+        path.matches(Regex("${Environment.API_PHOTOS}/[^/]+")) -> {
+            if (lastPathSegment == MOCK_PHOTO_ID) {
+                respond(MockData.PHOTO, HttpStatusCode.OK, responseHeaders)
+            } else {
+                respond(MockData.ERROR_PHOTO_NOT_FOUND, HttpStatusCode.NotFound, responseHeaders)
+            }
         }
         // API /search/photos
         path == "${Environment.API_SEARCH}${Environment.API_PHOTOS}" && args[ApiKeys.Params.QUERY] == MOCK_QUERY -> {
@@ -68,8 +91,12 @@ val UnsplashMockEngine = MockEngine { request ->
             respond(MockData.COLLECTION_LIST, HttpStatusCode.OK, responseHeaders)
         }
         // API /collections/:id
-        path == "${Environment.API_COLLECTIONS}/$MOCK_COLLECTION_ID" -> {
-            respond(MockData.COLLECTION, HttpStatusCode.OK, responseHeaders)
+        path.matches(Regex("${Environment.API_COLLECTIONS}/[^/]+")) -> {
+            if (lastPathSegment == MOCK_COLLECTION_ID) {
+                respond(MockData.COLLECTION, HttpStatusCode.OK, responseHeaders)
+            } else {
+                respond(MockData.ERROR_COLLECTION_NOT_FOUND, HttpStatusCode.NotFound, responseHeaders)
+            }
         }
         // API /collections/:id/photos
         path == "${Environment.API_COLLECTIONS}/$MOCK_COLLECTION_ID${Environment.API_PHOTOS}" -> {
@@ -84,8 +111,12 @@ val UnsplashMockEngine = MockEngine { request ->
             respond(MockData.TOPIC_LIST, HttpStatusCode.OK, responseHeaders)
         }
         // API /topics/:id_or_slug
-        path == "${Environment.API_TOPICS}/$MOCK_TOPIC_ID_OR_SLUG" -> {
-            respond(MockData.TOPIC_ID_OR_SLUG, HttpStatusCode.OK, responseHeaders)
+        path.matches(Regex("${Environment.API_TOPICS}/[^/]+")) -> {
+            if (lastPathSegment == MOCK_TOPIC_ID_OR_SLUG) {
+                respond(MockData.TOPIC_ID_OR_SLUG, HttpStatusCode.OK, responseHeaders)
+            } else {
+                respond(MockData.ERROR_TOPIC_NOT_FOUND, HttpStatusCode.NotFound, responseHeaders)
+            }
         }
         // API /topic/:id_or_slug/photos
         path == "${Environment.API_TOPICS}/$MOCK_TOPIC_ID_OR_SLUG${Environment.API_PHOTOS}" -> {
