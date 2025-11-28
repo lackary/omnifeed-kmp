@@ -1,6 +1,6 @@
 package io.lackstudio.module.kmp.apiclient.unsplash.data.model.scheme
 
-import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.JsonKeys
+import io.lackstudio.module.kmp.apiclient.unsplash.utils.constants.ApiKeys
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -11,5 +11,5 @@ data class PhotoUrlsScheme(
     val regular: String,
     val small: String,
     val thumb: String,
-    @SerialName(JsonKeys.Urls.SMALL_S3) val smallS3: String
+    @SerialName(ApiKeys.Urls.SMALL_S3) val smallS3: String
 )
