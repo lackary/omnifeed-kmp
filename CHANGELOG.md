@@ -1,3 +1,23 @@
+# [0.9.0](https://github.com/lackary/api-client-kmp/compare/0.8.1...0.9.0) (2025-11-28)
+
+
+### Bug Fixes
+
+* **test:** resolve the PhotoResponseTest failed ([35a763d](https://github.com/lackary/api-client-kmp/commit/35a763df531491f1bf69132f70f62c1023d3685f))
+* **viewmodel:** remove hardcoded value in exchangeOAuthIntent ([868d6b6](https://github.com/lackary/api-client-kmp/commit/868d6b6a5bde98b911927c73a80679b41fa50b6e))
+
+
+### Features
+
+* **api:** implement the remaining Unsplash GET API endpoints. ([2435f3a](https://github.com/lackary/api-client-kmp/commit/2435f3af5cef0c9c79f9a73253880840e8f92890))
+* **api:** implement Unsplash collections core API endpoints ([fdaedb8](https://github.com/lackary/api-client-kmp/commit/fdaedb8c75faf4c3e0aa57c9d281ca89ccf33ea0))
+* **api:** implement Unsplash topics core API  endpoint ([9b7dcf0](https://github.com/lackary/api-client-kmp/commit/9b7dcf0904846187c4dc4763894190fc9e634b7f))
+* **api:** implement Unsplash user core API endpoint ([26da7d0](https://github.com/lackary/api-client-kmp/commit/26da7d04c41c5824108c8210449b24c6ac168159))
+* **data:** expose new Unsplash API methods in RemoteDataSource ([8249a8b](https://github.com/lackary/api-client-kmp/commit/8249a8b7eb9f22b9963d599d9dfb82d0a9a9756a))
+* **repository:** complete Unsplash repository implementation and domain models ([1db1792](https://github.com/lackary/api-client-kmp/commit/1db1792ac2a9fd6e61b60087eafc8b63bad668e4))
+* **test:** implement the api service mock test ([8c655ff](https://github.com/lackary/api-client-kmp/commit/8c655ffe5b13e1a952d4299b0fe3713093aef480))
+* **usecase:**  implement remaining  the use cases of unsplash and add integration tests ([f6ee602](https://github.com/lackary/api-client-kmp/commit/f6ee6022f4426c729dbe21165362f7bd595c52d1))
+
 ## [0.8.1](https://github.com/lackary/api-client-kmp/compare/0.8.0...0.8.1) (2025-11-19)
 
 
