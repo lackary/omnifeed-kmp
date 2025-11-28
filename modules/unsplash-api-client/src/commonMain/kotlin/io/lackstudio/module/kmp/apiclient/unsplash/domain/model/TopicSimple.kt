@@ -1,0 +1,11 @@
+package io.lackstudio.module.kmp.apiclient.unsplash.domain.model
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class TopicSimple(
+    val id: String,
+    val slug: String,
+    val title: String,
+    val visibility: String,
+)
