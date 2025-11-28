@@ -144,7 +144,7 @@ class AppViewModel(
             clientId = getUnsplashAccessKey(),
             clientSecret = getUnsplashSecretKey(),
             redirectUri = Environment.AUTH_REDIRECT_URL,
-            code = "X"
+            code = code
         )
         // *** Use MVI-specific abstract function ***
         handleUseCaseCall(

@@ -210,6 +210,7 @@ jobs:
         # Because the test APIs of Compose Multiplatform is still Experimental.
         run: |
           ./gradlew clean
+          ./gradlew :modules:unsplash-api-client:generateMockData
           ./gradlew check \
               -Pskip.tests=true \
               -Pskip.native.tests=true \

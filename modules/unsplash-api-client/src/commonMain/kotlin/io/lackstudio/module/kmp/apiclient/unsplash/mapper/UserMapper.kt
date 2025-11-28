@@ -43,7 +43,7 @@ fun MeProfileResponse.toMe(): Me {
         acceptedTos = this.acceptedTos,
         forHire = this.forHire,
         social = this.social.toSocial(),
-        photos = this.photos.map { previewPhotoScheme -> previewPhotoScheme.toPreviewPhoto() },
+        photos = this.photos.map { previewPhotoScheme -> previewPhotoScheme.toPhotoDetail() },
         badge = this.badge?.toBadge(),
         tags = this.tags.toTags(),
         allowMessages = this.allowMessages,
@@ -79,13 +79,13 @@ fun UserProfileResponse.toUserProfile(): UserProfile {
         acceptedTos = this.acceptedTos,
         forHire = this.forHire,
         social = this.social.toSocial(),
-        photos = this.photos.map { previewPhotoScheme -> previewPhotoScheme.toPreviewPhoto() },
+        photos = this.photos.map { previewPhotoScheme -> previewPhotoScheme.toPhotoDetail() },
         badge = this.badge?.toBadge(),
-        tags = this.tags.toTags(),
+        tags = this.tags?.toTags(),
         allowMessages = this.allowMessages,
         numericId = this.numericId,
         downloads = this.downloads,
-        meta = this.meta.toMeta()
+        meta = this.meta?.toMeta()
     )
 }
 
@@ -106,7 +106,7 @@ fun BadgeScheme.toBadge(): Badge {
     )
 }
 
-fun PreviewPhotoScheme.toPreviewPhoto(): PreviewPhoto {
+fun PreviewPhotoScheme.toPhotoDetail(): PreviewPhoto {
     return PreviewPhoto(
         id = this.id,
         slug = this.slug,
@@ -118,11 +118,7 @@ fun PreviewPhotoScheme.toPreviewPhoto(): PreviewPhoto {
     )
 }
 
-fun MetaScheme.toMeta(): Meta {
-    return Meta(
-        index = this.index
-    )
-}
+
 
 fun SocialScheme.toSocial(): Social {
     return Social(
@@ -130,13 +126,6 @@ fun SocialScheme.toSocial(): Social {
         portfolioUrl = this.portfolioUrl,
         twitterUsername = this.twitterUsername,
         paypalEmail = this.paypalEmail
-    )
-}
-
-fun TagScheme.toTag(): Tag {
-    return Tag(
-        type = this.type,
-        title = this.title
     )
 }
 

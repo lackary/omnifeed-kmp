@@ -28,9 +28,9 @@ data class UserProfile (
     val social: Social,
     val photos: List<PreviewPhoto>,
     val badge: Badge? = null,
-    val tags: Tags,
-    val allowMessages: Boolean,
-    val numericId: Long,
-    val downloads: Long,
-    val meta: Meta
+    val tags: Tags?,
+    val allowMessages: Boolean?,
+    val numericId: Long?,
+    val downloads: Long?,
+    val meta: Meta?
 )
