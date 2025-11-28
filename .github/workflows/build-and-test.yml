@@ -257,7 +257,7 @@ jobs:
       - name: Test Reporter
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results
+          name: test results
           path: 'downloaded-test-reports/**/*.xml' # Point to the downloaded report path
           reporter: java-junit
           token: ${{ secrets.GITHUB_TOKEN }} # Point to the downloaded report path

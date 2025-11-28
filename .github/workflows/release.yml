@@ -69,7 +69,7 @@ jobs:
       - name: Execute semantic release
         env:
           # Built-in token provided by GitHub
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
           GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
