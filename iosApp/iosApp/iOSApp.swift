@@ -5,7 +5,7 @@ import GoogleSignIn
 import ComposeApp
 
 fileprivate let logger = Logger(
-    subsystem: "io.lackstudio.module.kmp.apiclient.app",
+    subsystem: "io.lackstudio.omnifeed.app",
     category: "General")
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -13,8 +13,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseApp.configure()
         guard let webClientID: String = FirebaseApp.app()?.options.clientID else {
-            // 處理錯誤：可能檔案名稱錯誤、或檔案沒有加入 Target
-            fatalError("無法從 GoogleService-Info.plist 讀取 CLIENT_ID")
+            // Handle error: Incorrect filename or file not added to the Target
+            fatalError("Unable to read CLIENT_ID from GoogleService-Info.plist")
         }
         logger.info("webClientID: \(webClientID)")
         AppInitializer.shared.onApplicationStart(webClientId: webClientID)

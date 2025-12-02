@@ -144,17 +144,17 @@ To manage your API keys and client IDs securely, create two configuration files 
 
 ```xcconfig
 GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
-REVERSE_CLIENT_ID = "YOUR_REVERSE_CLIENT_ID"
+REVERSED_CLIENT_ID = "YOUR_REVERSED_CLIENT_ID"
 ```
 
 **`Secrets-Release.xcconfig`**
 
 ```xcconfig
 GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
-REVERSE_CLIENT_ID = "YOUR_REVERSE_CLIENT_ID"
+REVERSED_CLIENT_ID = "YOUR_REVERSED_CLIENT_ID"
 ```
 
-> **Note:** Replace the placeholder values with your actual credentials. You can find `GOOGLE_CLIENT_ID` and `REVERSE_CLIENT_ID` inside your `GoogleService-Info.plist` file. `GOOGLE_SERVER_CLIENT_ID` is the web client ID, used for backend authentication.
+> **Note:** Replace the placeholder values with your actual credentials. You can find `GOOGLE_CLIENT_ID` and `REVERSED_CLIENT_ID` inside your `GoogleService-Info.plist` file. `GOOGLE_SERVER_CLIENT_ID` is the web client ID, used for backend authentication.
 
 ### 3. Configure Xcode Project
 
@@ -175,7 +175,7 @@ Follow these steps to link the `.xcconfig` files and make the values available i
 2. Go to the **Info** tab.
 3. Expand **URL Types**.
 4. Click the `+` button to add a new URL Type.
-5. In the **URL Schemes** field for the new type, enter `$(REVERSE_CLIENT_ID)`. The `$` notation tells Xcode to substitute the value from your `.xcconfig` file at build time.
+5. In the **URL Schemes** field for the new type, enter `$(REVERSED_CLIENT_ID)`. The `$` notation tells Xcode to substitute the value from your `.xcconfig` file at build time.
 
 This setup ensures that your sensitive keys are kept out of source control and are correctly configured for both debug and release builds.
 
