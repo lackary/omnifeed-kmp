@@ -26,7 +26,7 @@ plugins {
 
 subprojects {
     //trick: for the same plugin versions in all sub-modules
-    group = "io.lackstudio.module.kmp.apiclient"
+    group = "io.lackstudio.omnifeed"
     version = projectVersion
 }
 

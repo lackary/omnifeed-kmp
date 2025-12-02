@@ -21,9 +21,9 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "api-client-kmp"
+rootProject.name = "omnifeed"
 
 include(":composeApp")
-include(":modules:core")
-include(":modules:ui")
-include(":modules:unsplash-api-client")
+include(":core")
+include(":ui")
+include("integrations:unsplash")
