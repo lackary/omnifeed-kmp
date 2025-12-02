@@ -189,11 +189,11 @@ buildkonfig {
 }
 
 android {
-    namespace = "$modulePackageName"
+    namespace = modulePackageName
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "$modulePackageName"
+        applicationId = modulePackageName
         minSdk = 30
         targetSdk = 36
         versionCode = 1
@@ -230,7 +230,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "$modulePackageName"
+            packageName = modulePackageName
             packageVersion = "1.0.0"
         }
     }
