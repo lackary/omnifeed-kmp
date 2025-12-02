@@ -8,6 +8,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import java.util.Properties
 
+val modulePackageName = "io.lackstudio.omnifeed.app"
+
 buildscript {
     repositories {
         mavenCentral()
@@ -120,9 +122,9 @@ kotlin {
             implementation(libs.mirzemehdi.kmpauthUihelper)
             implementation(libs.touchlab.kermit)
             implementation(libs.gitlive.firebaseAuth)
-            implementation(projects.modules.unsplashApiClient)
-            implementation(projects.modules.core)
-            implementation(projects.modules.ui)
+            implementation(projects.integrations.unsplash)
+            implementation(projects.core)
+            implementation(projects.ui)
         }
 
         commonTest.dependencies {
@@ -157,7 +159,7 @@ kotlin {
 }
 
 buildkonfig {
-    packageName = "io.lackstudio.module.kmp.apiclient.app.config"
+    packageName = "$modulePackageName.config"
     val localProps = Properties()
     val localPropsFile = rootProject.file("local.properties")
 
@@ -187,11 +189,11 @@ buildkonfig {
 }
 
 android {
-    namespace = "io.lackstudio.module.kmp.apiclient.app"
+    namespace = "$modulePackageName"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.lackstudio.module.kmp.apiclient.app"
+        applicationId = "$modulePackageName"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
@@ -224,11 +226,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "io.lackstudio.module.kmp.apiclient.app.MainKt"
+        mainClass = "$modulePackageName.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "io.lackstudio.module.kmp.apiclient.app"
+            packageName = "$modulePackageName"
             packageVersion = "1.0.0"
         }
     }

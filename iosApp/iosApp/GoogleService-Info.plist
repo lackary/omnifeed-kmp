@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>684238220012-0meagjedcu49audsrjv1pibk2tjcv1oq.apps.googleusercontent.com</string>
+	<string>684238220012-aitvfvasu04upa4rlo9n7uo8bm6hhoer.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.684238220012-0meagjedcu49audsrjv1pibk2tjcv1oq</string>
+	<string>com.googleusercontent.apps.684238220012-aitvfvasu04upa4rlo9n7uo8bm6hhoer</string>
 	<key>ANDROID_CLIENT_ID</key>
-	<string>684238220012-tleqk53r0ondld15j6uh4lf10tasap0n.apps.googleusercontent.com</string>
+	<string>684238220012-blbjl6da6kmpsp6lrbed5gk8qi6frrfa.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCEFEgbhzI_UZCbqy3_RGeg_YtrF6s1h8g</string>
 	<key>GCM_SENDER_ID</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>io.lackstudio.module.kmp.apiclient.app</string>
+	<string>io.lackstudio.omnifeed.app</string>
 	<key>PROJECT_ID</key>
 	<string>omnifeed-prod</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:684238220012:ios:0f7706789286ddc76753c9</string>
+	<string>1:684238220012:ios:9e71660e95be5e996753c9</string>
 </dict>
 </plist>
