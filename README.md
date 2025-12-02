@@ -213,6 +213,10 @@ kotlin{
 
 You need to have a dummy `*.framework` file that includes an empty header. This is a workaround to make CocoaPods recognize the Kotlin framework before it's actually built.
 
+```sh
+./gradlew :sample:composeApp:generateDummyFramework
+```
+
 ### 3. Initialize Pods
 
 If you have CocoaPods installed, run `pod init` in your iOS project's root directory. This will create a `Podfile` where you can list your dependencies.
