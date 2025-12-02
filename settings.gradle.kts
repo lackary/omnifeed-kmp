@@ -23,7 +23,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "omnifeed"
 
-include(":composeApp")
+include(":sample:composeApp")
 include(":core")
 include(":ui")
 include("integrations:unsplash")
