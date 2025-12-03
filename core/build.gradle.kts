@@ -31,7 +31,7 @@ kotlin {
             iosSimulatorArm64()
         ).forEach {
             it.binaries.framework {
-                baseName = "CoreApiClient"
+                baseName = "OmniFeedCore"
                 xcf.add(this)
                 isStatic = true
             }
@@ -128,9 +128,12 @@ publishing {
         // withType<MavenPublication>().all {
         //     artifactId = "testing" // or your artifact name
         // }
-        create<MavenPublication>("maven") {
-            artifactId = "core"
-            from(components["kotlin"])
+//        create<MavenPublication>("maven") {
+//            artifactId = "omnifeed-core"
+//            from(components["kotlin"])
+//        }
+        withType<MavenPublication> {
+            artifactId = artifactId.replace("core", "omnifeed-core")
         }
     }
     repositories {
