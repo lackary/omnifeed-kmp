@@ -44,7 +44,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
-            baseName = "UnsplashApiClient"
+            baseName = "OmniFeedUnsplash"
             xcf.add(this)
             isStatic = true
         }
@@ -145,9 +145,12 @@ publishing {
         // withType<MavenPublication>().all {
         //     artifactId = "testing" // or your artifact name
         // }
-        create<MavenPublication>("maven") {
-            artifactId = "unsplash-api-client"
-            from(components["kotlin"])
+//        create<MavenPublication>("maven") {
+//            artifactId = "omnifeed-unsplash"
+//            from(components["kotlin"])
+//        }
+        withType<MavenPublication> {
+            artifactId = artifactId.replace("unsplash", "omnifeed-unsplash")
         }
     }
     repositories {
