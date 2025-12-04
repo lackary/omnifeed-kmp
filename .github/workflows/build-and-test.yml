@@ -262,3 +262,44 @@ jobs:
           reporter: java-junit
           token: ${{ secrets.GITHUB_TOKEN }} # Point to the downloaded report path
           # fail-on-error: true # Set as needed; if build-and-test has already failed, you might not need this to fail again
+
+  dry-run-release: # Validates Release workflow configuration during the PR stage
+    name: Dry Run Release Check
+    runs-on: ubuntu-latest # Use ubuntu-latest, as dry-run does not involve macOS-specific features
+    needs: [build-and-test, report-test-results] # Ensure execution only after build and report are completed
+    if: always() # Run even if tests fail to check for syntax errors in the release process itself
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # semantic-release requires full git history
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # Key Test Point 1: Test if gradlew has execute permission
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Key Test Point 2: Test if semantic-release starts correctly (Dry Run)
+      # Even for dry-run, GITHUB_TOKEN is required to read repo info and PR content
+      - name: Execute semantic release (Dry Run)
+        env:
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+        # Add --dry-run and force execution on the current PR branch
+        # github.head_ref is specific to pull_request events
+        run: npx semantic-release --dry-run --branches ${{ github.head_ref }}
