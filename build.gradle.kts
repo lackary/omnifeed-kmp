@@ -12,43 +12,43 @@ fun getVersionFromFile(): String {
 
 fun getGitVersion(): String {
     return try {
-        // 執行 git describe --tags 來獲取最近的 tag (例如 v1.0.0 或 v1.0.0-2-gda23...)
+        // execute git describe --tags to get the latest tag (e.g., v1.0.0 or v1.0.0-2-gda23...)
         val process = ProcessBuilder("git", "describe", "--tags").start()
         val version = process.inputStream.bufferedReader().readText().trim()
 
         process.waitFor()
 
-        // 檢查執行結果：必須 exit code 為 0 且有內容
+        // Check execution result: exit code must be 0 and content must exist
         if (process.exitValue() == 0 && version.isNotEmpty()) {
-            // 移除開頭的 'v' (如果有的話)，例如 v1.0.0 -> 1.0.0
+            // Remove leading 'v' (if present), e.g., v1.0.0 -> 1.0.0
             version.removePrefix("v")
         } else {
             println("version is empty")
-            "" // 如果有 git 但沒 tag
+            "" // If git exists but there are no tags
         }
     } catch (e: Exception) {
         println("getGitVersion exception: ${e.message}")
-        "" // 如果沒有 git 環境 (例如 CI 某些階段或單純下載 zip)
+        "" // If there is no git environment (e.g., certain CI stages or a simple zip download)
     }
 }
 
 val projectVersion: String by lazy {
-    // 1. 優先嘗試從 Gradle Property 獲取 (由 Semantic com.google.firebase.appdistribution.gradle.models.uploadstatus.Release 傳入)
+    // Priority try to get from Gradle Property (Passed by Semantic Release)
     val pNewVersion = project.providers.gradleProperty("newVersion").orNull
 
-    // 2. 如果沒有 Property，再讀檔或讀 Git (本地開發用)
-    // 注意：VERSION.txt 可能包含 +88，所以我們需要處理它
+    // If no Property, read from file or Git (for local development)
+    // Note: VERSION.txt might contain +88, so we need to handle it
     val rawVersion = pNewVersion ?: getGitVersion().ifEmpty { getVersionFromFile() }
 
-    // 判斷是否為 CI 環境
+    // Check if running in CI environment
     val isCi = System.getenv("CI") == "true"
 
     if (isCi) {
-        // 🟢 關鍵邏輯：在 CI 發布 Artifact 時，強制切除 '+' 後面的 Build Metadata
-        // 這樣 Maven 發布出去的版本就是乾淨的 1.0.0，而不是 1.0.0+88
+        // Critical Logic: When publishing Artifacts in CI, strip the Build Metadata after '+'
+        // This ensures the published Maven version is a clean 1.0.0, not 1.0.0+88
         rawVersion.substringBefore("+")
     } else {
-        // 本地環境保留原始邏輯，方便 Debug
+        // Keep original logic for local environment for easier debugging
         rawVersion
     }
 }
@@ -99,8 +99,8 @@ abstract class SetBuildVersionTask : DefaultTask() {
         logger.lifecycle(">> newVersion (Semantic): $version")
         logger.lifecycle(">> buildNumber (CI): $build")
 
-        // 使用 '+' 連接 Build Number (SemVer 標準)
-        // 這樣 SDK 內部讀取 VERSION.txt 時能看到 1.0.0+88
+        // Use '+' to append Build Number (SemVer standard)
+        // This allows the SDK to see 1.0.0+88 when reading VERSION.txt internally
         val internalVersion = if (build.isNotEmpty()) {
             "$version+$build"
         } else {
