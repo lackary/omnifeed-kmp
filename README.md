@@ -1,4 +1,4 @@
-# ApiClientKmp
+# OmniFeed
 
 Kotlin Multiplatform (KMP) library project for API clients, using Ktor for networking and Koin for dependency injection.
 
@@ -144,17 +144,17 @@ To manage your API keys and client IDs securely, create two configuration files 
 
 ```xcconfig
 GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
-REVERSE_CLIENT_ID = "YOUR_REVERSE_CLIENT_ID"
+REVERSED_CLIENT_ID = "YOUR_REVERSED_CLIENT_ID"
 ```
 
 **`Secrets-Release.xcconfig`**
 
 ```xcconfig
 GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
-REVERSE_CLIENT_ID = "YOUR_REVERSE_CLIENT_ID"
+REVERSED_CLIENT_ID = "YOUR_REVERSED_CLIENT_ID"
 ```
 
-> **Note:** Replace the placeholder values with your actual credentials. You can find `GOOGLE_CLIENT_ID` and `REVERSE_CLIENT_ID` inside your `GoogleService-Info.plist` file. `GOOGLE_SERVER_CLIENT_ID` is the web client ID, used for backend authentication.
+> **Note:** Replace the placeholder values with your actual credentials. You can find `GOOGLE_CLIENT_ID` and `REVERSED_CLIENT_ID` inside your `GoogleService-Info.plist` file. `GOOGLE_SERVER_CLIENT_ID` is the web client ID, used for backend authentication.
 
 ### 3. Configure Xcode Project
 
@@ -175,7 +175,7 @@ Follow these steps to link the `.xcconfig` files and make the values available i
 2. Go to the **Info** tab.
 3. Expand **URL Types**.
 4. Click the `+` button to add a new URL Type.
-5. In the **URL Schemes** field for the new type, enter `$(REVERSE_CLIENT_ID)`. The `$` notation tells Xcode to substitute the value from your `.xcconfig` file at build time.
+5. In the **URL Schemes** field for the new type, enter `$(REVERSED_CLIENT_ID)`. The `$` notation tells Xcode to substitute the value from your `.xcconfig` file at build time.
 
 This setup ensures that your sensitive keys are kept out of source control and are correctly configured for both debug and release builds.
 
@@ -183,11 +183,11 @@ This setup ensures that your sensitive keys are kept out of source control and a
 
 ## Kotlin CocoaPods Dependency Manager Setup Guide
 
-This guide outlines the steps to set up a Kotlin Multiplatform project with CocoaPods for iOS development.
+This guide outlines the steps to configure a Kotlin Multiplatform project with CocoaPods and how to set up the iOS environment using our automation script.
 
 ### 1. Add Kotlin CocoaPods Dependency and Sync Gradle
 
-First, add the Kotlin CocoaPods plugin dependency to your `build.gradle.kts` file and sync the project with your Gradle files.
+First, ensure the Kotlin CocoaPods plugin is configured in your shared module's `build.gradle.kts`.
 
 ```kotlin
 kotlin{
@@ -209,13 +209,9 @@ kotlin{
 }
 ```
 
-### 2. Ensure a Dummy Framework Exists
+### 2. Initialize Pods
 
-You need to have a dummy `*.framework` file that includes an empty header. This is a workaround to make CocoaPods recognize the Kotlin framework before it's actually built.
-
-### 3. Initialize Pods
-
-If you have CocoaPods installed, run `pod init` in your iOS project's root directory. This will create a `Podfile` where you can list your dependencies.
+Define your dependencies in the `Podfile` located in your iOS project directory (`sample/iosApp/Podfile`).
 
 ```sh
 # Uncomment the next line to define a global platform for your project
@@ -232,18 +228,32 @@ target 'iosApp' do
 end
 ```
 
-### 4. Install Pods
+### 3. One-Step Setup (Run the Script)
 
-Run the following command to install the necessary libraries:
+Instead of manually generating dummy frameworks and running pod install commands, we use a script to handle the initialization automatically. This solves common issues like missing resources (`[CP] Copy Pods Resources`) or framework errors.
 
-```sh
-pod install --repo-update --clean-install
+Run the following command from the **project root directory**:
+
+```shell
+./setup_ios.sh
 ```
 
-### 5. Open the Xcode Workspace
+**What this script does:**
+1. **Cleans** old Gradle builds to ensure a fresh state.
+2. **Creates a dummy resource directory** to ensure CocoaPods generates the resource copy script.
+3. **Generates a dummy framework** for CocoaPods detection.
+4. **Runs `pod install`** with clean settings to ensure dependencies are linked correctly.
 
-Open the newly created `*.xcworkspace` file. This workspace contains your original project along with the installed Pods.
+### 4. Open Project
 
-### 6. Generate the Real Framework
+Once the script finishes successfully:
+
+1. Open `sample/iosApp/iosApp.xcworkspace` in Xcode.
+2. Select the `iosApp` target.
+3. **Run** the app (Cmd + R).
+
+**Note:** If you encounter any issues (e.g., missing resources), try running `./setup_ios.sh` again to reset the environment.
+
+### 5. Generate the Real Framework
 
 Finally, you can generate the real framework by building the project.
