@@ -28,7 +28,7 @@ concurrency:
 jobs:
   deploy:
     environment:
-      name: ${{ github.event_name == 'pull_request' && 'staging' || 'github-pages' }}
+      name: ${{ github.event_name == 'pull_request' && 'stage' || 'github-pages' }}
       url: ${{ steps.deployment.outputs.page_url }}
 
     runs-on: ubuntu-latest
@@ -66,5 +66,5 @@ jobs:
         with:
           header: github-pages
           message: |
-            🚀 Successfully deployed static web to **${{ github.event_name == 'pull_request' && 'staging' || 'production' }}**
+            🚀 Successfully deployed static web to **${{ github.event_name == 'pull_request' && 'stage' || 'prod' }}**
             🌐 URL: **${{ steps.deployment.outputs.page_url }}/auth/callback**

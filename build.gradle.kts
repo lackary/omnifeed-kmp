@@ -1,11 +1,55 @@
 // Create a readable version number variable in the root directory
 // The default value is "0.0.1", the actual version number will be set by the CI/CD process
-val projectVersion: String by lazy {
-    val versionFile = File("VERSION.txt")
-    if (versionFile.exists()) {
+val versionFilename = "VERSION.txt"
+fun getVersionFromFile(): String {
+    val versionFile = File(versionFilename)
+    return if (versionFile.exists()) {
         versionFile.readText().trim()
     } else {
         "0.0.1"
+    }
+}
+
+fun getGitVersion(): String {
+    return try {
+        // execute git describe --tags to get the latest tag (e.g., v1.0.0 or v1.0.0-2-gda23...)
+        val process = ProcessBuilder("git", "describe", "--tags").start()
+        val version = process.inputStream.bufferedReader().readText().trim()
+
+        process.waitFor()
+
+        // Check execution result: exit code must be 0 and content must exist
+        if (process.exitValue() == 0 && version.isNotEmpty()) {
+            // Remove leading 'v' (if present), e.g., v1.0.0 -> 1.0.0
+            version.removePrefix("v")
+        } else {
+            println("version is empty")
+            "" // If git exists but there are no tags
+        }
+    } catch (e: Exception) {
+        println("getGitVersion exception: ${e.message}")
+        "" // If there is no git environment (e.g., certain CI stages or a simple zip download)
+    }
+}
+
+val projectVersion: String by lazy {
+    // Priority try to get from Gradle Property (Passed by Semantic Release)
+    val pNewVersion = project.providers.gradleProperty("newVersion").orNull
+
+    // If no Property, read from file or Git (for local development)
+    // Note: VERSION.txt might contain +88, so we need to handle it
+    val rawVersion = pNewVersion ?: getGitVersion().ifEmpty { getVersionFromFile() }
+
+    // Check if running in CI environment
+    val isCi = System.getenv("CI") == "true"
+
+    if (isCi) {
+        // Critical Logic: When publishing Artifacts in CI, strip the Build Metadata after '+'
+        // This ensures the published Maven version is a clean 1.0.0, not 1.0.0+88
+        rawVersion.substringBefore("+")
+    } else {
+        // Keep original logic for local environment for easier debugging
+        rawVersion
     }
 }
 
@@ -26,9 +70,10 @@ plugins {
 
 subprojects {
     //trick: for the same plugin versions in all sub-modules
-    group = "io.lackstudio.module.kmp.apiclient"
+    group = "io.lackstudio.omnifeed"
     version = projectVersion
 }
+
 
 // Inherit from DefaultTask or a more suitable abstract class
 // Use @get:Input to mark these properties as task inputs
@@ -42,7 +87,7 @@ abstract class SetBuildVersionTask : DefaultTask() {
     abstract val buildNumber: Property<String>
 
     @get:OutputFile
-    val versionFile = project.layout.projectDirectory.file("VERSION.txt")
+    val versionFile = project.layout.projectDirectory.file(versionFilename)
 
     // Use @TaskAction to annotate the task's execution logic
     @TaskAction
@@ -51,22 +96,21 @@ abstract class SetBuildVersionTask : DefaultTask() {
         val version = newVersion.get()
         val build = buildNumber.get()
 
-        logger.lifecycle(">> newVersion = $version, buildNumber = $build")
+        logger.lifecycle(">> newVersion (Semantic): $version")
+        logger.lifecycle(">> buildNumber (CI): $build")
 
-        // Combine the version number, format is "<SemVer>.<BuildNumber>"
-        // For example: 1.2.3-beta.456
-
-        val combinedVersion = if (version.contains("-")) {
-            "$version.$build"
+        // Use '+' to append Build Number (SemVer standard)
+        // This allows the SDK to see 1.0.0+88 when reading VERSION.txt internally
+        val internalVersion = if (build.isNotEmpty()) {
+            "$version+$build"
         } else {
-            "$version-beta.$build"
+            version
         }
 
-        // Write the combined version number to a file
-        logger.lifecycle(">> write version to ${versionFile.asFile}")
-        versionFile.asFile.writeText(combinedVersion)
+        logger.lifecycle(">> write INTERNAL version to ${versionFile.asFile}")
+        versionFile.asFile.writeText(internalVersion)
 
-        logger.lifecycle(">> Successfully set VERSION.txt to: $combinedVersion")
+        logger.lifecycle(">> Successfully set $versionFilename to: $internalVersion")
     }
 }
 
@@ -83,5 +127,5 @@ tasks.register<SetBuildVersionTask>("setBuildVersion") {
 
     // Configure group and description
     group = "versioning"
-    description = "Writes the project version and build number to VERSION.txt."
+    description = "Writes the project version and build number to $versionFilename."
 }

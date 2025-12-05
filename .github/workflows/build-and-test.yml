@@ -6,10 +6,11 @@ on:
       - main
     paths:
       - '.github/workflows/**'
-      - 'composeApp/**'
-      - 'iosApp/**'
+      - 'sample/**'
+      - 'core/**'
+      - 'ui/**'
+      - 'integrations/**'
       - 'gradle/**'
-      - 'modules/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
       - 'package.json'
@@ -19,10 +20,11 @@ on:
       - '*'
     paths:
       - '.github/workflows/**'
-      - 'composeApp/**'
-      - 'iosApp/**'
+      - 'sample/**'
+      - 'core/**'
+      - 'ui/**'
+      - 'integrations/**'
       - 'gradle/**'
-      - 'modules/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
       - 'package.json'
@@ -93,7 +95,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Create Dynamic Secrets XConfig File
-        working-directory: './iosApp/Configuration'
+        working-directory: './sample/iosApp/Configuration'
         # Create your .xconfig file (the name must match what Xcode expects to read)
         # Write GIDClientID (corresponding to CLIENT_ID)
         # Write CFBundleURLSchemes (corresponding to REVERSED_CLIENT_ID)
@@ -151,18 +153,15 @@ jobs:
               ${{ inputs.run_with_debug && '--debug' || '' }} \
               ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
 
-      - name: Generate Dummy Framework for CocoaPods
-        run: ./gradlew :composeApp:generateDummyFramework
-
-      - name: Install CocoaPods Dependencies
-        # Make sure you have a Podfile in your iosApp directory
-        # Use `gem install cocoapods` to ensure the CocoaPods environment is available
-        # Run `pod install`, which will generate the Pods/ directory and the .xcworkspace file
-        working-directory: './iosApp'
+      - name: Setup iOS Environment (Dummy Framework & Pods)
         run: |
-          echo "Installing CocoaPods dependencies..."
-          gem install cocoapods 
-          pod install
+          echo "Installing CocoaPods..."
+          gem install cocoapods
+
+          echo "Running Setup Script..."
+          chmod +x setup_ios.sh
+          ./setup_ios.sh
+      
 
       # ✅ List simulators
       - name: List available simulators
@@ -194,7 +193,7 @@ jobs:
           echo "SIM=$SIM" >> $GITHUB_ENV
 
       - name: Xcode Build (clean build .xcworkspace)
-        working-directory: './iosApp'
+        working-directory: './sample/iosApp'
         run: |
           echo "Building iOS target via .xcworkspace..."
           xcodebuild clean build \
@@ -210,7 +209,7 @@ jobs:
         # Because the test APIs of Compose Multiplatform is still Experimental.
         run: |
           ./gradlew clean
-          ./gradlew :modules:unsplash-api-client:generateMockData
+          ./gradlew :integration:unsplash:generateMockData
           ./gradlew check \
               -Pskip.tests=true \
               -Pskip.native.tests=true \
@@ -262,3 +261,44 @@ jobs:
           reporter: java-junit
           token: ${{ secrets.GITHUB_TOKEN }} # Point to the downloaded report path
           # fail-on-error: true # Set as needed; if build-and-test has already failed, you might not need this to fail again
+
+  dry-run-release: # Validates Release workflow configuration during the PR stage
+    name: dry run release check
+    runs-on: ubuntu-latest # Use ubuntu-latest, as dry-run does not involve macOS-specific features
+    needs: [build-and-test, report-test-results] # Ensure execution only after build and report are completed
+    if: always() # Run even if tests fail to check for syntax errors in the release process itself
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # semantic-release requires full git history
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # Key Test Point 1: Test if gradlew has execute permission
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Key Test Point 2: Test if semantic-release starts correctly (Dry Run)
+      # Even for dry-run, GITHUB_TOKEN is required to read repo info and PR content
+      - name: Execute semantic release (Dry Run)
+        env:
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+        # Add --dry-run and force execution on the current PR branch
+        # github.head_ref is specific to pull_request events
+        run: npx semantic-release --dry-run --branches ${{ github.head_ref }}
