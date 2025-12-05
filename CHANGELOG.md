@@ -1,3 +1,11 @@
+## [0.9.1](https://github.com/lackary/omnifeed-kmp/compare/0.9.0...0.9.1) (2025-12-05)
+
+
+### Bug Fixes
+
+* **ios:** correct gradlew path in Xcode build phase script ([9e579c3](https://github.com/lackary/omnifeed-kmp/commit/9e579c35c5f4e1237470100bf4ae761438825e81))
+* **web:** resolve the callback url not found ([5996369](https://github.com/lackary/omnifeed-kmp/commit/5996369dcd3faf399100f0625938790b2921f541))
+
 # [0.9.0](https://github.com/lackary/api-client-kmp/compare/0.8.1...0.9.0) (2025-11-28)
 
 
