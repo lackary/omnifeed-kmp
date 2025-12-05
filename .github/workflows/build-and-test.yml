@@ -262,11 +262,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }} # Point to the downloaded report path
           # fail-on-error: true # Set as needed; if build-and-test has already failed, you might not need this to fail again
 
-  dry-run-release: # Validates Release workflow configuration during the PR stage
+  # Validates Release workflow configuration during the PR stage
+  dry-run-release:
     name: dry run release check
-    runs-on: ubuntu-latest # Use ubuntu-latest, as dry-run does not involve macOS-specific features
-    needs: [build-and-test, report-test-results] # Ensure execution only after build and report are completed
-    if: always() # Run even if tests fail to check for syntax errors in the release process itself
+    # Use ubuntu-latest, as dry-run does not involve macOS-specific features
+    runs-on: ubuntu-latest
+    # Ensure execution only after build and report are completed
+    needs: [build-and-test, report-test-results]
+    # Trigger only on PR events, and ensure previous jobs were not cancelled (always runs, unless previous jobs were cancelled)
+    if: github.event_name == 'pull_request' && !cancelled()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
