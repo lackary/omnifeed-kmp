@@ -1,8 +1,41 @@
-// Create a readable version number variable in the root directory
-// The default value is "0.0.1", the actual version number will be set by the CI/CD process
+import org.gradle.process.ExecOperations
+import javax.inject.Inject
+
+// Define version filename
 val versionFilename = "VERSION.txt"
-fun getVersionFromFile(): String {
-    val versionFile = File(versionFilename)
+
+// ---------------------------------------------------------------------------
+// Define ValueSource (Resolves Git execution issues with Configuration Cache)
+// ---------------------------------------------------------------------------
+abstract class GitVersionValueSource : ValueSource<String, ValueSourceParameters.None> {
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
+    override fun obtain(): String {
+        return try {
+            val output = java.io.ByteArrayOutputStream()
+            execOperations.exec {
+                commandLine("git", "describe", "--tags")
+                standardOutput = output
+                isIgnoreExitValue = true
+            }
+            val version = output.toString().trim()
+            if (version.isNotEmpty() && !version.contains("not a git repository")) {
+                version.removePrefix("v")
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            ""
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Helper function: Read version from file
+// ---------------------------------------------------------------------------
+fun getVersionFromFile(filename: String, projectDir: File): String {
+    val versionFile = File(projectDir, filename)
     return if (versionFile.exists()) {
         versionFile.readText().trim()
     } else {
@@ -10,45 +43,27 @@ fun getVersionFromFile(): String {
     }
 }
 
-fun getGitVersion(): String {
-    return try {
-        // execute git describe --tags to get the latest tag (e.g., v1.0.0 or v1.0.0-2-gda23...)
-        val process = ProcessBuilder("git", "describe", "--tags").start()
-        val version = process.inputStream.bufferedReader().readText().trim()
-
-        process.waitFor()
-
-        // Check execution result: exit code must be 0 and content must exist
-        if (process.exitValue() == 0 && version.isNotEmpty()) {
-            // Remove leading 'v' (if present), e.g., v1.0.0 -> 1.0.0
-            version.removePrefix("v")
-        } else {
-            println("version is empty")
-            "" // If git exists but there are no tags
-        }
-    } catch (e: Exception) {
-        println("getGitVersion exception: ${e.message}")
-        "" // If there is no git environment (e.g., certain CI stages or a simple zip download)
-    }
-}
-
+// ---------------------------------------------------------------------------
+// Calculate projectVersion (Supports Lazy Evaluation)
+// ---------------------------------------------------------------------------
 val projectVersion: String by lazy {
-    // Priority try to get from Gradle Property (Passed by Semantic Release)
+    // 1. Prioritize reading from Gradle Property (Passed by CI)
     val pNewVersion = project.providers.gradleProperty("newVersion").orNull
 
-    // If no Property, read from file or Git (for local development)
-    // Note: VERSION.txt might contain +88, so we need to handle it
-    val rawVersion = pNewVersion ?: getGitVersion().ifEmpty { getVersionFromFile() }
+    // 2. If no Property, try getting from Git (Use ValueSource to avoid breaking Cache)
+    val gitVersionProvider = project.providers.of(GitVersionValueSource::class) {}
+    val gitVer = gitVersionProvider.get()
 
-    // Check if running in CI environment
+    // 3. Determine Raw Version (Property > Git > File)
+    val rawVersion = pNewVersion ?: gitVer.ifEmpty {
+        getVersionFromFile(versionFilename, layout.projectDirectory.asFile)
+    }
+
+    // 4. CI Environment check (Remove Build Metadata)
     val isCi = System.getenv("CI") == "true"
-
     if (isCi) {
-        // Critical Logic: When publishing Artifacts in CI, strip the Build Metadata after '+'
-        // This ensures the published Maven version is a clean 1.0.0, not 1.0.0+88
         rawVersion.substringBefore("+")
     } else {
-        // Keep original logic for local environment for easier debugging
         rawVersion
     }
 }
@@ -69,63 +84,53 @@ plugins {
 }
 
 subprojects {
-    //trick: for the same plugin versions in all sub-modules
     group = "io.lackstudio.omnifeed"
     version = projectVersion
 }
 
+// ---------------------------------------------------------------------------
+// Define Task (Fixes Configuration Cache and variable issues)
+// ---------------------------------------------------------------------------
+tasks.register("setBuildVersion") {
+    group = "versioning"
+    description = "Writes the project version and build number to $versionFilename."
 
-// Inherit from DefaultTask or a more suitable abstract class
-// Use @get:Input to mark these properties as task inputs
-abstract class SetBuildVersionTask : DefaultTask() {
+    // Save filename as a local variable to avoid closure capture errors
+    val vFileName = versionFilename
 
-    // Use Property<String> to hold the version and build numbers, ensuring configuration cache compatibility
-    @get:Input
-    abstract val newVersion: Property<String>
+    // Define input parameters (Inputs) - Use .orElse("") to avoid null errors
+    val pNewVersion = project.providers.gradleProperty("newVersion").orElse("")
+    val pBuildNumber = project.providers.gradleProperty("buildNumber").orElse("")
 
-    @get:Input
-    abstract val buildNumber: Property<String>
+    // Define output file (Outputs)
+    val outputFile = layout.projectDirectory.file(vFileName)
+    outputs.file(outputFile)
 
-    @get:OutputFile
-    val versionFile = project.layout.projectDirectory.file(versionFilename)
+    // Mark inputs to support Up-to-date checks
+    inputs.property("newVersion", pNewVersion)
+    inputs.property("buildNumber", pBuildNumber)
 
-    // Use @TaskAction to annotate the task's execution logic
-    @TaskAction
-    fun execute() {
-        // Use .get() to retrieve the actual String value.
-        val version = newVersion.get()
-        val build = buildNumber.get()
+    doLast {
+        val version = pNewVersion.get()
+        val build = pBuildNumber.get()
 
         logger.lifecycle(">> newVersion (Semantic): $version")
         logger.lifecycle(">> buildNumber (CI): $build")
 
-        // Use '+' to append Build Number (SemVer standard)
-        // This allows the SDK to see 1.0.0+88 when reading VERSION.txt internally
+        // Local execution safeguard: If no version provided, just print warning and skip
+        if (version.isBlank()) {
+            logger.warn("Warning: -PnewVersion not provided. Skipping $vFileName update.")
+            return@doLast
+        }
+
         val internalVersion = if (build.isNotEmpty()) {
             "$version+$build"
         } else {
             version
         }
 
-        logger.lifecycle(">> write INTERNAL version to ${versionFile.asFile}")
-        versionFile.asFile.writeText(internalVersion)
-
-        logger.lifecycle(">> Successfully set $versionFilename to: $internalVersion")
+        logger.lifecycle(">> write INTERNAL version to ${outputFile.asFile}")
+        outputFile.asFile.writeText(internalVersion)
+        logger.lifecycle(">> Successfully set $vFileName to: $internalVersion")
     }
-}
-
-// Register and configure the new task
-tasks.register<SetBuildVersionTask>("setBuildVersion") {
-    // Use providers.gradleProperty to safely get -P parameters
-    // If the property doesn't exist, it returns an unset Property.
-    val pNewVersion = project.providers.gradleProperty("newVersion")
-    val pBuildNumber = project.providers.gradleProperty("buildNumber")
-
-    // Use .set() to configure task properties.
-    newVersion.set(pNewVersion)
-    buildNumber.set(pBuildNumber)
-
-    // Configure group and description
-    group = "versioning"
-    description = "Writes the project version and build number to $versionFilename."
 }
