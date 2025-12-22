@@ -98,13 +98,13 @@ This project is a Kotlin Multiplatform Library. Below are instructions for impor
 
     ```toml
     [libraries]
-    testing = { group = "com.lackstudio.module.kmp.testing", name = "testing", version = "0.0.1" }
+    omnifeed-xxxx = { group = "com.lackstudio.omnifeed", name = "omni-xxxx", version = "0.0.1" }
     ```
 
     In your app's `build.gradle.kts`:
 
     ```kotlin
-    implementation(libs.testing)
+    implementation(libs.omnifeed.xxxx)
     ```
 
     Or, without version catalog:

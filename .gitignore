@@ -1,6 +1,7 @@
 # Gradle Files
 .gradle/
 build/
+kotlin-js-store
 
 # Secrets and local properties
 # Ensure these are not versioned: API keys, local SDK paths

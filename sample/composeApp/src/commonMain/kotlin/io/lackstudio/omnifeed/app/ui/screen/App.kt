@@ -146,27 +146,27 @@ fun App() {
                 Button(onClick = { this.onClick() }) { Text("Google Sign-In(Custom Design)") }
             }
 
-            // ************************** UiHelper Text Buttons *************
-            HorizontalDivider(
-                Modifier.fillMaxWidth().padding(16.dp),
-                DividerDefaults.Thickness,
-                DividerDefaults.color
-            )
-            AuthUiHelperButtonsAndFirebaseAuth(
-                modifier = Modifier.width(IntrinsicSize.Max),
-                onFirebaseResult = onFirebaseResult
-            )
-
-            //************************** UiHelper IconOnly Buttons *************
-            HorizontalDivider(
-                Modifier.fillMaxWidth().padding(16.dp),
-                DividerDefaults.Thickness,
-                DividerDefaults.color
-            )
-            IconOnlyButtonsAndFirebaseAuth(
-                modifier = Modifier.fillMaxWidth(),
-                onFirebaseResult = onFirebaseResult
-            )
+//            // ************************** kmpauth UiHelper Text Buttons *************
+//            HorizontalDivider(
+//                Modifier.fillMaxWidth().padding(16.dp),
+//                DividerDefaults.Thickness,
+//                DividerDefaults.color
+//            )
+//            AuthUiHelperButtonsAndFirebaseAuth(
+//                modifier = Modifier.width(IntrinsicSize.Max),
+//                onFirebaseResult = onFirebaseResult
+//            )
+//
+//            //************************** UiHelper IconOnly Buttons *************
+//            HorizontalDivider(
+//                Modifier.fillMaxWidth().padding(16.dp),
+//                DividerDefaults.Thickness,
+//                DividerDefaults.color
+//            )
+//            IconOnlyButtonsAndFirebaseAuth(
+//                modifier = Modifier.fillMaxWidth(),
+//                onFirebaseResult = onFirebaseResult
+//            )
 
             //************************** My Login Buttons *************
             HorizontalDivider(
