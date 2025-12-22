@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import java.util.Properties
 
 // Define the Package Name for this module
@@ -52,6 +53,17 @@ kotlin {
 
     jvm()
 
+//    js {
+//        browser()
+//        binaries.executable()
+//    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        binaries.executable()
+    }
+
     sourceSets {
         commonMain.dependencies {
             //put your multiplatform dependencies here
@@ -99,6 +111,8 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.darwin)
         }
+
+        wasmJsMain.dependencies { }
     }
 }
 
