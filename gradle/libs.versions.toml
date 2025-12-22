@@ -42,7 +42,7 @@ kotlinxCoroutines = "1.10.2"
 kotlinxDatetime = "0.7.1"
 
 # kermit
-kermit = "2.0.6"
+kermit = "2.0.8"
 
 # JVM
 slf4j = "2.0.17"
