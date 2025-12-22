@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/lackary/omnifeed-kmp/compare/0.9.1...0.10.0) (2025-12-22)
+
+
+### Features
+
+* **platform:** add experimental WasmJs support ([72f693e](https://github.com/lackary/omnifeed-kmp/commit/72f693e0b0414fcf9240e0942cf1c76aa501487e))
+
 ## [0.9.1](https://github.com/lackary/omnifeed-kmp/compare/0.9.0...0.9.1) (2025-12-05)
 
 
