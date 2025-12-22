@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
@@ -25,19 +26,30 @@ kotlin {
         }
     }
 
-        val xcf = XCFramework()
-        listOf(
-            iosArm64(),
-            iosSimulatorArm64()
-        ).forEach {
-            it.binaries.framework {
-                baseName = "OmniFeedCore"
-                xcf.add(this)
-                isStatic = true
-            }
+    val xcf = XCFramework()
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach {
+        it.binaries.framework {
+            baseName = "OmniFeedCore"
+            xcf.add(this)
+            isStatic = true
         }
+    }
 
     jvm()
+
+//    js {
+//        browser()
+//        binaries.executable()
+//    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        binaries.executable()
+    }
 
     sourceSets {
         commonMain.dependencies {
