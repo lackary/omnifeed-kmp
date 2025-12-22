@@ -1,5 +1,5 @@
 [versions]
-agp = "8.12.0"
+agp = "8.13.2"
 
 # android
 androidxActivity = "1.11.0"
@@ -21,7 +21,7 @@ googleFirebaseAuth = "23.0.0"
 
 # compose
 composeHotReload = "1.0.0-beta08"
-composeMultiplatform = "1.9.0"
+composeMultiplatform = "1.9.3"
 composeUi = "1.9.2"
 composeMultiplatformMaterial = "1.9.0"
 kevinnzouComposeWebviewMultiplatform = "2.0.3"
@@ -30,11 +30,11 @@ kevinnzouComposeWebviewMultiplatform = "2.0.3"
 material = "1.13.0"
 
 # kotlin
-kotlin = "2.2.20"
+kotlin = "2.3.0"
 kotlinGradlePlugin = "1.9.0"
-ksp = "2.2.20-2.0.2"
-ktor = "3.2.2"
-koin = "4.1.0"
+ksp = "2.3.3"
+ktor = "3.3.3"
+koin = "4.1.1"
 
 # kotlinx
 kotlinxSerialization = "1.9.0"
