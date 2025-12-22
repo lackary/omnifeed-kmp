@@ -243,16 +243,7 @@ val generateMockData by tasks.registering {
 kotlin {
     sourceSets {
         commonTest {
-            kotlin.srcDir(generatedMockDir)
+            kotlin.srcDir(generateMockData)
         }
     }
-}
-
-// Ensure the generation Task runs before compiling Kotlin
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    dependsOn(generateMockData)
-}
-// For Native (iOS) compilation tasks
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile>().configureEach {
-    dependsOn(generateMockData)
 }

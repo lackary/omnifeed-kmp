@@ -209,7 +209,6 @@ jobs:
         # Because the test APIs of Compose Multiplatform is still Experimental.
         run: |
           ./gradlew clean
-          ./gradlew :integration:unsplash:generateMockData
           ./gradlew check \
               -Pskip.tests=true \
               -Pskip.native.tests=true \
