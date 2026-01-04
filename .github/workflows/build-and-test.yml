@@ -155,7 +155,7 @@ jobs:
 
       - name: Gradle Build to Generate KMP Framework
         run: |
-          ./gradlew assemble \
+          ./gradlew assembleDebug \
               ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
               ${{ inputs.run_with_info && '--info' || '' }} \
               ${{ inputs.run_with_debug && '--debug' || '' }} \
