@@ -19,31 +19,53 @@ export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
 
 mkdir -p "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
 
-# Retrieve Token
-if ! command -v gh &> /dev/null; then
-    echo "⚠️  GitHub CLI (gh) not detected."
-    TOKEN_ARG=""
-    EXPORT_TOKEN=""
+# ==============================================================================
+# 🔑 Secrets & Token Management (Merge Strategy)
+# ==============================================================================
+USER_SECRETS=".secrets"       # Your manual keys (Unsplash, Google, etc.)
+RUN_SECRETS=".secrets.run"    # Temp file for execution (User keys + Dynamic Tokens)
+
+# 1. Start with a fresh temp file
+: > "$RUN_SECRETS"
+
+# 2. Copy user secrets if they exist
+if [ -f "$USER_SECRETS" ]; then
+    echo "📝 Loading keys from $USER_SECRETS..."
+    cat "$USER_SECRETS" >> "$RUN_SECRETS"
+    # Ensure there's a newline at the end to prevent variable concatenation
+    echo "" >> "$RUN_SECRETS"
 else
-    RAW_TOKEN=$(gh auth token)
-    TOKEN_ARG="-s GITHUB_TOKEN=$RAW_TOKEN"
-    EXPORT_TOKEN=$RAW_TOKEN
-    echo "✅ GitHub Token auto-detected."
+    echo "⚠️  $USER_SECRETS not found. Creating a template..."
+    cat <<EOF > "$USER_SECRETS"
+UNSPLASH_ACCESS_KEY=dummy_val
+UNSPLASH_SECRET_KEY=dummy_val
+GOOGLE_SERVICES_WEB_CLIENT_ID=dummy_val
+GOOGLE_CLIENT_ID=dummy_val
+GOOGLE_REVERSED_CLIENT_ID=dummy_val
+EOF
+    # Copy the template to run secrets as well
+    cat "$USER_SECRETS" >> "$RUN_SECRETS"
+    echo "" >> "$RUN_SECRETS"
+    echo "⚠️  Template created. Some tests may fail without real keys."
 fi
 
-# Secrets
-SECRETS_FILE=".secrets"
-if [ ! -f "$SECRETS_FILE" ]; then
-    echo "📝 Creating template $SECRETS_FILE..."
-    cat <<EOF > "$SECRETS_FILE"
-UNSPLASH_ACCESS_KEY=your_key
-UNSPLASH_SECRET_KEY=your_key
-GOOGLE_SERVICES_WEB_CLIENT_ID=your_key
-GOOGLE_CLIENT_ID=your_key
-GOOGLE_REVERSED_CLIENT_ID=your_key
-EOF
-    echo "⚠️  Please fill in real keys in $SECRETS_FILE."
-    exit 1
+# 3. Retrieve Token from 'gh' and append to temp file
+if ! command -v gh &> /dev/null; then
+    echo "⚠️  GitHub CLI (gh) not detected. Release steps will fail."
+else
+    RAW_TOKEN=$(gh auth token 2>/dev/null)
+    if [ -n "$RAW_TOKEN" ]; then
+        echo "✅ GitHub Token auto-detected from 'gh'."
+
+        # 🔥 Appending Tokens to the temp secrets file
+        echo "# --- Dynamic Tokens ---" >> "$RUN_SECRETS"
+        echo "GITHUB_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
+
+        # 👇 This is the fix for your Release Workflow!
+        echo "SEMANTIC_RELEASE_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
+    else
+        echo "⚠️  gh is installed but not logged in."
+    fi
 fi
 
 # ==============================================================================
@@ -52,37 +74,36 @@ fi
 echo ""
 echo "Select Workflow:"
 echo "  1) Build & Test (CI)"
-echo "     - Uses your local Mac environment (No Docker)"
-echo "     - Can run iOS tests if you remove 'ACT=true' (Fast & Real)"
+echo "     - Runs .github/workflows/ci.yml"
+echo "     - Uses local Mac environment"
 echo ""
 echo "  2) Release Workflow"
-echo "     - Simulates release on local Mac"
+echo "     - Runs .github/workflows/release.yml"
+echo "     - Simulates semantic-release"
 echo ""
 echo "  3) Release Logic Check (Host Mode)"
-echo "     - Runs semantic-release directly (Fastest)"
+echo "     - Runs semantic-release directly (Fastest, no docker)"
 echo ""
 read -p "Enter option [1, 2, or 3] (Default 1): " choice
 choice=${choice:-1}
 
 # Hybrid Mode Configuration:
-# 1. macOS (Build & Test) -> Use local machine (-self-hosted) to resolve iOS compilation issues.
-# 2. Ubuntu (Release) -> Use Docker (full-22.04) to resolve Node.js environment issues and keep it clean.
-# 3. Restore --container-architecture to support Docker.
+# - We now use --secret-file $RUN_SECRETS to include everything
 ACT_COMMON_ARGS="--platform macos-latest=-self-hosted \
 --platform ubuntu-latest=catthehacker/ubuntu:full-22.04 \
 --container-architecture linux/amd64 \
 --env ACT=true \
---secret-file $SECRETS_FILE \
+--secret-file $RUN_SECRETS \
 --artifact-server-path $ARTIFACT_PATH \
---cache-server-path $CACHE_PATH \
-$TOKEN_ARG"
+--cache-server-path $CACHE_PATH"
 
 echo ""
 echo "------------------------------------------"
 
 if [ "$choice" == "1" ]; then
-    echo "🔵 Running: Build & Test (Self-Hosted)..."
-    CMD="act pull_request -W .github/workflows/build-and-test.yml $ACT_COMMON_ARGS"
+    echo "🔵 Running: Build & Test (CI)..."
+    # ✅ Update: Pointing to the renamed ci.yml
+    CMD="act push -W .github/workflows/ci.yml $ACT_COMMON_ARGS"
     echo "👉 Executing: act ..."
     eval "$CMD 2>&1 | tee act_execution.log"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -90,19 +111,16 @@ if [ "$choice" == "1" ]; then
 elif [ "$choice" == "2" ]; then
     echo "🟣 Running: Release Workflow (Container Mode)..."
 
-    # Add this warning confirmation
     echo "⚠️  [SAFETY CHECK] You are about to run the Release Workflow locally."
-    echo "   If your release.yml is correctly configured with 'dry_run: \${{ env.ACT == 'true' }}',"
-    echo "   this will be a simulation only."
-    echo "   However, if that config is missing, this MIGHT push tags/commits to GitHub."
+    echo "   Ensure 'dry_run' logic is active in your YAML."
     echo ""
     read -p "❓ Do you want to proceed? (y/N) " confirm
     if [[ ! "$confirm" =~ ^(yes|y)$ ]]; then
         echo "🚫 Aborted by user."
+        rm "$RUN_SECRETS" 2>/dev/null
         exit 0
     fi
 
-    echo "🟣 Running: Release Workflow (Self-Hosted)..."
     CMD="act push -W .github/workflows/release.yml $ACT_COMMON_ARGS"
     echo "👉 Executing: act ..."
     eval "$CMD 2>&1 | tee act_execution.log"
@@ -114,7 +132,8 @@ elif [ "$choice" == "3" ]; then
         echo "❌ Error: npm missing."
         exit 1
     fi
-    export GITHUB_TOKEN=$EXPORT_TOKEN
+    # Use the token we captured earlier
+    export GITHUB_TOKEN=$RAW_TOKEN
     export GITHUB_RUN_NUMBER=9999
 
     if [ ! -d "node_modules" ]; then
@@ -127,6 +146,7 @@ elif [ "$choice" == "3" ]; then
     ACT_EXIT_CODE=$?
 else
     echo "❌ Invalid option."
+    rm "$RUN_SECRETS" 2>/dev/null
     exit 1
 fi
 
@@ -138,6 +158,9 @@ else
     echo "❌ Failed (Exit Code: $ACT_EXIT_CODE)"
 fi
 echo "=========================================="
+
+# Cleanup the temporary secrets file
+rm "$RUN_SECRETS" 2>/dev/null
 
 echo ""
 read -p "🧹 Clean up artifacts? [y/N] " response
