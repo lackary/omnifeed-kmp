@@ -36,19 +36,16 @@ on:
         type: boolean
         required: false
         default: false
-
       run_with_stacktrace:
         description: 'Run Gradle with --stacktrace'
         type: boolean
         required: false
         default: false
-
       run_with_info:
         description: 'Run Gradle with --info'
         type: boolean
         required: false
         default: false
-
       run_with_debug:
         description: 'Run Gradle with --debug'
         type: boolean
@@ -57,7 +54,7 @@ on:
 
 jobs:
   build-and-test:
-    name: build and test
+    name: Build and Test
     runs-on: macos-latest
     env:
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
@@ -65,8 +62,8 @@ jobs:
       GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
     permissions:
       contents: read
-    outputs: # Optional, if subsequent jobs need to know if the tests were successful
-      test_outcome: ${{ steps.run_tests.outcome }}
+      checks: write # For mikepenz/action-junit-report
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -81,24 +78,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-#      - name: Cache Gradle packages
-#        uses: actions/cache@v3
-#        with:
-#          path: |
-#            ~/.gradle/caches
-#            ~/.gradle/wrapper
-#          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-#          restore-keys: |
-#            ${{ runner.os }}-gradle-
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Create Dynamic Secrets XConfig File
         working-directory: './sample/iosApp/Configuration'
-        # Create your .xconfig file (the name must match what Xcode expects to read)
-        # Write GIDClientID (corresponding to CLIENT_ID)
-        # Write CFBundleURLSchemes (corresponding to REVERSED_CLIENT_ID)
         run: |
           XCONFIG_DEBUG_FILENAME="Secrets-Debug.xconfig"
           XCONFIG_RELEASE_FILENAME="Secrets-Release.xconfig"
@@ -107,63 +91,30 @@ jobs:
           echo "Creating ${XCONFIG_RELEASE_FILENAME} in CI..."
           
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_DEBUG_FILENAME}"
-          echo "REVERSE_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_DEBUG_FILENAME}"
+          echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_DEBUG_FILENAME}"
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_RELEASE_FILENAME}"
-          echo "REVERSE_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_RELEASE_FILENAME}"
-
-#      - name: Create gradle.properties
-#        run: |
-#          echo "android.useAndroidX=true" >> gradle.properties
-#          echo "org.gradle.caching=true" >> gradle.properties
-#          echo "org.gradle.jvmargs=-Xmx8192M" >> gradle.properties
-#          echo "kotlin.native.cacheKind.iosSimulatorArm64=none" >> gradle.properties
-
-#      - name: Resolve Swift Package Manager Dependencies
-#        working-directory: './iosApp'
-#        # Execute a basic Xcode build command to download, parse, and prepare SPM dependencies.
-#        # Use '-target' or '-scheme' to specify your main application target/scheme.
-#        # Typically, the target/scheme name is the same as your iOS application folder name (e.g., iosApp).
-#        # The '-resolvePackageDependencies' command instructs Xcode to download all SPM dependencies.
-#        # This command makes Xcode download all SPM dependencies.
-#        # Perform a Clean Build targeting the iOS simulator.
-#        # This step generates the build output path for SPM dependencies.
-#        run: |
-#          echo "Resolving SPM dependencies via xcodebuild..."
-#          xcodebuild -resolvePackageDependencies -project "iosApp.xcodeproj" -scheme "iosApp"
-
-#      - name: Pre-build iOS Target to generate SPM Frameworks
-#        working-directory: './iosApp'
-#        # The xcodebuild clean build command forces the compilation of SPM dependencies
-#        # and sets environment variables like BUILT_PRODUCTS_DIR.
-#        run: |
-#          echo "Resolving SPM dependencies and generating Frameworks..."
-#          xcodebuild clean build \
-#              -project "iosApp.xcodeproj" \
-#              -scheme "iosApp" \
-#              -configuration "Debug" \
-#              -sdk iphonesimulator \
-#              -destination "platform=iOS Simulator,name=iPhone 16 Pro Max"
-
-      - name: Gradle Build to Generate KMP Framework
-        # Run assemble to ensure all targets (including the iOS framework) are compiled
-        run: |
-          ./gradlew assemble \
-              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
-              ${{ inputs.run_with_info && '--info' || '' }} \
-              ${{ inputs.run_with_debug && '--debug' || '' }} \
-              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+          echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_RELEASE_FILENAME}"
 
       - name: Setup iOS Environment (Dummy Framework & Pods)
         run: |
-          echo "Installing CocoaPods..."
-          gem install cocoapods
+          if [ -n "$ACT" ]; then
+            echo "Running in 'act' environment."
+            if ! command -v pod &> /dev/null; then
+              echo "CocoaPods not found. Installing via Homebrew..."
+              brew install cocoapods
+            else
+              echo "CocoaPods is already installed."
+            fi
+          else
+            echo "Running in CI environment. Installing CocoaPods..."
+            gem install cocoapods
+          fi
 
           echo "Running Setup Script..."
           chmod +x setup_ios.sh
           ./setup_ios.sh
-      
 
-      # ✅ List simulators
+      # List simulators
       - name: List available simulators
         run: |
           echo "=== RUNTIMES ==="
@@ -171,12 +122,11 @@ jobs:
           echo "=== DEVICES ==="
           xcrun simctl list devices
 
-      # ✅ Automatically find an available simulator (prioritize iPhone / Booted / Available)
+      # Automatically find an available simulator
       - name: Select an available simulator
         id: find-sim
         run: |
           set -e
-
           SIM=$(xcrun simctl list devices | \
             grep -E "iPhone" | \
             grep -v unavailable | \
@@ -188,8 +138,7 @@ jobs:
             echo "❌ No available iPhone simulators found"
             exit 1
           fi
-
-          echo "✅ Selected Simulator: $SIM"
+          echo "✅ Selected Simulator UUID: $SIM"
           echo "SIM=$SIM" >> $GITHUB_ENV
 
       - name: Xcode Build (clean build .xcworkspace)
@@ -204,104 +153,39 @@ jobs:
               -destination "id=$SIM" \
               ENABLE_PREVIEWS=NO
 
-      - name: Run KMP Unit Tests
-        # -Pskip.tests
-        # Because the test APIs of Compose Multiplatform is still Experimental.
+      - name: Gradle Build to Generate KMP Framework
         run: |
-          ./gradlew clean
+          ./gradlew assemble \
+              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+              ${{ inputs.run_with_info && '--info' || '' }} \
+              ${{ inputs.run_with_debug && '--debug' || '' }} \
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+
+      - name: Run KMP Unit Tests
+        run: |
           ./gradlew check \
-              -Pskip.tests=true \
-              -Pskip.native.tests=true \
+              -Pskip.tests=false \
+              -Pskip.native.tests=false \
               -Pskip.lint=true \
               ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
               ${{ inputs.run_with_info && '--info' || '' }} \
               ${{ inputs.run_with_debug && '--debug' || '' }} \
               ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
 
-      - name: Upload Test Report
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: '**/build/test-results/**/*.xml'
+          check_name: 'JUnit Test Report'
+          detailed_summary: true
+          include_passed: true
+          annotate_only: ${{ env.ACT == 'true' }}
+
+      - name: Upload Test Report HTML
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports # Name of the Artifact
-          path: '**/build/test-results/**/*.xml'
-          retention-days: 1 # Optional, set the artifact retention time
-
-#      - name: Test Reporter
-#        uses: dorny/test-reporter@v1
-#        if: always() # success() || failure() # Run on success or failure
-#        with:
-#          name: Test Results
-#          path: '**/build/test-results/**/*.xml' # Path to JUnit XML reports
-#          reporter: java-junit # Select based on report format
-#          token: ${{secrets.GITHUB_TOKEN}}
-
-  report-test-results:
-    name: report test results
-    runs-on: ubuntu-latest # The report job can use a different OS if needed
-    needs: build-and-test # Ensures this runs after build-and-test is complete
-#    permissions: # Ensures the report job has permissions to create check runs
-#      checks: write
-    if: always() # Always run the report job, even if build-and-test fails (dorny/test-reporter can report failures)
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download Test Reports
-        uses: actions/download-artifact@v4
-        with:
-          name: test-reports # Same as the artifact name used for uploading
-          path: downloaded-test-reports # Download to a specified directory
-
-      - name: Test Reporter
-        uses: dorny/test-reporter@v1
-        with:
-          name: test results
-          path: 'downloaded-test-reports/**/*.xml' # Point to the downloaded report path
-          reporter: java-junit
-          token: ${{ secrets.GITHUB_TOKEN }} # Point to the downloaded report path
-          # fail-on-error: true # Set as needed; if build-and-test has already failed, you might not need this to fail again
-
-  # Validates Release workflow configuration during the PR stage
-  dry-run-release:
-    name: dry run release check
-    # Use ubuntu-latest, as dry-run does not involve macOS-specific features
-    runs-on: ubuntu-latest
-    # Ensure execution only after build and report are completed
-    needs: [build-and-test, report-test-results]
-    # Trigger only on PR events, and ensure previous jobs were not cancelled (always runs, unless previous jobs were cancelled)
-    if: github.event_name == 'pull_request' && !cancelled()
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # semantic-release requires full git history
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      # Key Test Point 1: Test if gradlew has execute permission
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      # Key Test Point 2: Test if semantic-release starts correctly (Dry Run)
-      # Even for dry-run, GITHUB_TOKEN is required to read repo info and PR content
-      - name: Execute semantic release (Dry Run)
-        env:
-          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
-        # Add --dry-run and force execution on the current PR branch
-        # github.head_ref is specific to pull_request events
-        run: npx semantic-release --dry-run --branches ${{ github.head_ref }}
+          name: test-reports-html
+          path: '**/build/reports/tests/'
+          retention-days: 5
