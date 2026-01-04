@@ -1,0 +1,31 @@
+branches:
+  - "main"
+  - name: "beta"
+    prerelease: true
+
+# Support tags without "v" prefix (e.g., 0.10.0)
+tagFormat: "${version}"
+
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  - "@semantic-release/changelog"
+
+  # Gradle update the version of project
+  - - "@semantic-release/exec"
+    - prepareCmd: >-
+        ./gradlew setBuildVersion 
+        -PnewVersion=${nextRelease.version} 
+        -PbuildNumber=${process.env.GITHUB_RUN_NUMBER}
+
+  # Git Commit
+  - - "@semantic-release/git"
+    - assets:
+        - "CHANGELOG.md"
+        - "gradle.properties"
+      message: >-
+        chore(release): ${nextRelease.version} [skip ci]
+
+        ${nextRelease.notes}
+
+  - "@semantic-release/github"

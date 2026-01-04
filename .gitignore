@@ -57,3 +57,6 @@ npm-debug.log*
 # Add it only if you have it in your project
 .npmrc
 .nvmrc
+
+# CI need
+.secrets
