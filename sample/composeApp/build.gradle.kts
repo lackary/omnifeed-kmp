@@ -9,6 +9,23 @@ import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import java.util.Properties
 
 val modulePackageName = "io.lackstudio.omnifeed.app"
+val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
+val unsplashSecretKeyName = "UNSPLASH_SECRET_KEY"
+val googleServicesWebClientIdName = "GOOGLE_SERVICES_WEB_CLIENT_ID"
+
+fun getFromLocalProperties(key: String, project: Project): String? {
+    val file = project.rootProject.file("local.properties")
+    if (!file.exists()) return null
+
+    val properties = Properties()
+    file.inputStream().use { properties.load(it) }
+    return properties.getProperty(key)
+}
+
+fun resolveConfigValue(key: String, project: Project): String? {
+    // Read from file first, if not found then read from environment variables
+    return getFromLocalProperties(key, project) ?: System.getenv(key)
+}
 
 buildscript {
     repositories {
@@ -29,6 +46,28 @@ plugins {
     alias(libs.plugins.gms.google.services)
     alias(libs.plugins.kotlin.native.cocoapods)
     alias(libs.plugins.buildkonfig)
+}
+
+buildkonfig {
+    packageName = "$modulePackageName.config"
+    val localProps = Properties()
+    val localPropsFile = rootProject.file("local.properties")
+
+    if (localPropsFile.exists()) {
+        localProps.load(localPropsFile.inputStream())
+    }
+
+    val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
+
+    val unsplashSecretKey = resolveConfigValue(unsplashSecretKeyName, project) ?: ""
+
+    val googleServicesWebClientId = resolveConfigValue(googleServicesWebClientIdName, project) ?: ""
+
+    defaultConfigs {
+        buildConfigField(STRING, "UNSPLASH_ACCESS_KEY", unsplashAccessKey)
+        buildConfigField(STRING, "UNSPLASH_SECRET_KEY", unsplashSecretKey)
+        buildConfigField(STRING, "GOOGLE_SERVICES_WEB_CLIENT_ID", googleServicesWebClientId)
+    }
 }
 
 kotlin {
@@ -155,36 +194,6 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(compose.desktop.uiTestJUnit4)
         }
-    }
-}
-
-buildkonfig {
-    packageName = "$modulePackageName.config"
-    val localProps = Properties()
-    val localPropsFile = rootProject.file("local.properties")
-
-    if (localPropsFile.exists()) {
-        localProps.load(localPropsFile.inputStream())
-    }
-
-    val errorMessage = "not found. Please set it as an environment variable or in local.properties."
-
-    val unsplashAccessKey = System.getenv("UNSPLASH_ACCESS_KEY")
-        ?: localProps.getProperty("UNSPLASH_ACCESS_KEY")
-        ?: error("UNSPLASH_ACCESS_KEY $errorMessage ")
-
-    val unsplashSecretKey = System.getenv("UNSPLASH_SECRET_KEY")
-        ?: localProps.getProperty("UNSPLASH_SECRET_KEY")
-        ?: error("UNSPLASH_SECRET_KEY  $errorMessage")
-
-    val googleServicesWebClientId = System.getenv("GOOGLE_SERVICES_WEB_CLIENT_ID")
-        ?: localProps.getProperty("GOOGLE_SERVICES_WEB_CLIENT_ID")
-        ?: error("GOOGLE_SERVICES_WEB_CLIENT_ID $errorMessage")
-
-    defaultConfigs {
-        buildConfigField(STRING, "UNSPLASH_ACCESS_KEY", unsplashAccessKey)
-        buildConfigField(STRING, "UNSPLASH_SECRET_KEY", unsplashSecretKey)
-        buildConfigField(STRING, "GOOGLE_SERVICES_WEB_CLIENT_ID", googleServicesWebClientId)
     }
 }
 
