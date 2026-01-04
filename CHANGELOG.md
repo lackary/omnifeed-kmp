@@ -1,3 +1,10 @@
+## [0.10.1](https://github.com/lackary/omnifeed-kmp/compare/0.10.0...0.10.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* **build:** exclude unstable JogAmp deps and update CI to assembleDebug ([889ec7f](https://github.com/lackary/omnifeed-kmp/commit/889ec7f5427ae82453211c0deb064ed473374b6c))
+
 # [0.10.0](https://github.com/lackary/omnifeed-kmp/compare/0.9.1...0.10.0) (2025-12-22)
 
 
