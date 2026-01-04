@@ -1,33 +1,32 @@
-name: Build and Test
+name: Continuous Integration
 
 on:
   push:
     branches:
       - main
-    paths:
-      - '.github/workflows/**'
-      - 'sample/**'
-      - 'core/**'
-      - 'ui/**'
-      - 'integrations/**'
-      - 'gradle/**'
-      - 'build.gradle.kts'
-      - 'settings.gradle.kts'
-      - 'package.json'
+    # ✅ 改用 paths-ignore (負面表列)
+    paths-ignore:
+      - '**.md'                # 忽略 Markdown 文件
+      - 'LICENSE'
+      - '.gitignore'
+      - 'package.json'         # 忽略 dummy package.json
+      - 'package-lock.json'
+      - '.releaserc.yml'       # 忽略 release 設定
+      - '.github/workflows/release.yml'     # 忽略 Release Workflow 本身
+      - 'run_act_safe.sh'
 
   pull_request:
     branches:
       - '*'
-    paths:
-      - '.github/workflows/**'
-      - 'sample/**'
-      - 'core/**'
-      - 'ui/**'
-      - 'integrations/**'
-      - 'gradle/**'
-      - 'build.gradle.kts'
-      - 'settings.gradle.kts'
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
       - 'package.json'
+      - 'package-lock.json'
+      - '.releaserc.yml'
+      - '.github/workflows/release.yml'
+      - 'run_act_safe.sh'
 
   workflow_dispatch:
     inputs:
@@ -53,7 +52,7 @@ on:
         default: false
 
 jobs:
-  build-and-test:
+  ci:
     name: Build and Test
     runs-on: macos-latest
     env:
