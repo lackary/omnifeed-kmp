@@ -9,6 +9,7 @@ import kotlinx.serialization.SerializationException
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.ResponseException
+import io.ktor.serialization.JsonConvertException
 import io.lackstudio.omnifeed.core.common.error.CommonException
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 
@@ -54,6 +55,7 @@ suspend inline fun <T> toResult(call: suspend () -> T): Result<T> {
             is HttpRequestTimeoutException,
             is ConnectTimeoutException,
             is SocketTimeoutException -> RemoteException.Network.Timeout(cause = e)
+            is JsonConvertException,
             is SerializationException -> CommonException.Parsing.SerializationFailed(cause = e,)
             else -> RemoteException.RemoteUnknown(cause = e)
         }
