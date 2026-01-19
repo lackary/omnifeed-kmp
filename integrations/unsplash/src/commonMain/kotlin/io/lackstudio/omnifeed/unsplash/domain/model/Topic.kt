@@ -20,6 +20,6 @@ data class Topic(
     val status: String,
     val owners: List<Sponsor>,
     val topContributors: List<Sponsor>?,
-    val coverPhoto: Photo,
-    val previewPhotos: List<PreviewPhoto>
+    val coverPhoto: Photo? = null,
+    val previewPhotos: List<PreviewPhoto>? = emptyList()
 )

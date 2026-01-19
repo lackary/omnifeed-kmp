@@ -21,7 +21,7 @@ fun TopicResponse.toTopic(): Topic {
         status = this.status,
         owners = this.owners.map { it.toSponsor() },
         topContributors = this.topContributors?.map { it.toSponsor() },
-        coverPhoto = this.coverPhoto.toPhotoDetail(),
-        previewPhotos = this.previewPhotos.map { it.toPhotoDetail() }
+        coverPhoto = this.coverPhoto?.toPhotoDetail(),
+        previewPhotos = this.previewPhotos?.map { it.toPhotoDetail() }
     )
 }

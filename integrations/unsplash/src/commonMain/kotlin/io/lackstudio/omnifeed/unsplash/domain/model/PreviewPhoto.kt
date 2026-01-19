@@ -8,7 +8,7 @@ data class PreviewPhoto (
     val slug: String,
     val createdAt: String,
     val updatedAt: String,
-    val blurHash: String,
+    val blurHash: String? = null,
     val assetType: String,
     val urls: PhotoUrls
 )
