@@ -10,7 +10,7 @@ data class PreviewPhotoScheme(
     val slug: String,
     @SerialName(ApiKeys.Common.CREATED_AT) val createdAt: String,
     @SerialName(ApiKeys.Common.UPDATED_AT) val updatedAt: String,
-    @SerialName(ApiKeys.Photo.BLUR_HASH) val blurHash: String,
+    @SerialName(ApiKeys.Photo.BLUR_HASH) val blurHash: String?,
     @SerialName(ApiKeys.Photo.ASSET_TYPE) val assetType: String,
     val urls: PhotoUrlsScheme
 )
