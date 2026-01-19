@@ -16,5 +16,5 @@ data class CurrentUserCollectionScheme(
     @SerialName(ApiKeys.Statistics.TOTAL_PHOTOS) val totalPhotos: Int,
     val private: Boolean,
     @SerialName(ApiKeys.Collection.SHARE_KEY) val shareKey: String,
-    val links: PhotoLinksScheme
+    val links: LinksScheme
 )

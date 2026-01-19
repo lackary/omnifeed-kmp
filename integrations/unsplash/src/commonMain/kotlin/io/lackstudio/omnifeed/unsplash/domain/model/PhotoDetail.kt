@@ -13,7 +13,7 @@ data class PhotoDetail(
     val width: Int,
     val height: Int,
     val color: String,
-    val blurHash: String,
+    val blurHash: String? = null,
     val description: String?,
     val altDescription: String?,
     val breadcrumbs: List<Breadcrumb>?,

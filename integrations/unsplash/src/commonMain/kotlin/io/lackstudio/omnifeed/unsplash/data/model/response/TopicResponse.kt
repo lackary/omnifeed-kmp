@@ -29,6 +29,6 @@ data class TopicResponse(
     val status: String,
     val owners: List<ParticipantScheme>,
     @SerialName(ApiKeys.Topic.TOP_CONTRIBUTORS) val topContributors: List<ParticipantScheme>? = emptyList(),
-    @SerialName(ApiKeys.Common.COVER_PHOTO) val coverPhoto: PhotoScheme,
-    @SerialName(ApiKeys.Common.PREVIEW_PHOTOS) val previewPhotos: List<PreviewPhotoScheme>
+    @SerialName(ApiKeys.Common.COVER_PHOTO) val coverPhoto: PhotoScheme? = null,
+    @SerialName(ApiKeys.Common.PREVIEW_PHOTOS) val previewPhotos: List<PreviewPhotoScheme>? = emptyList()
 )

@@ -7,7 +7,7 @@ data class Photo(
     val altDescription: String?,
     val alternativeSlugs: AlternativeSlugs?,
     val assetType: String,
-    val blurHash: String,
+    val blurHash: String? = null,
     val breadcrumbs: List<Breadcrumb>?,
     val color: String,
     val createdAt: String,

@@ -29,7 +29,7 @@ data class PhotoDetailResponse(
     val width: Int,
     val height: Int,
     val color: String,
-    @SerialName(ApiKeys.Photo.BLUR_HASH) val blurHash: String,
+    @SerialName(ApiKeys.Photo.BLUR_HASH) val blurHash: String? = null,
     val description: String? = null,
     @SerialName(ApiKeys.Photo.ALT_DESCRIPTION) val altDescription: String? = null,
     val breadcrumbs: List<BreadcrumbScheme>? = emptyList(),
