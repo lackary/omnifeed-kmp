@@ -1,3 +1,11 @@
+## [0.10.2](https://github.com/lackary/omnifeed-kmp/compare/0.10.1...0.10.2) (2026-01-19)
+
+
+### Bug Fixes
+
+* **core,ui:** handle `JsonConvertException` and update error messaging ([e86884f](https://github.com/lackary/omnifeed-kmp/commit/e86884ffb4febc6e4ec4511dfc1b08c9a7ffcdd5))
+* **unsplash:** handle nullable fields in API responses and domain models ([ae848ef](https://github.com/lackary/omnifeed-kmp/commit/ae848ef3856ec2503263c5de0573636d229c8255))
+
 ## [0.10.1](https://github.com/lackary/omnifeed-kmp/compare/0.10.0...0.10.1) (2026-01-04)
 
 
