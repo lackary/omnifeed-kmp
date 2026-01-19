@@ -227,7 +227,7 @@ fun CurrentUserCollectionScheme.toCurrentUserCollection(): CurrentUserCollection
         totalPhotos = this.totalPhotos,
         private = this.private,
         shareKey = this.shareKey,
-        links = this.links.toPhotoLinks()
+        links = this.links.toLinks()
     )
 }
 

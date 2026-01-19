@@ -35,7 +35,7 @@ abstract class BaseViewModel : ViewModel() {
             is LocalException.Persistence.DatabaseError -> "Database error."
             is LocalException.Persistence.ResourceNotFound -> "Resource not found."
             is CommonException.Parsing.InvalidDataFormat -> "Data format error."
-
+            is CommonException.Parsing.SerializationFailed -> "Data convert error."
             else -> "An unexpected error occurred."
         }
     }

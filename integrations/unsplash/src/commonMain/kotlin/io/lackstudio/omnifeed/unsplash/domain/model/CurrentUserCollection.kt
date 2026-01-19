@@ -14,5 +14,5 @@ data class CurrentUserCollection(
     val totalPhotos: Int,
     val private: Boolean,
     val shareKey: String,
-    val links: PhotoLinks
+    val links: Links
 )
