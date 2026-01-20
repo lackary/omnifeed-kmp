@@ -2,7 +2,7 @@ import SwiftUI
 import OSLog
 import FirebaseCore
 import GoogleSignIn
-import ComposeApp
+import Compose
 
 fileprivate let logger = Logger(
     subsystem: "io.lackstudio.omnifeed.app",
