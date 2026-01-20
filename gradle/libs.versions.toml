@@ -171,6 +171,7 @@ turbine-test = { group = "app.cash.turbine", name = "turbine", version.ref = "tu
 # android
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library",  version.ref = "agp" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 
 # compose
 compose-hotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }

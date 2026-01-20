@@ -18,24 +18,34 @@ buildscript {
 }
 
 plugins {
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.devtool.ksp)
     alias(libs.plugins.buildkonfig)
-    alias(libs.plugins.kotlin.serialization)
     id("maven-publish")
 }
 
 kotlin {
-    androidTarget {
-        // This is necessary to publish the Android library variant.
-        publishLibraryVariants("release")
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
-                }
-            }
+    androidLibrary {
+        namespace = modulePackageName
+        compileSdk = 36
+        minSdk = 30
+
+        withJava() //  Opt-in to enable Java source compilation
+        withHostTestBuilder {}.configure {}
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }
+
+        // Set the Kotlin compilation target version
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
+
+        // Enable Android resource processing, default is false
+        androidResources {
+            enable = true
         }
     }
 
@@ -138,19 +148,6 @@ buildkonfig {
     defaultConfigs {
         buildConfigField(STRING, "UNSPLASH_ACCESS_KEY", unsplashAccessKey)
         buildConfigField(STRING, "UNSPLASH_SECRET_KEY", unsplashSecretKey)
-    }
-}
-
-android {
-    namespace = modulePackageName
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 30
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
