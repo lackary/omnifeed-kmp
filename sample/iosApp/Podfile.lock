@@ -9,7 +9,7 @@ PODS:
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/UserDefaults (~> 8.0)
     - PromisesObjC (~> 2.4)
-  - ComposeApp (1.0.0)
+  - Compose (1.0.0)
   - FirebaseAppCheckInterop (12.4.0)
   - FirebaseAuth (12.4.0):
     - FirebaseAppCheckInterop (~> 12.4.0)
@@ -66,7 +66,7 @@ PODS:
   - RecaptchaInterop (101.0.0)
 
 DEPENDENCIES:
-  - ComposeApp (from `../composeApp`)
+  - Compose (from `../compose`)
   - FirebaseAuth
   - FirebaseCore
   - GoogleSignIn
@@ -89,13 +89,13 @@ SPEC REPOS:
     - RecaptchaInterop
 
 EXTERNAL SOURCES:
-  ComposeApp:
-    :path: "../composeApp"
+  Compose:
+    :path: "../compose"
 
 SPEC CHECKSUMS:
   AppAuth: 1c1a8afa7e12f2ec3a294d9882dfa5ab7d3cb063
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
-  ComposeApp: 2d21859936e86eeabb58125f765add0e087b85e4
+  Compose: a7563c151f5497ceb942dcbac6eec3ab118f86b9
   FirebaseAppCheckInterop: f734c802f21fe1da0837708f0f9a27218c8a4ed0
   FirebaseAuth: 4a2aed737c84114a9d9b33d11ae1b147d6b94889
   FirebaseAuthInterop: 858e6b754966e70740a4370dd1503dfffe6dbb49
@@ -109,6 +109,6 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
 
-PODFILE CHECKSUM: 08212119ded641503a5ffd59baf496857e111f4b
+PODFILE CHECKSUM: 4ef8443c625e1f31088c9497fb9164c15cd8289a
 
 COCOAPODS: 1.16.2
