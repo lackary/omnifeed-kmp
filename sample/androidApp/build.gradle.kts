@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.multiplatform)
-    alias(libs.plugins.kotlin.android)
+//    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose.compiler)
 }
 
@@ -56,6 +56,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.mainfest)
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(projects.core)
     implementation(projects.ui)
