@@ -54,7 +54,7 @@ import io.lackstudio.omnifeed.unsplash.di.unsplashModule
 import io.lackstudio.omnifeed.unsplash.utils.Environment as UnsplashEnvironment
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 
