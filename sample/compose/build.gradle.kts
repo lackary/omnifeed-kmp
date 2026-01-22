@@ -42,7 +42,7 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose.compiler)
-    alias(libs.plugins.compose.hotReload)
+    alias(libs.plugins.compose.hot.reload)
     alias(libs.plugins.gms.google.services)
     alias(libs.plugins.kotlin.native.cocoapods)
     alias(libs.plugins.buildkonfig)
@@ -161,14 +161,14 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.ui.tooling.preview)
-            implementation(libs.kmp.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.kmp.androidx.lifecycle.runtimeCompose)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.lifecycle.runtime.compose)
             implementation(libs.koin.compose)
-            implementation(libs.mirzemehdi.kmpauthGoogle)
-            implementation(libs.mirzemehdi.kmpauthFirebase)
-            implementation(libs.mirzemehdi.kmpauthUihelper)
+            implementation(libs.mirzemehdi.kmpauth.google)
+            implementation(libs.mirzemehdi.kmpauth.firebase)
+            implementation(libs.mirzemehdi.kmpauth.uihelper)
             implementation(libs.touchlab.kermit)
-            implementation(libs.gitlive.firebaseAuth)
+            implementation(libs.gitlive.firebase.auth)
             implementation(projects.integrations.unsplash)
             implementation(projects.core)
             implementation(projects.ui)
@@ -177,16 +177,14 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.koin.test)
-            @OptIn(ExperimentalComposeLibrary::class)
-            implementation(compose.uiTest)
+            implementation(libs.compose.ui.test)
         }
 
         androidMain.dependencies {
-            implementation(project.dependencies.platform(libs.android.firebase.bom))
-            implementation(libs.android.firebase.authKtx)
-            implementation(libs.android.firebase.commonKtx)
-            implementation(compose.preview)
-            implementation(libs.androidx.activityCompose)
+            implementation(project.dependencies.platform(libs.google.firebase.bom))
+            implementation(libs.google.firebase.auth)
+            implementation(libs.google.firebase.common)
+            implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.compose.ui.tooling)
         }
         androidUnitTest.dependencies {  }
@@ -197,7 +195,7 @@ kotlin {
 
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.kotlinx.coroutines.swing)
         }
         jvmTest.dependencies {
             implementation(libs.kotlin.test)
