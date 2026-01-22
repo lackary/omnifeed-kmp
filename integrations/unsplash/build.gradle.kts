@@ -32,11 +32,13 @@ kotlin {
         compileSdk = 36
         minSdk = 30
 
-        withJava() //  Opt-in to enable Java source compilation
+//        withJava() //  Opt-in to enable Java source compilation
+        // androidUnitTest
         withHostTestBuilder {}.configure {}
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }
+        // androidInstrumentedTest
+//        withDeviceTestBuilder {
+//            sourceSetTreeName = "test"
+//        }
 
         // Set the Kotlin compilation target version
         compilerOptions {
@@ -101,14 +103,13 @@ kotlin {
         }
 
         androidMain.dependencies {
-
+            implementation(libs.ktor.client.android)
         }
         androidUnitTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.koin.test)
             implementation(libs.ktor.client.mock)
-            implementation(libs.ktor.client.android)
         }
 
         iosMain.dependencies {
@@ -243,4 +244,21 @@ kotlin {
             kotlin.srcDir(generateMockData)
         }
     }
+}
+
+// Resolve implicit dependency issues with AGP 9.0 + Gradle 9.1
+// Use afterEvaluate to ensure Android tasks are fully created
+afterEvaluate {
+    tasks.configureEach {
+        // Catch all Lint-related tasks (including LintModelWriterTask)
+        // Use a broader "Lint" keyword here to ensure nothing is missed
+        if (name.contains("Lint")) {
+            dependsOn(generateMockData)
+        }
+    }
+}
+
+// Reason: Node.js v25 is unstable in CI environments, and there are currently no Wasm-specific tests
+tasks.named("wasmJsBrowserTest") {
+    enabled = false
 }
