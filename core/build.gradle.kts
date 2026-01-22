@@ -100,8 +100,8 @@ kotlin {
             implementation(libs.ktor.client.cio)
             // Kermit Logger
             api(libs.touchlab.kermit)
-            implementation(libs.org.slf4j.api)
-            implementation(libs.ch.qos.logback.classic)
+            implementation(libs.slf4j.api)
+            implementation(libs.logback.classic)
 
         }
         jvmTest.dependencies {

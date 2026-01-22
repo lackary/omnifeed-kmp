@@ -72,8 +72,8 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.ktor.client.core)
-            implementation(libs.kmp.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.kevinnzou.composeWebviewMultiplatform)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.kevinnzou.compose.webview.multiplatform)
             implementation(projects.core)
         }
         commonTest.dependencies {
@@ -84,7 +84,7 @@ kotlin {
 
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.kotlinx.coroutines.swing)
         }
         jvmTest.dependencies {
         }
