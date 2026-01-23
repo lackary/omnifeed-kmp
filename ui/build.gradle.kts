@@ -7,24 +7,34 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 val modulePackageName = "io.lackstudio.omnifeed.ui"
 
 plugins {
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose.compiler)
+    alias(libs.plugins.compose.multiplatform)
     id("maven-publish")
 }
 
 kotlin {
-    androidTarget {
-        // This is necessary to publish the Android library variant.
-        publishLibraryVariants("release")
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
-                }
-            }
+    androidLibrary {
+        namespace = modulePackageName
+        compileSdk = 36
+        minSdk = 30
+
+        withJava() //  Opt-in to enable Java source compilation
+        withHostTestBuilder {}.configure {}
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }
+
+        // Set the Kotlin compilation target version
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
+
+        // Enable Android resource processing, default is false
+        androidResources {
+            enable = true
         }
     }
 
@@ -55,15 +65,15 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.components.resources)
             implementation(libs.ktor.client.core)
-            implementation(libs.kmp.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.kevinnzou.composeWebviewMultiplatform)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.kevinnzou.compose.webview.multiplatform)
             implementation(projects.core)
         }
         commonTest.dependencies {
@@ -74,7 +84,7 @@ kotlin {
 
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.kotlinx.coroutines.swing)
         }
         jvmTest.dependencies {
         }
@@ -90,19 +100,6 @@ kotlin {
         iosTest.dependencies {
         }
     }
-}
-
-android {
-    namespace = modulePackageName
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 30
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-
 }
 
 publishing {

@@ -1,6 +1,6 @@
 TEAM_ID=
 
-PRODUCT_NAME=kmp-app
+PRODUCT_NAME=OmniFeed Sample App
 PRODUCT_BUNDLE_IDENTIFIER=io.lackstudio.omnifeed.app
 
 CURRENT_PROJECT_VERSION=1
