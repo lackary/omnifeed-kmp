@@ -5,8 +5,8 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.platformLogWriter
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.logging.LogLevel
-import io.lackstudio.omnifeed.core.common.logging.setupKermitLogger
-import io.lackstudio.omnifeed.core.di.KTOR_LOGGER_TAG
+import io.lackstudio.omnifeed.core.common.logging.LogConfiguration.OMNIFEED_KTOR_TAG
+import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.unsplash.di.BaseKoinTest
@@ -27,7 +27,7 @@ import kotlin.test.assertNotNull
 
 class UnsplashApiServiceImplTest: BaseKoinTest() {
 
-    override val appLogWriter: LogWriter
+    override val unsplashTestLogWriter: LogWriter
         get() = platformLogWriter()
     override val engine: HttpClientEngine
         get() = UnsplashMockEngine
@@ -38,8 +38,8 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
             logLevel = LogLevel.ALL
         )
     override val kermitLogger: Logger
-        get() = setupKermitLogger(
-            tag = KTOR_LOGGER_TAG,
+        get() = createOmniFeedLogger(
+            tag = OMNIFEED_KTOR_TAG,
             logWriter = platformLogWriter()
         )
     override val accessTokenProvider: AccessTokenProvider

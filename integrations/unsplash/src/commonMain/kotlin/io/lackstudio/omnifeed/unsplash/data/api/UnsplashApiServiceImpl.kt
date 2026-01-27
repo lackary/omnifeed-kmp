@@ -1,6 +1,6 @@
 package io.lackstudio.omnifeed.unsplash.data.api
 
-import io.lackstudio.omnifeed.core.common.logging.AppLogger
+import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -21,17 +21,16 @@ import io.lackstudio.omnifeed.unsplash.utils.constants.ApiKeys
 
 class UnsplashApiServiceImpl(
     private val httpClient: HttpClient,
-    private val appLogger: AppLogger
+    private val logger: Logger
 ) : UnsplashApiService {
-    val TAG = "UnsplashApiServiceImpl"
 
     override suspend fun getMe(): MeProfileResponse {
-        appLogger.debug(tag = TAG, message = "getMe")
+        logger.d{"getMe"}
         return httpClient.get(Environment.API_ME).body()
     }
 
     override suspend fun getUserPublicProfile(username: String): UserProfileResponse {
-        appLogger.debug(tag = TAG, message = "getUserPublicProfile username $username")
+        logger.d{"getUserPublicProfile username $username"}
         return httpClient.get("${Environment.API_USERS}/$username").body()
     }
 
@@ -103,7 +102,7 @@ class UnsplashApiServiceImpl(
         page: Int,
         perPage: Int
     ): List<PhotoScheme> {
-        appLogger.debug(tag = TAG, message = "getPhotos page $page, perPage $perPage")
+        logger.d{"getPhotos page $page, perPage $perPage"}
         return httpClient.get(Environment.API_PHOTOS) {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -111,7 +110,7 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getPhoto(id: String): PhotoDetailResponse {
-        appLogger.debug(tag = TAG, message = "getPhoto id $id")
+        logger.d{"getPhoto id $id"}
         return httpClient.get("${Environment.API_PHOTOS}/$id").body()
     }
 
@@ -162,7 +161,7 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getCollections(page: Int, perPage: Int): List<CollectionResponse> {
-        appLogger.debug(tag = TAG, message = "getCollections page $page, perPage $perPage")
+        logger.d{"getCollections page $page, perPage $perPage"}
         return httpClient.get(Environment.API_COLLECTIONS) {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -170,12 +169,12 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getCollection(id: String): CollectionResponse {
-        appLogger.debug(tag = TAG, message = "getCollection id $id")
+        logger.d{"getCollection id $id"}
         return httpClient.get("${Environment.API_COLLECTIONS}/$id").body()
     }
 
     override suspend fun getTopics(page: Int, perPage: Int): List<TopicResponse> {
-        appLogger.debug(tag = TAG, message = "getTopics page $page, perPage $perPage")
+        logger.d{"getTopics page $page, perPage $perPage"}
         return httpClient.get(Environment.API_TOPICS) {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -183,7 +182,7 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getTopic(idOrSlug: String): TopicResponse {
-        appLogger.debug(tag = TAG, message = "getTopic id $idOrSlug")
+        logger.d{"getTopic id $idOrSlug"}
         return httpClient.get("${Environment.API_TOPICS}/$idOrSlug").body()
     }
 

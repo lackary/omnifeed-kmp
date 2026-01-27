@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.touchlab.kermit.Logger
 import com.mmk.kmpauth.firebase.google.GoogleButtonUiContainerFirebase
-import com.mmk.kmpauth.google.GoogleButtonUiContainer
 import com.mmk.kmpauth.uihelper.google.GoogleSignInButton
 import com.mmk.kmpauth.uihelper.google.GoogleSignInButtonIconOnly
 import dev.gitlive.firebase.auth.FirebaseUser
@@ -44,9 +43,6 @@ import io.lackstudio.omnifeed.compose.ui.viewmodel.AppViewModel
 import io.lackstudio.omnifeed.compose.utils.Environment
 import io.lackstudio.omnifeed.compose.generated.resources.Res
 import io.lackstudio.omnifeed.compose.generated.resources.compose_multiplatform
-import io.lackstudio.omnifeed.core.common.logging.AppLogger
-import io.lackstudio.omnifeed.core.common.util.appPlatformLogWriter
-import io.lackstudio.omnifeed.core.di.appLoggerModule
 import io.lackstudio.omnifeed.core.network.extension.hrefWithHost
 import io.lackstudio.omnifeed.ui.component.OAuthWebViewBottomSheet
 import io.lackstudio.omnifeed.unsplash.data.model.request.AuthorizeRequest as UnsplashAuthorizeRequest
@@ -55,18 +51,22 @@ import io.lackstudio.omnifeed.unsplash.utils.Environment as UnsplashEnvironment
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import io.lackstudio.omnifeed.core.di.coreModule
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 
 @Composable
 fun App() {
-    val appLogger: AppLogger = koinInject()
+    val baseLogger: Logger = koinInject()
     val appViewModel: AppViewModel = koinInject()
     val client: HttpClient = koinInject()
 
-    appLogger.info("AppKt", "App MaterialTheme create.")
+    val logger = remember { baseLogger.withTag("AppKt") }
+    logger.withTag("AppKt")
 
-    Logger.withTag("AppKt").i { "Kermit test" }
+    logger.d{"App MaterialTheme create."}
+
+    logger.i{ "Kermit test" }
 
 //    // MVVM stateFlow
 //    val photoUiState by appViewModel.photoUiState.collectAsState()
@@ -121,10 +121,10 @@ fun App() {
                     val firebaseUser = result.getOrNull()
                     signedInUserName =
                         firebaseUser?.displayName ?: firebaseUser?.email ?: "Null User"
-                    appLogger.info("AppKt", "signedInUserName $signedInUserName")
+                    logger.d{"signedInUserName $signedInUserName"}
                 } else {
                     signedInUserName = "Null User"
-                    appLogger.info("AppKt", "Error Result: ${result.exceptionOrNull()?.message}")
+                    logger.e{"Error Result: ${result.exceptionOrNull()?.message}"}
                 }
 
             }
@@ -189,7 +189,7 @@ fun App() {
                 Text("Open WebView")
             }
 
-            appLogger.info("Appkt", "authorizeRequestUrl = $authorizeRequestUrl")
+            logger.i{"authorizeRequestUrl = $authorizeRequestUrl"}
 
             // Show the Bottom Sheet
             authUrlToShow?.let {
@@ -204,22 +204,22 @@ fun App() {
                 ) { onExecuteJavascript ->
                     LaunchedEffect(Unit) {
                         appViewModel.eventsFlow.collect { event ->
-                            appLogger.debug("Appkt", "event $event")
+                            logger.d{"event $event"}
                             when (event) {
                                 is HomeUiEvent.ShowAuthSuccess -> {
-                                    appLogger.debug("AppKt", "ShowAuthSuccess")
+                                    logger.d{"ShowAuthSuccess"}
 //                                val jsCall = "displayExchangeSuccess('${event.tokenType}')".trimIndent()
 //                                onExecuteJavascript(jsCall)
                                 }
 
                                 is HomeUiEvent.ShowAuthError -> {
-                                    appLogger.debug("AppKt", "ShowAuthError")
+                                    logger.d{"ShowAuthError"}
                                     val jsCall = "displayAuthError('${event.message}')".trimIndent()
                                     onExecuteJavascript(jsCall)
                                 }
 
                                 is HomeUiEvent.ShowAuthProfile -> {
-                                    appLogger.debug("AppKt", "ShowAuthProfile")
+                                    logger.d{"ShowAuthProfile"}
                                     val jsCall = "displayUserInfo('${event.profileImageUrl}', '${event.username}')".trimIndent()
                                     onExecuteJavascript(jsCall)
                                 }
@@ -304,7 +304,7 @@ fun AppPreview() {
         // Configure your Koin modules here
         modules(
             listOf(
-                appLoggerModule(appPlatformLogWriter()),
+                coreModule(),
                 unsplashModule(tokenType = UnsplashEnvironment.AUTH_SCHEME_PUBLIC, token = getUnsplashAccessKey()),
                 viewModelModule
             )

@@ -27,7 +27,6 @@ import io.ktor.client.plugins.pluginOrNull
 import io.ktor.client.plugins.timeout
 import io.ktor.http.HttpMethod
 import io.ktor.utils.io.ByteReadChannel
-import io.lackstudio.omnifeed.core.di.ktorClientModule
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import kotlinx.serialization.Serializable
 import org.koin.core.context.startKoin
@@ -94,13 +93,15 @@ class KtorClientFactoryTest: KoinTest {
         stopKoin()
         startKoin {
             modules(
-                ktorClientModule(
-                    engineFactory = mockEngine,
-                    ktorConfig = testKtorConfig,
-                    // ktor client need KtorLogger
-                    logger = sharedMockLogger
-                ),
                 module {
+                    single {
+                        KtorClientFactory.createHttpClient(
+                            engineFactory = mockEngine,
+                            ktorConfig = testKtorConfig,
+                            logger = get(),
+                            accessTokenProvider = { get() }
+                        )
+                    }
                     single<KtorLogger> { sharedMockLogger }
                     single {
                         testAccessTokenProvider

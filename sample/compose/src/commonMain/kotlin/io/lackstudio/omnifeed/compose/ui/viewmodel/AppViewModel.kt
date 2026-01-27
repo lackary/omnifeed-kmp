@@ -1,13 +1,13 @@
 package io.lackstudio.omnifeed.compose.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.compose.platform.getUnsplashAccessKey
 import io.lackstudio.omnifeed.compose.platform.getUnsplashSecretKey
 import io.lackstudio.omnifeed.compose.ui.event.HomeUiEvent
 import io.lackstudio.omnifeed.compose.ui.intent.HomeUiIntent
 import io.lackstudio.omnifeed.compose.ui.state.HomeUiState
 import io.lackstudio.omnifeed.compose.utils.Environment
-import io.lackstudio.omnifeed.core.common.logging.AppLogger
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
@@ -32,11 +32,10 @@ class AppViewModel(
     private val getPhotosUseCase: GetPhotosUseCase,
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
     private val getMeUseCase: GetMeUseCase,
-    private val appLogger: AppLogger,
-    private val accessTokenProvider: AccessTokenProvider
+    private val accessTokenProvider: AccessTokenProvider,
+    private val logger: Logger,
 ) : BaseViewModel() {
 
-    private val TAG = AppViewModel::class::simpleName
 
     // MVVM uses multiple StateFlows to expose UI state
     private val _photoUiState =
@@ -104,7 +103,7 @@ class AppViewModel(
             },
             useCase = { getPhotosUseCase(params)},
             onSuccess = { data ->
-                appLogger.debug("AppViewModel", "on onSuccess data $data")
+                logger.d{"on onSuccess data $data"}
                 _uiState.update { state -> state.copy(photos = AppUiState.Success(data)) }
             },
             onError = { errorMessage ->
@@ -123,7 +122,7 @@ class AppViewModel(
                 getMeUseCase(input = Unit)
             },
             onSuccess = { data ->
-                appLogger.debug("AppViewModel","Profile: $data")
+                logger.d{"Profile: $data"}
                 _uiState.update { state -> state.copy(profile = AppUiState.Success(data)) }
                 sendEvent(
                     HomeUiEvent.ShowAuthProfile(
@@ -133,7 +132,7 @@ class AppViewModel(
                 )
             },
             onError = { errorMessage ->
-                appLogger.error("AppViewModel", "onError errorMessage: $errorMessage")
+                logger.e{"onError errorMessage: $errorMessage"}
                 _uiState.update { state -> state.copy(profile = AppUiState.Error(errorMessage)) }
             }
         )
@@ -158,7 +157,7 @@ class AppViewModel(
             },
             // onSuccess: On success, update the accessToken property in MviUiState
             onSuccess = { data ->
-                appLogger.info("AppViewModel", "onSuccess data: $data")
+                logger.i{"onSuccess data: $data"}
 
                 accessTokenProvider.setOAuthToken(newType = data.tokenType, newValue = data.accessToken)
                 _uiState.update { state -> state.copy(oAuthToken = AppUiState.Success(data)) }
@@ -168,7 +167,7 @@ class AppViewModel(
             },
             // onError: On failure, update the accessToken property in MviUiState with an error message
             onError = { errorMessage ->
-                appLogger.error("AppViewModel", "onError errorMessage: $errorMessage")
+                logger.e{"onError errorMessage: $errorMessage"}
                 _uiState.update { state -> state.copy(oAuthToken = AppUiState.Error(errorMessage)) }
                 sendEvent(HomeUiEvent.ShowAuthError("Token exchange failed: $errorMessage"))
             }

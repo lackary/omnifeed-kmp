@@ -6,7 +6,8 @@ import Compose
 
 fileprivate let logger = Logger(
     subsystem: "io.lackstudio.omnifeed.app",
-    category: "General")
+    category: "General"
+)
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
@@ -16,7 +17,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             // Handle error: Incorrect filename or file not added to the Target
             fatalError("Unable to read CLIENT_ID from GoogleService-Info.plist")
         }
-        logger.info("webClientID: \(webClientID)")
+        logger.debug("webClientID: \(webClientID)")
         AppInitializer.shared.onApplicationStart(webClientId: webClientID)
         
         return true

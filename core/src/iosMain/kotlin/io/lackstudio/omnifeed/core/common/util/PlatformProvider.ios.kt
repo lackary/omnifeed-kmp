@@ -1,7 +1,5 @@
 package io.lackstudio.omnifeed.core.common.util
 
-import co.touchlab.kermit.LogWriter
-import io.lackstudio.omnifeed.core.common.logging.NSLogWriter
 import platform.Foundation.*
 import platform.posix.getpid
 import platform.darwin.mach_thread_self
@@ -23,5 +21,3 @@ actual fun getCurrentThreadId(): String {
     val machThreadID = mach_thread_self()
     return machThreadID.toString()
 }
-
-actual fun appPlatformLogWriter(): LogWriter = NSLogWriter()

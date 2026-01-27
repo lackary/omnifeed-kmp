@@ -1,9 +1,8 @@
 package io.lackstudio.omnifeed.unsplash.di
 
+import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.core.common.logging.KtorKermitLogger
-import io.lackstudio.omnifeed.core.common.logging.setupKermitLogger
-import io.lackstudio.omnifeed.core.common.util.appPlatformLogWriter
-import io.lackstudio.omnifeed.core.network.KtorClientFactory
+import io.lackstudio.omnifeed.core.network. KtorClientFactory
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.core.network.provideHttpClientEngine
@@ -48,23 +47,20 @@ fun unsplashModule(tokenType: String, token: String) = module {
     val ktorConfig = KtorConfig(
         baseUrl = Environment.BASE_API_URL,
     )
-    val kermitLogger = setupKermitLogger(
-        tag = TAG_UNSPLASH_KTOR,
-        logWriter = appPlatformLogWriter()
-    )
 
     single {
+        val unsplashLogger = get<Logger>().withTag(TAG_UNSPLASH_KTOR)
         KtorClientFactory.createHttpClient(
             engineFactory = provideHttpClientEngine(),
             ktorConfig = ktorConfig,
-            logger = KtorKermitLogger(kermitLogger),
+            logger = KtorKermitLogger(unsplashLogger),
             accessTokenProvider = { get() }
         )
     }
     single<UnsplashApiService> {
         UnsplashApiServiceImpl(
             get(),
-            get()
+            get<Logger>().withTag("UnsplashApiServiceImpl")
         )
     }
     single<LocalUnsplashPhotoDataSource> { LocalUnsplashDataSourceImpl(/* inject Room DAO */) }

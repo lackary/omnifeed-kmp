@@ -3,8 +3,7 @@ package io.lackstudio.omnifeed.compose.ui.screen
 import androidx.compose.ui.test.*
 import io.lackstudio.omnifeed.compose.di.viewModelModule
 import io.lackstudio.omnifeed.compose.platform.getUnsplashAccessKey
-import io.lackstudio.omnifeed.core.common.util.appPlatformLogWriter
-import io.lackstudio.omnifeed.core.di.appLoggerModule
+import io.lackstudio.omnifeed.core.di.coreModule
 import io.lackstudio.omnifeed.unsplash.di.unsplashModule
 import io.lackstudio.omnifeed.unsplash.utils.Environment.AUTH_SCHEME_PUBLIC
 import org.koin.core.context.startKoin
@@ -29,7 +28,7 @@ class AppTest : KoinTest {
         startKoin {
             modules(
                 listOf(
-                    appLoggerModule(appPlatformLogWriter()),
+                    coreModule(),
                     unsplashModule(AUTH_SCHEME_PUBLIC, getUnsplashAccessKey()),
                     viewModelModule
                 )

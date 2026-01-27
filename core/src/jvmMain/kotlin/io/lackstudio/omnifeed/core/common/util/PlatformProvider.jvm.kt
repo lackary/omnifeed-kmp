@@ -1,7 +1,5 @@
 package io.lackstudio.omnifeed.core.common.util
 
-import co.touchlab.kermit.LogWriter
-import io.lackstudio.omnifeed.core.common.logging.LogbackWriter
 import java.lang.management.ManagementFactory
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -29,5 +27,3 @@ actual fun getCurrentProcessId(): String {
 actual fun getCurrentThreadId(): String {
     return Thread.currentThread().threadId().toString()
 }
-
-actual fun appPlatformLogWriter(): LogWriter = LogbackWriter()
