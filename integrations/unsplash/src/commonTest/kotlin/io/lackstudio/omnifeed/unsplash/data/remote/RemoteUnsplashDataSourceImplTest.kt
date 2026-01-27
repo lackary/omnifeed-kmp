@@ -9,8 +9,8 @@ import io.lackstudio.omnifeed.unsplash.data.api.UnsplashApiService
 import io.lackstudio.omnifeed.unsplash.data.api.UnsplashApiServiceImpl
 import io.lackstudio.omnifeed.unsplash.di.BaseKoinTest
 import io.ktor.http.HttpStatusCode
-import io.lackstudio.omnifeed.core.common.logging.setupKermitLogger
-import io.lackstudio.omnifeed.core.di.KTOR_LOGGER_TAG
+import io.lackstudio.omnifeed.core.common.logging.LogConfiguration.OMNIFEED_KTOR_TAG
+import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.unsplash.data.error.UnsplashApiException
@@ -32,7 +32,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class RemoteUnsplashDataSourceImplTest: BaseKoinTest() {
-    override val appLogWriter: LogWriter
+    override val unsplashTestLogWriter: LogWriter
         get() = platformLogWriter()
     override val engine: HttpClientEngine
         get() = UnsplashMockEngine
@@ -42,8 +42,8 @@ class RemoteUnsplashDataSourceImplTest: BaseKoinTest() {
             logLevel = LogLevel.ALL
         )
     override val kermitLogger: Logger
-        get() = setupKermitLogger(
-            tag = KTOR_LOGGER_TAG,
+        get() = createOmniFeedLogger(
+            tag = OMNIFEED_KTOR_TAG,
             logWriter = platformLogWriter()
         )
     override val accessTokenProvider: AccessTokenProvider

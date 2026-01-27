@@ -4,8 +4,8 @@ import co.touchlab.kermit.LogWriter
 import co.touchlab.kermit.Logger
 import io.ktor.client.engine.HttpClientEngine
 import io.lackstudio.omnifeed.core.common.logging.KtorKermitLogger
-import io.lackstudio.omnifeed.core.di.appLoggerModule
-import io.lackstudio.omnifeed.core.di.ktorClientModule
+import io.lackstudio.omnifeed.core.di.coreModule
+import io.lackstudio.omnifeed.core.network.KtorClientFactory
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import org.koin.core.context.startKoin
@@ -19,7 +19,7 @@ import kotlin.test.BeforeTest
 abstract class BaseKoinTest: KoinTest {
 
     protected abstract val testModules: List<Module>
-    protected abstract val appLogWriter: LogWriter
+    protected abstract val unsplashTestLogWriter: LogWriter
     protected abstract val engine: HttpClientEngine
     protected abstract val ktorConfig: KtorConfig
     protected abstract val kermitLogger: Logger
@@ -31,13 +31,20 @@ abstract class BaseKoinTest: KoinTest {
         startKoin {
             modules(
                 // api-client-unsplash need AppLogger for
-                appLoggerModule(appLogWriter),
-                ktorClientModule(
-                    engineFactory = engine,
-                    ktorConfig = ktorConfig,
-                    // ktor client need KtorLogger
-                    logger = KtorKermitLogger(kermitLogger)
-                ),
+                coreModule(),
+                module {
+                    single {
+                        // 直接呼叫 Factory 建立 Client，完全掌控參數
+                        KtorClientFactory.createHttpClient(
+                            engineFactory = engine,
+                            ktorConfig = ktorConfig,
+                            // 手動傳入測試用的 Logger (這裡就能解決參數問題)
+                            logger = KtorKermitLogger(kermitLogger),
+                            // 使用 Koin 裡的 AccessTokenProvider (下面那個 module 定義的)
+                            accessTokenProvider = { get() }
+                        )
+                    }
+                },
                 module {
                     single {
                         accessTokenProvider

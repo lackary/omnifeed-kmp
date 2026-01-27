@@ -2,12 +2,10 @@ package io.lackstudio.omnifeed.core.common.util
 
 import android.annotation.SuppressLint
 import android.os.Build
-import co.touchlab.kermit.platformLogWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.os.Process
-import co.touchlab.kermit.LogWriter
 
 actual val isDebuggable: Boolean
     get() = true
@@ -36,5 +34,3 @@ actual fun getCurrentThreadId(): String {
         Thread.currentThread().id.toString()
     }
 }
-
-actual fun appPlatformLogWriter(): LogWriter = platformLogWriter()

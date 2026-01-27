@@ -14,7 +14,7 @@ androidxCredential = "1.5.0"
 # Jetbrains
 kotlin = "2.3.0"
 kotlinGradlePlugin = "2.2.10"
-kotlinxSerialization = "1.9.0"
+kotlinxSerialization = "1.10.0"
 kotlinxCoroutines = "1.10.2"
 kotlinxDatetime = "0.7.1"
 lifecycle = "2.9.6"
@@ -24,7 +24,7 @@ composeMultiplatform = "1.10.0"
 # Google
 googleServices = "4.4.4"
 googleGms = "21.5.0"
-googleId = "1.1.1"
+googleId = "1.2.0"
 googleKsp = "2.3.3"
 googleFirebaseBom = "34.8.0"
 
@@ -38,7 +38,7 @@ googleFirebaseAuth = "23.2.1"
 junit = "4.13.2"
 
 # 3rd Party
-ktor = "3.3.3"
+ktor = "3.4.0"
 koin = "4.1.1"
 kevinnzouComposeWebviewMultiplatform = "2.0.3"
 
@@ -66,7 +66,7 @@ kotlinxCoroutinesTest = "1.10.2"
 mockk = "1.14.7"
 
 turbine = "1.2.1"
-robolectric = "4.16"
+robolectric = "4.16.1"
 
 [libraries]
 # Android

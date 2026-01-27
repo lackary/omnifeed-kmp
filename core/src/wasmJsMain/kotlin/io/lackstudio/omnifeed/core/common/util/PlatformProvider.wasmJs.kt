@@ -1,8 +1,5 @@
 package io.lackstudio.omnifeed.core.common.util
 
-import co.touchlab.kermit.CommonWriter
-import co.touchlab.kermit.LogWriter
-
 actual val isDebuggable: Boolean
     get() = true
 
@@ -39,7 +36,7 @@ actual fun getCurrentThreadId(): String {
     return "Main"
 }
 
-actual fun appPlatformLogWriter(): LogWriter = CommonWriter()
+//actual fun appPlatformLogWriter(): LogWriter = CommonWriter()
 
 private fun String.padStart(length: Int, padChar: Char): String {
     if (this.length >= length) return this

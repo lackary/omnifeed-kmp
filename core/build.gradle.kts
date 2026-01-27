@@ -123,11 +123,14 @@ kotlin {
 
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
-            api(libs.touchlab.kermit)
         }
         iosTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.ktor.client.darwin)
+        }
+
+        webMain.dependencies {
+
         }
     }
 }
