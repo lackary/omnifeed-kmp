@@ -169,6 +169,7 @@ kotlin {
             implementation(libs.mirzemehdi.kmpauth.uihelper)
             implementation(libs.touchlab.kermit)
             implementation(libs.gitlive.firebase.auth)
+            implementation(projects.omnifeed)
             implementation(projects.integrations.unsplash)
             implementation(projects.core)
             implementation(projects.ui)
@@ -190,12 +191,15 @@ kotlin {
         androidUnitTest.dependencies {  }
         androidInstrumentedTest.dependencies {  }
 
-        iosMain.dependencies {  }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
         iosTest.dependencies {  }
 
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.ktor.client.cio)
         }
         jvmTest.dependencies {
             implementation(libs.kotlin.test)

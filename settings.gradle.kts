@@ -21,10 +21,11 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "omnifeed"
+rootProject.name = "omnifeed-root"
 
 include(":sample:compose")
 include(":sample:androidApp")
 include(":core")
 include(":ui")
 include("integrations:unsplash")
+include(":omnifeed")

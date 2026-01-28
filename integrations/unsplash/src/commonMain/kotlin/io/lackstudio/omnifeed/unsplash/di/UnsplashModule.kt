@@ -93,10 +93,6 @@ fun unsplashModule(tokenType: String, token: String) = module {
     factory { SearchCollectionsUseCase(get()) }
     factory { SearchUsersUseCase(get()) }
 
-    factory {
-        ExchangeOAuthUseCase(
-            get()
-        )
-    }
+    factory { ExchangeOAuthUseCase(get()) }
     factory { GetMeUseCase(get()) }
 }

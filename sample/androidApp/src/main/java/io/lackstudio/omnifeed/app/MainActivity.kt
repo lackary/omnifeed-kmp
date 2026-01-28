@@ -6,13 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import io.lackstudio.omnifeed.compose.di.viewModelModule
-import io.lackstudio.omnifeed.compose.platform.getUnsplashAccessKey
 import io.lackstudio.omnifeed.compose.ui.screen.App
-import io.lackstudio.omnifeed.core.di.coreModule
-import io.lackstudio.omnifeed.unsplash.di.unsplashModule
-import io.lackstudio.omnifeed.unsplash.utils.Environment as UnsplashEnvironment
-import org.koin.compose.KoinApplication
+import io.lackstudio.omnifeed.compose.ui.screen.AppScreenContent
+import io.lackstudio.omnifeed.compose.ui.state.HomeUiState
+import io.lackstudio.omnifeed.ui.state.AppUiState
 
 class MainActivity : ComponentActivity() {
 
@@ -28,21 +25,16 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    KoinApplication(application = {
-        // Initialize Koin for the Compose Preview environment.
-        // This ensures that dependencies required by the App composable (like ViewModels or Loggers)
-        // are available during rendering.
-        modules(
-            listOf(
-                coreModule(),
-                unsplashModule(
-                    tokenType = UnsplashEnvironment.AUTH_SCHEME_PUBLIC,
-                    token = getUnsplashAccessKey()
-                ),
-                viewModelModule
-            )
-        )
-    }) {
-        App()
-    }
+    // Prepare fake data (Fake State)
+    val fakeUiState = HomeUiState(
+        photos = AppUiState.Success(listOf()),
+        profile = AppUiState.Idle
+    )
+
+    // Render UI directly
+    AppScreenContent(
+        uiState = fakeUiState,
+        authorizeRequestUrl = "https://fake.url",
+        onIntent = {} // Empty implementation, because Preview doesn't need to handle clicks
+    )
 }

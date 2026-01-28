@@ -59,3 +59,41 @@ tasks.register("setBuildVersion") {
         }
     }
 }
+
+subprojects {
+    // Listen: Whenever a subproject applies the 'maven-publish' plugin, automatically inject POM settings for it
+    plugins.withId("maven-publish") {
+
+        // Configure publishing
+        extensions.configure<PublishingExtension> {
+            publications.withType<MavenPublication> {
+                pom {
+                    // Configure shared information (same for all modules)
+                    url.set("https://github.com/lackary/omnifeed-kmp")
+
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set("lackary")
+                            name.set("Henry Huang")
+                            email.set("lackary@gmail.com")
+                        }
+                    }
+
+                    // Configure dynamic information (automatically fetched for each module)
+                    // If the subproject does not have a description, use the project name instead
+                    if (!description.isPresent) {
+                        description.set("Library module: ${project.name}")
+                    }
+                    name.set(project.name) // Set POM name to the module name
+                }
+            }
+        }
+    }
+}
