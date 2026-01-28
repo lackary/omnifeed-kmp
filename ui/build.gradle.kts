@@ -15,6 +15,10 @@ plugins {
     id("maven-publish")
 }
 
+base {
+    archivesName.set("omnifeed-ui")
+}
+
 kotlin {
     androidLibrary {
         namespace = modulePackageName
@@ -99,24 +103,6 @@ kotlin {
         }
         iosTest.dependencies {
         }
-    }
-}
-
-publishing {
-    publications {
-        // withType<MavenPublication>().all {
-        //     artifactId = "testing" // or your artifact name
-        // }
-//        create<MavenPublication>("maven") {
-//            artifactId = "omnifeed-ui"
-//            from(components["kotlin"])
-//        }
-        withType<MavenPublication> {
-            artifactId = artifactId.replace("ui", "omnifeed-ui")
-        }
-    }
-    repositories {
-        mavenLocal()
     }
 }
 

@@ -13,6 +13,9 @@ plugins {
     id("maven-publish")
 }
 
+base {
+    archivesName.set("omnifeed-core")
+}
 kotlin {
     androidLibrary {
         namespace = modulePackageName
@@ -132,23 +135,5 @@ kotlin {
         webMain.dependencies {
 
         }
-    }
-}
-
-publishing {
-    publications {
-        // withType<MavenPublication>().all {
-        //     artifactId = "testing" // or your artifact name
-        // }
-//        create<MavenPublication>("maven") {
-//            artifactId = "omnifeed-core"
-//            from(components["kotlin"])
-//        }
-        withType<MavenPublication> {
-            artifactId = artifactId.replace("core", "omnifeed-core")
-        }
-    }
-    repositories {
-        mavenLocal()
     }
 }

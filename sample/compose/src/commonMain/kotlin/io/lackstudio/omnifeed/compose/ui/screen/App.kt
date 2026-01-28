@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.touchlab.kermit.Logger
@@ -35,52 +36,87 @@ import com.mmk.kmpauth.uihelper.google.GoogleSignInButton
 import com.mmk.kmpauth.uihelper.google.GoogleSignInButtonIconOnly
 import dev.gitlive.firebase.auth.FirebaseUser
 import io.ktor.client.HttpClient
-import io.lackstudio.omnifeed.compose.di.viewModelModule
+import io.lackstudio.omnifeed.compose.generated.resources.Res
+import io.lackstudio.omnifeed.compose.generated.resources.compose_multiplatform
 import io.lackstudio.omnifeed.compose.platform.getUnsplashAccessKey
 import io.lackstudio.omnifeed.compose.ui.event.HomeUiEvent
 import io.lackstudio.omnifeed.compose.ui.intent.HomeUiIntent
+import io.lackstudio.omnifeed.compose.ui.state.HomeUiState
 import io.lackstudio.omnifeed.compose.ui.viewmodel.AppViewModel
 import io.lackstudio.omnifeed.compose.utils.Environment
-import io.lackstudio.omnifeed.compose.generated.resources.Res
-import io.lackstudio.omnifeed.compose.generated.resources.compose_multiplatform
 import io.lackstudio.omnifeed.core.network.extension.hrefWithHost
 import io.lackstudio.omnifeed.ui.component.OAuthWebViewBottomSheet
+import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnifeed.unsplash.data.model.request.AuthorizeRequest as UnsplashAuthorizeRequest
-import io.lackstudio.omnifeed.unsplash.di.unsplashModule
 import io.lackstudio.omnifeed.unsplash.utils.Environment as UnsplashEnvironment
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import androidx.compose.ui.tooling.preview.Preview
-import io.lackstudio.omnifeed.core.di.coreModule
-import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 
+/**
+ * 1. Stateful Composable (The Container)
+ * Responsible for dependency injection, state collection, and logic handling.
+ * The actual UI rendering is delegated to the stateless [AppScreenContent].
+ */
 @Composable
 fun App() {
+    // 1. Dependency Injection
     val baseLogger: Logger = koinInject()
     val appViewModel: AppViewModel = koinInject()
     val client: HttpClient = koinInject()
 
     val logger = remember { baseLogger.withTag("AppKt") }
-    logger.withTag("AppKt")
 
-    logger.d{"App MaterialTheme create."}
-
-    logger.i{ "Kermit test" }
-
-//    // MVVM stateFlow
-//    val photoUiState by appViewModel.photoUiState.collectAsState()
-//
-//    // MVVM received data
-//    LaunchedEffect(key1 = Unit) {
-//        appViewModel.loadPhotos()
-//    }
-
-    // MVI stateFLow
+    // 2. State Collection
     val uiState by appViewModel.uiState.collectAsState()
 
+    // 3. Logic & Event Handling
+    // Prepare the special logic to be passed to the UI here
+
+    // Prepare OAuth URL (Pure logic, independent of UI)
+    val authRequest = remember {
+        UnsplashAuthorizeRequest(
+            clientId = getUnsplashAccessKey(),
+            redirectUri = Environment.AUTH_REDIRECT_URL,
+            responseType = "code",
+            scope = "public"
+        )
+    }
+
+    // Use the client to generate the URL here
+    val authorizeRequestUrl = remember(client) {
+        client.hrefWithHost(
+            hostname = UnsplashEnvironment.HOST_NAME,
+            resource = authRequest
+        )
+    }
+
+    // 4. Pass Everything to Stateless Content
+    AppScreenContent(
+        uiState = uiState,
+        eventFlow = appViewModel.eventsFlow, // Pass the one-time events Flow
+        authorizeRequestUrl = authorizeRequestUrl,
+        logger = logger,
+        onIntent = { intent -> appViewModel.processIntent(intent) }
+    )
+}
+
+/**
+ * Stateless Composable (The UI)
+ * Pure UI component. Completely unaware of ViewModel and Koin.
+ * Only receives State (data) and Lambdas (actions).
+ */
+@Composable
+fun AppScreenContent(
+    uiState: HomeUiState,
+    eventFlow: Flow<HomeUiEvent> = emptyFlow(), // Default to empty Flow for easy Preview
+    authorizeRequestUrl: String = "",
+    logger: Logger? = null, // Optional Logger for debugging UI
+    onIntent: (HomeUiIntent) -> Unit
+) {
     // Use a nullable String to store the URL to be displayed. If it's null, the sheet is not shown.
-    // This controls the creation and destruction of the OAuthWebViewBottomSheet.
     var authUrlToShow: String? by remember { mutableStateOf(null) }
 
     MaterialTheme {
@@ -106,7 +142,7 @@ fun App() {
                     Image(
                         painter = painterResource(Res.drawable.compose_multiplatform),
                         contentDescription = null,
-                        modifier =  Modifier.testTag("multiplatform_logo")
+                        modifier = Modifier.testTag("multiplatform_logo")
                     )
                     Text(
                         text = "Show Me Example!!",
@@ -121,50 +157,19 @@ fun App() {
                     val firebaseUser = result.getOrNull()
                     signedInUserName =
                         firebaseUser?.displayName ?: firebaseUser?.email ?: "Null User"
-                    logger.d{"signedInUserName $signedInUserName"}
+                    logger?.d { "signedInUserName $signedInUserName" }
                 } else {
                     signedInUserName = "Null User"
-                    logger.e{"Error Result: ${result.exceptionOrNull()?.message}"}
+                    logger?.e { "Error Result: ${result.exceptionOrNull()?.message}" }
                 }
-
             }
 
             val coroutineScope = rememberCoroutineScope()
             ButtonSignIn(
                 Modifier.testTag("ButtonGoogleSignIn")
-            ){
-                coroutineScope.launch {  }
+            ) {
+                coroutineScope.launch { }
             }
-
-            //Google Sign-In with Custom Button and authentication without Firebase
-//            GoogleButtonUiContainer(onGoogleSignInResult = { googleUser ->
-//                val idToken = googleUser?.idToken // Send this idToken to your backend to verify
-//                signedInUserName = googleUser?.displayName ?: "Null User"
-//            }) {
-//                Button(onClick = { this.onClick() }) { Text("Google Sign-In(Custom Design)") }
-//            }
-
-//            // ************************** kmpauth UiHelper Text Buttons *************
-//            HorizontalDivider(
-//                Modifier.fillMaxWidth().padding(16.dp),
-//                DividerDefaults.Thickness,
-//                DividerDefaults.color
-//            )
-//            AuthUiHelperButtonsAndFirebaseAuth(
-//                modifier = Modifier.width(IntrinsicSize.Max),
-//                onFirebaseResult = onFirebaseResult
-//            )
-//
-//            //************************** UiHelper IconOnly Buttons *************
-//            HorizontalDivider(
-//                Modifier.fillMaxWidth().padding(16.dp),
-//                DividerDefaults.Thickness,
-//                DividerDefaults.color
-//            )
-//            IconOnlyButtonsAndFirebaseAuth(
-//                modifier = Modifier.fillMaxWidth(),
-//                onFirebaseResult = onFirebaseResult
-//            )
 
             //************************** My Login Buttons *************
             HorizontalDivider(
@@ -173,54 +178,45 @@ fun App() {
                 DividerDefaults.color
             )
 
-            val authRequest = UnsplashAuthorizeRequest(
-                clientId = getUnsplashAccessKey(),
-                redirectUri = Environment.AUTH_REDIRECT_URL,
-                responseType = "code",
-                scope = "public"
-            )
-            val authorizeRequestUrl = client.hrefWithHost(
-                hostname = UnsplashEnvironment.HOST_NAME,
-                resource = authRequest
-            )
-
-            // Button or any action to open the Bottom Sheet
+            // Button to open the Bottom Sheet
             Button(onClick = { authUrlToShow = authorizeRequestUrl }) {
                 Text("Open WebView")
             }
 
-            logger.i{"authorizeRequestUrl = $authorizeRequestUrl"}
+            logger?.i { "authorizeRequestUrl = $authorizeRequestUrl" }
 
-            // Show the Bottom Sheet
-            authUrlToShow?.let {
+            // Show the Bottom Sheet (OAuth Logic)
+            authUrlToShow?.let { url ->
                 OAuthWebViewBottomSheet(
-                    url = authorizeRequestUrl, // Replace with the URL you want to display
+                    url = url,
                     onDismissRequest = {
                         authUrlToShow = null
                     },
                     onAuthCodeReceived = { code ->
-                        appViewModel.processIntent(HomeUiIntent.ExchangeOAuth(code))
+                        onIntent(HomeUiIntent.ExchangeOAuth(code))
                     }
                 ) { onExecuteJavascript ->
+                    // Handle one-time events here
                     LaunchedEffect(Unit) {
-                        appViewModel.eventsFlow.collect { event ->
-                            logger.d{"event $event"}
+                        eventFlow.collect { event ->
+                            logger?.d { "event $event" }
                             when (event) {
                                 is HomeUiEvent.ShowAuthSuccess -> {
-                                    logger.d{"ShowAuthSuccess"}
-//                                val jsCall = "displayExchangeSuccess('${event.tokenType}')".trimIndent()
-//                                onExecuteJavascript(jsCall)
+                                    logger?.d { "ShowAuthSuccess" }
+                                    // val jsCall = "displayExchangeSuccess('${event.tokenType}')".trimIndent()
+                                    // onExecuteJavascript(jsCall)
                                 }
 
                                 is HomeUiEvent.ShowAuthError -> {
-                                    logger.d{"ShowAuthError"}
+                                    logger?.d { "ShowAuthError" }
                                     val jsCall = "displayAuthError('${event.message}')".trimIndent()
                                     onExecuteJavascript(jsCall)
                                 }
 
                                 is HomeUiEvent.ShowAuthProfile -> {
-                                    logger.d{"ShowAuthProfile"}
-                                    val jsCall = "displayUserInfo('${event.profileImageUrl}', '${event.username}')".trimIndent()
+                                    logger?.d { "ShowAuthProfile" }
+                                    val jsCall =
+                                        "displayUserInfo('${event.profileImageUrl}', '${event.username}')".trimIndent()
                                     onExecuteJavascript(jsCall)
                                 }
                             }
@@ -283,34 +279,21 @@ fun IconOnlyButtonsAndFirebaseAuth(
 }
 
 /**
- * This is a Composable function designed specifically for Jetpack Compose previews.
- *
- * This function addresses a common error encountered in the preview environment:
- * `java.lang.IllegalStateException: KoinApplication has not been started`。
- *
- * The error occurs because the Android Studio preview engine does not launch the full Android application
- * (the `Application` class), so the Koin dependency injection framework does not have a chance to be initialized.
- *
- * The solution is to use the `KoinApplication` Composable. This Composable can independently start a Koin instance
- * within the preview environment and load the necessary modules for the application. This ensures that when your `App`
- * Composable is rendered, its dependencies (such as ViewModel, Repository, etc.) can be correctly injected by Koin.
- *
- * By using this approach, you can avoid Koin-related errors during UI previews and render the screen correctly.
+ * Directly preview [AppScreenContent].
  */
 @Preview
 @Composable
 fun AppPreview() {
-    KoinApplication(application = {
-        // Configure your Koin modules here
-        modules(
-            listOf(
-                coreModule(),
-                unsplashModule(tokenType = UnsplashEnvironment.AUTH_SCHEME_PUBLIC, token = getUnsplashAccessKey()),
-                viewModelModule
-            )
-        )
-    }) {
-        // Within this block, the App Composable can now use Koin normally.
-        App()
-    }
+    // Prepare fake data (Fake State)
+    val fakeUiState = HomeUiState(
+        photos = AppUiState.Success(listOf()), // Can include some fake photo data
+        profile = AppUiState.Idle
+    )
+
+    // Render UI directly
+    AppScreenContent(
+        uiState = fakeUiState,
+        authorizeRequestUrl = "https://fake.url",
+        onIntent = {} // Empty implementation as Preview doesn't need to handle clicks
+    )
 }

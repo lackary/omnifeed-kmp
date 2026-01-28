@@ -26,6 +26,10 @@ plugins {
     id("maven-publish")
 }
 
+base {
+    archivesName.set("omnifeed-unsplash")
+}
+
 kotlin {
     androidLibrary {
         namespace = modulePackageName
@@ -149,24 +153,6 @@ buildkonfig {
     defaultConfigs {
         buildConfigField(STRING, "UNSPLASH_ACCESS_KEY", unsplashAccessKey)
         buildConfigField(STRING, "UNSPLASH_SECRET_KEY", unsplashSecretKey)
-    }
-}
-
-publishing {
-    publications {
-        // withType<MavenPublication>().all {
-        //     artifactId = "testing" // or your artifact name
-        // }
-//        create<MavenPublication>("maven") {
-//            artifactId = "omnifeed-unsplash"
-//            from(components["kotlin"])
-//        }
-        withType<MavenPublication> {
-            artifactId = artifactId.replace("unsplash", "omnifeed-unsplash")
-        }
-    }
-    repositories {
-        mavenLocal()
     }
 }
 
