@@ -257,3 +257,104 @@ Once the script finishes successfully:
 ### 5. Generate the Real Framework
 
 Finally, you can generate the real framework by building the project.
+
+---
+
+## SDK Architecture: Singleton Facade & Bridge Pattern
+
+OmniFeed uses a **Singleton Facade** (`OmniFeed` object) combined with the **Bridge Pattern** to provide a clean, isolated API surface. The internal implementation uses Koin for dependency injection, but this is hidden from the consumer.
+
+### Initialization
+
+Initialize the SDK once (e.g., in `Application.onCreate` or at app startup):
+
+```kotlin
+OmniFeed.initialize(
+    OmniFeedConfig(
+        unsplash = UnsplashConfig(
+            token = "YOUR_UNSPLASH_ACCESS_KEY"
+        )
+    )
+)
+```
+
+### Integration Examples
+
+Depending on your project's DI (Dependency Injection) choice, you can integrate OmniFeed as follows:
+
+#### 1. Manual / Direct Access (No DI Framework)
+Simply access the UseCases directly from the `OmniFeed` singleton.
+
+```kotlin
+class MyViewModel {
+    fun fetchPhotos() {
+        viewModelScope.launch {
+            val photos = OmniFeed.getPhotosUseCase(page = 1)
+            // handle results
+        }
+    }
+}
+```
+
+#### 2. Koin Integration
+If your project already uses Koin, you can bridge the `OmniFeed` UseCases into your own modules.
+
+```kotlin
+val appModule = module {
+    // Bridge OmniFeed UseCases into Koin
+    single { OmniFeed.getPhotosUseCase }
+    single { OmniFeed.getSearchPhotosUseCase }
+
+    factory { MyViewModel(get()) }
+}
+
+class MyViewModel(private val getPhotosUseCase: GetPhotosUseCase) : ViewModel() { 
+    // TODO: ViewModel Logic
+}
+```
+
+#### 3. Hilt Integration (Android)
+For Hilt users, create a Module to provide the dependencies from the `OmniFeed` facade.
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object OmniFeedModule {
+
+    @Provides
+    @Singleton
+    fun provideGetPhotosUseCase(): GetPhotosUseCase = OmniFeed.getPhotosUseCase
+
+    @Provides
+    @Singleton
+    fun provideSearchPhotosUseCase(): SearchPhotosUseCase = OmniFeed.getSearchPhotosUseCase
+}
+
+@HiltViewModel
+class MyViewModel @Inject constructor(
+    private val getPhotosUseCase: GetPhotosUseCase
+) : ViewModel() { 
+    // TODO: ViewModel Logic
+}
+```
+
+### Logging Integration (Kermit)
+
+OmniFeed uses [Kermit](https://github.com/touchlab/Kermit) for logging. You can pass your existing `Logger` instance into `OmniFeedConfig` to unify the logs between your app and the SDK.
+
+```kotlin
+// In your App's initialization
+val myLogger = Logger(
+    config = StaticConfig(logWriterList = listOf(platformLogWriter())), 
+    tag = "MyApp"
+)
+
+OmniFeed.initialize(
+    OmniFeedConfig(
+        appLogger = myLogger, // Pass your logger here
+        unsplash = UnsplashConfig(token = "...")
+    )
+)
+```
+
+By doing this, all internal SDK logs will be routed through your configured `myLogger`, respecting your custom log writers and settings.

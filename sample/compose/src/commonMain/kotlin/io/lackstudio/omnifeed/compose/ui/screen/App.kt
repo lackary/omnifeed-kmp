@@ -67,8 +67,6 @@ fun App() {
     val appViewModel: AppViewModel = koinInject()
     val client: HttpClient = koinInject()
 
-    val logger = remember { baseLogger.withTag("AppKt") }
-
     // 2. State Collection
     val uiState by appViewModel.uiState.collectAsState()
 
@@ -93,6 +91,8 @@ fun App() {
         )
     }
 
+    val logger = remember { baseLogger.withTag("AppKt") }
+
     // 4. Pass Everything to Stateless Content
     AppScreenContent(
         uiState = uiState,
@@ -116,6 +116,7 @@ fun AppScreenContent(
     logger: Logger? = null, // Optional Logger for debugging UI
     onIntent: (HomeUiIntent) -> Unit
 ) {
+    logger?.d{"AppScreenContent"}
     // Use a nullable String to store the URL to be displayed. If it's null, the sheet is not shown.
     var authUrlToShow: String? by remember { mutableStateOf(null) }
 
