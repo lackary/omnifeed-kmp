@@ -30,7 +30,7 @@ import com.multiplatform.webview.web.rememberWebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
 import com.multiplatform.webview.web.rememberWebViewStateWithHTMLFile
 import io.ktor.http.Url
-import io.lackstudio.omnifeed.ui.generated.resources.Res
+import io.lackstudio.omnifeed.ui.Res
 import io.lackstudio.omnifeed.ui.utils.OAuthSignInJsMessageHandler
 import kotlinx.coroutines.launch
 

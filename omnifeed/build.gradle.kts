@@ -69,9 +69,9 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 // Add KMP dependencies here
-                api(projects.core)
-                api(projects.ui)
-                api(projects.integrations.unsplash)
+                api(project(":omnifeed-core"))
+                api(project(":omnifeed-ui"))
+                api(project(":omnifeed-unsplash"))
             }
         }
 

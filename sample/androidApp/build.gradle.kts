@@ -61,7 +61,7 @@ dependencies {
     implementation(libs.ktor.client.android)
     implementation(libs.touchlab.kermit)
     implementation(projects.omnifeed)
-    implementation(projects.core)
-    implementation(projects.ui)
-    implementation(projects.integrations.unsplash)
+    implementation(project(":omnifeed-core"))
+    implementation(project(":omnifeed-ui"))
+    implementation(project(":omnifeed-unsplash"))
 }

@@ -78,7 +78,7 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.lifecycle.viewmodel.compose)
             implementation(libs.kevinnzou.compose.webview.multiplatform)
-            implementation(projects.core)
+            implementation(project(":omnifeed-core"))
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -103,6 +103,12 @@ kotlin {
         }
         iosTest.dependencies {
         }
+    }
+}
+
+compose {
+    resources {
+        packageOfResClass = modulePackageName
     }
 }
 
