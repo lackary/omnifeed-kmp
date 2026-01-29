@@ -83,7 +83,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             //put your multiplatform dependencies here
-            implementation(project(":core"))
+            implementation(project(":omnifeed-core"))
             implementation(kotlin("stdlib-common"))
         }
         commonTest.dependencies {

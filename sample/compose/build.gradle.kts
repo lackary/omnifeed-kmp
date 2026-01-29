@@ -170,9 +170,9 @@ kotlin {
             implementation(libs.touchlab.kermit)
             implementation(libs.gitlive.firebase.auth)
             implementation(projects.omnifeed)
-            implementation(projects.integrations.unsplash)
-            implementation(projects.core)
-            implementation(projects.ui)
+            implementation(project(":omnifeed-core"))
+            implementation(project(":omnifeed-ui"))
+            implementation(project(":omnifeed-unsplash"))
         }
 
         commonTest.dependencies {

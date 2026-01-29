@@ -16,13 +16,6 @@ plugins {
 }
 
 println("🚀 Debug: Root Project Version is [${rootProject.version}]")
-subprojects {
-    group = "io.lackstudio.omnifeed"
-    version = rootProject.version
-    afterEvaluate {
-        println("   👉 Subproject [${name}] version: $version")
-    }
-}
 
 tasks.register("setBuildVersion") {
     group = "versioning"
@@ -61,13 +54,27 @@ tasks.register("setBuildVersion") {
 }
 
 subprojects {
+    group = "io.lackstudio.omnifeed"
+    version = rootProject.version
+    afterEvaluate {
+        println("   👉 Subproject [${name}] version: $version")
+    }
     // Listen: Whenever a subproject applies the 'maven-publish' plugin, automatically inject POM settings for it
     plugins.withId("maven-publish") {
 
         // Configure publishing
         extensions.configure<PublishingExtension> {
             publications.withType<MavenPublication> {
+                // 設定 Artifact ID
+                // 優先使用 gradle.properties 的設定，如果沒有則使用專案名稱 (資料夾名)
+                val explicitArtifactId = providers.gradleProperty("POM_ARTIFACT_ID").orNull
+                if (explicitArtifactId != null) {
+                    artifactId = explicitArtifactId
+                }
+
                 pom {
+                    name.set(providers.gradleProperty("POM_NAME").orElse(project.name))
+                    description.set(providers.gradleProperty("POM_DESCRIPTION").orElse(""))
                     // Configure shared information (same for all modules)
                     url.set("https://github.com/lackary/omnifeed-kmp")
 
@@ -86,12 +93,17 @@ subprojects {
                         }
                     }
 
+//                    scm {
+//                        connection.set("scm:git:git://github.com/lackary/omnifeed-kmp.git")
+//                        developerConnection.set("scm:git:ssh://github.com/lackary/omnifeed-kmp.git")
+//                        url.set("https://github.com/lackary/omnifeed-kmp")
+//                    }
+
                     // Configure dynamic information (automatically fetched for each module)
                     // If the subproject does not have a description, use the project name instead
                     if (!description.isPresent) {
                         description.set("Library module: ${project.name}")
                     }
-                    name.set(project.name) // Set POM name to the module name
                 }
             }
         }
