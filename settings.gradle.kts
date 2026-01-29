@@ -25,7 +25,7 @@ rootProject.name = "omnifeed-root"
 
 include(":sample:compose")
 include(":sample:androidApp")
+include(":omnifeed")
 include(":omnifeed-core")
 include(":omnifeed-ui")
 include(":omnifeed-unsplash")
-include(":omnifeed")

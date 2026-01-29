@@ -3,6 +3,8 @@ package io.lackstudio.omnifeed.unsplash.di
 import co.touchlab.kermit.LogWriter
 import co.touchlab.kermit.Logger
 import io.ktor.client.engine.HttpClientEngine
+import io.lackstudio.omnifeed.core.OmniFeedConfig
+import io.lackstudio.omnifeed.core.UnsplashConfig
 import io.lackstudio.omnifeed.core.common.logging.KtorKermitLogger
 import io.lackstudio.omnifeed.core.di.coreModule
 import io.lackstudio.omnifeed.core.network.KtorClientFactory
@@ -28,10 +30,17 @@ abstract class BaseKoinTest: KoinTest {
     @BeforeTest
     fun setupKoin() {
         stopKoin()
+        val config = OmniFeedConfig(
+            appLogger = null,
+            unsplash = UnsplashConfig(
+                tokenType = accessTokenProvider.getOAuthToken().type,
+                token = accessTokenProvider.getOAuthToken().value
+            )
+        )
         startKoin {
             modules(
                 // api-client-unsplash need AppLogger for
-                coreModule(),
+                coreModule(config),
                 module {
                     single {
                         // 直接呼叫 Factory 建立 Client，完全掌控參數
