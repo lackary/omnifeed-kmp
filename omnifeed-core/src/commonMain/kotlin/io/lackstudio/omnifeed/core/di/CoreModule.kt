@@ -6,7 +6,7 @@ import io.lackstudio.omnifeed.core.common.logging.LogConfiguration
 import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import org.koin.dsl.module
 
-internal fun loggerModule(customLogger: Logger?) = module {
+fun loggerModule(customLogger: Logger?) = module {
     // --- Global main Logger (for App logic and Library internal use) ---
     single<Logger> {
         // If the App provides a Config, use the App's; otherwise, create the Library default (with OmniFeedFormatter)

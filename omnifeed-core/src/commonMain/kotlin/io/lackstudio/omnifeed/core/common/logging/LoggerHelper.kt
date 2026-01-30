@@ -8,10 +8,11 @@ import io.lackstudio.omnifeed.core.common.util.isDebuggable
 
 fun createOmniFeedLogger(
     tag: String,
+    isDebug: Boolean = isDebuggable,
     logWriter: LogWriter = getPlatformLogWriter(formatter = OmniFeedFormatter())
 ) = Logger(
     config = StaticConfig(
-        minSeverity = if (isDebuggable) Severity.Verbose else Severity.Info,
+        minSeverity = if (isDebug) Severity.Verbose else Severity.Error,
         logWriterList = listOf(
             logWriter
         ),
