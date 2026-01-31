@@ -13,6 +13,8 @@ import io.ktor.client.plugins.resources.Resources
 import io.ktor.http.contentType
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
+import io.lackstudio.omnifeed.core.common.logging.KtorKermitLogger
+import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import kotlinx.serialization.json.Json
 
@@ -20,17 +22,10 @@ expect fun provideHttpClientEngine(): HttpClientEngine
 
 object KtorClientFactory {
 
-    // Add logger parameter and provide a default value
-    private val defaultLogger = object : KtorLogger {
-        override fun log(message: String) {
-            println("Ktor Client: $message")
-        }
-    }
-
     fun createHttpClient(
         engineFactory: HttpClientEngine,
         ktorConfig: KtorConfig,
-        logger: KtorLogger = defaultLogger,
+        logger: KtorLogger = KtorKermitLogger(createOmniFeedLogger("KtorClient")),
         accessTokenProvider: (() -> AccessTokenProvider)? = null,
         // installed parameter, allows dynamic installation of plugins
         clientConfig: KtorHttpClientConfig<*>.() -> Unit = {}
