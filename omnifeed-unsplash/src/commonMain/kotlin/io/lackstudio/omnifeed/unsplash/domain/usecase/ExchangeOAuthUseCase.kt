@@ -10,7 +10,7 @@ import io.lackstudio.omnifeed.unsplash.domain.repository.UnsplashRepository
 class ExchangeOAuthUseCase(private val repository: UnsplashRepository) :
     UseCase<OAuthCode, OAuthToken> {
         override suspend operator fun invoke(input: OAuthCode): UseCaseResult<OAuthToken> {
-        return toUseCaseResult {
+        return toUseCaseResult(name = "ExchangeOAuthUseCase") {
             repository.exchangeOAuth(input)
         }
     }

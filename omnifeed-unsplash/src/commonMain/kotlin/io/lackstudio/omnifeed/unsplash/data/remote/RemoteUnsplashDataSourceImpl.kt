@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.unsplash.data.remote
 
+import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.unsplash.data.api.UnsplashApiService
 import io.lackstudio.omnifeed.unsplash.data.model.response.CollectionResponse
 import io.lackstudio.omnifeed.unsplash.data.model.response.MeProfileResponse
@@ -16,11 +17,15 @@ class RemoteUnsplashDataSourceImpl(
     private val unsplashApiService: UnsplashApiService,
 ) : RemoteUnsplashDataSource {
 
+    private val logger = Logger.withTag("RemoteUnsplashDataSource")
+
     override suspend fun getMe(): Result<MeProfileResponse> {
+        logger.d { "getMe" }
         return toUnsplashResult { unsplashApiService.getMe() }
     }
 
     override suspend fun getUserPublicProfile(username: String): Result<UserProfileResponse> {
+        logger.d { "getUserPublicProfile: $username" }
         return toUnsplashResult { unsplashApiService.getUserPublicProfile(username) }
     }
 
@@ -33,6 +38,7 @@ class RemoteUnsplashDataSourceImpl(
         quantity: Int?,
         orientation: String?
     ): Result<List<PhotoScheme>> {
+        logger.d { "getUserPhotos: $username, page: $page" }
         return toUnsplashResult {
             unsplashApiService.getUserPhotos(
                 username = username,
@@ -53,6 +59,7 @@ class RemoteUnsplashDataSourceImpl(
         orderBy: String?,
         orientation: String?
     ): Result<List<PhotoScheme>> {
+        logger.d { "getUserLikedPhotos: $username, page: $page" }
         return toUnsplashResult {
             unsplashApiService.getUserLikedPhotos(
                 username = username,
@@ -69,6 +76,7 @@ class RemoteUnsplashDataSourceImpl(
         page: Int,
         perPage: Int
     ): Result<List<CollectionResponse>> {
+        logger.d { "getUserCollections: $username, page: $page" }
         return toUnsplashResult {
             unsplashApiService.getUserCollections(
                 username = username,
@@ -79,10 +87,12 @@ class RemoteUnsplashDataSourceImpl(
     }
 
     override suspend fun getPhotos(page: Int, perPage: Int): Result<List<PhotoScheme>> {
+        logger.d { "getPhotos: page: $page" }
         return toUnsplashResult { unsplashApiService.getPhotos(page, perPage) }
     }
 
     override suspend fun getPhoto(id: String): Result<PhotoDetailResponse> {
+        logger.d { "getPhoto: id: $id" }
         return toUnsplashResult { unsplashApiService.getPhoto(id) }
     }
 
@@ -96,6 +106,7 @@ class RemoteUnsplashDataSourceImpl(
         color: String?,
         orientation: String?
     ): Result<SearchResponse<PhotoScheme>> {
+        logger.d { "searchPhotos: query: $query, page: $page" }
         return toUnsplashResult {
             unsplashApiService.searchPhotos(
                 query = query,
@@ -115,6 +126,7 @@ class RemoteUnsplashDataSourceImpl(
         page: Int,
         perPage: Int
     ): Result<SearchResponse<CollectionResponse>> {
+        logger.d { "searchCollections: query: $query, page: $page" }
         return toUnsplashResult { unsplashApiService.searchCollections(query, page, perPage) }
     }
 
@@ -123,14 +135,17 @@ class RemoteUnsplashDataSourceImpl(
         page: Int,
         perPage: Int
     ): Result<SearchResponse<UserProfileResponse>> {
+        logger.d { "searchUsers: query: $query, page: $page" }
         return toUnsplashResult { unsplashApiService.searchUsers(query, page, perPage) }
     }
 
     override suspend fun getCollections(page: Int, perPage: Int): Result<List<CollectionResponse>> {
+        logger.d { "getCollections: page: $page" }
         return toUnsplashResult { unsplashApiService.getCollections(page, perPage) }
     }
 
     override suspend fun getCollection(id: String): Result<CollectionResponse> {
+        logger.d { "getCollection: id: $id" }
         return toUnsplashResult { unsplashApiService.getCollection(id) }
     }
 
@@ -140,6 +155,7 @@ class RemoteUnsplashDataSourceImpl(
         perPage: Int,
         orientation: String?
     ): Result<List<PhotoScheme>> {
+        logger.d { "getCollectionPhotos: id: $id, page: $page" }
         return toUnsplashResult {
             unsplashApiService.getCollectionPhotos(
                 id = id,
@@ -151,14 +167,17 @@ class RemoteUnsplashDataSourceImpl(
     }
 
     override suspend fun getCollectionRelatedCollections(id: String): Result<List<CollectionResponse>> {
+        logger.d { "getCollectionRelatedCollections: id: $id" }
         return toUnsplashResult { unsplashApiService.getCollectionRelatedCollections(id) }
     }
 
     override suspend fun getTopics(page: Int, perPage: Int): Result<List<TopicResponse>> {
+        logger.d { "getTopics: page: $page" }
         return toUnsplashResult { unsplashApiService.getTopics(page, perPage) }
     }
 
     override suspend fun getTopic(idOrSlug: String): Result<TopicResponse> {
+        logger.d { "getTopic: id: $idOrSlug" }
         return toUnsplashResult { unsplashApiService.getTopic(idOrSlug) }
     }
 
@@ -169,6 +188,7 @@ class RemoteUnsplashDataSourceImpl(
         orientation: String?,
         orderBy: String?
     ): Result<List<PhotoScheme>> {
+        logger.d { "getTopicPhotos: id: $idOrSlug, page: $page" }
         return toUnsplashResult {
             unsplashApiService.getTopicPhotos(
                 idOrSlug = idOrSlug,
@@ -181,6 +201,7 @@ class RemoteUnsplashDataSourceImpl(
     }
 
     override suspend fun exchangeOAuth(oAuthCode:OAuthCode): Result<TokenResponse> {
+        logger.i { "exchangeOAuth" }
         return toUnsplashResult {
             val unsplashTokenRequest = oAuthCode.toTokenRequest()
             unsplashApiService.postOauthToken(unsplashTokenRequest)

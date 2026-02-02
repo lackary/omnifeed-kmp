@@ -8,6 +8,8 @@ import io.lackstudio.omnifeed.unsplash.domain.repository.UnsplashRepository
 
 class GetCollectionRelatedCollectionsUseCase(private val repository: UnsplashRepository) : UseCase<String, List<Collection>> {
     override suspend operator fun invoke(input: String): UseCaseResult<List<Collection>> {
-        return toUseCaseResult { repository.getCollectionRelatedCollections(input) }
+        return toUseCaseResult(name = "GetCollectionRelatedCollectionsUseCase") {
+            repository.getCollectionRelatedCollections(input)
+        }
     }
 }

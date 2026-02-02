@@ -7,11 +7,14 @@ import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import org.koin.dsl.module
 
 fun loggerModule(customLogger: Logger?) = module {
-    // --- Global main Logger (for App logic and Library internal use) ---
-    single<Logger> {
-        // If the App provides a Config, use the App's; otherwise, create the Library default (with OmniFeedFormatter)
-        customLogger ?: createOmniFeedLogger(LogConfiguration.OMNIFEED_TAG)
-    }
+    // Create a Logger instance that conforms to the project format
+    val baseLogger = customLogger ?: createOmniFeedLogger(LogConfiguration.OMNIFEED_TAG)
+
+    // This allows any call to Logger.withTag() anywhere in the project to include your Formatter
+    Logger.setLogWriters(baseLogger.config.logWriterList)
+    Logger.setMinSeverity(baseLogger.config.minSeverity)
+
+    single<Logger> { baseLogger }
 }
 
 fun coreModule(config: OmniFeedConfig) = module {

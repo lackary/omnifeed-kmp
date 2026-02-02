@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.core.network
 
+import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClientConfig as KtorHttpClientConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
@@ -84,12 +85,13 @@ private val DynamicAuth = createClientPlugin(
     createConfiguration = ::DynamicAuthConfig
 ) {
     val providerLambda = pluginConfig.providerLambda ?: return@createClientPlugin
+    val logger = Logger.withTag("DynamicAuth")
 
     onRequest { request, _ ->
         request.headers[HttpHeaders.Authorization]?.let { return@onRequest}
 
         val provider = providerLambda()
-        println("provider.getAuthorizationHeader() ${provider.getAuthorizationHeader()}")
+        logger.d { "Appending Authorization header: ${provider.getAuthorizationHeader()}" }
         request.headers.append(
             HttpHeaders.Authorization,
             value = provider.getAuthorizationHeader()

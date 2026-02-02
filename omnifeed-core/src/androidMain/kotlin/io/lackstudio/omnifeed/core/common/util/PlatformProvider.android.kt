@@ -6,6 +6,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.os.Process
+import co.touchlab.kermit.Logger
+
+private val logger = Logger.withTag("PlatformProvider")
 
 actual val isDebuggable: Boolean
     get() = true
@@ -15,7 +18,7 @@ actual fun getCurrentTimestamp(format: String): String {
         val dateFormat = SimpleDateFormat(format, Locale.getDefault())
         return dateFormat.format(Date())
     } catch (e: IllegalArgumentException) {
-        println("Invalid date format pattern: $format. Using default format 'yyyy-MM-dd HH:mm:ss'.")
+        logger.e(e) { "Invalid date format pattern: $format. Using default format 'yyyy-MM-dd HH:mm:ss'." }
         val defaultFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         return defaultFormat.format(Date())
     }

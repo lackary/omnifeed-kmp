@@ -13,7 +13,7 @@ data class GetTopicsParams(
 
 class GetTopicsUseCase(private val repository: UnsplashRepository) : UseCase<GetTopicsParams, List<Topic>> {
     override suspend operator fun invoke(input: GetTopicsParams): UseCaseResult<List<Topic>> {
-        return toUseCaseResult {
+        return toUseCaseResult(name = "GetTopicsUseCase") {
             repository.getTopics(page = input.page, perPage = input.perPage)
         }
     }

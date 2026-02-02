@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.core.network.remote
 
+import co.touchlab.kermit.Logger
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.client.plugins.HttpRequestTimeoutException
@@ -13,10 +14,18 @@ import io.ktor.serialization.JsonConvertException
 import io.lackstudio.omnifeed.core.common.error.CommonException
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 
-suspend inline fun <T> toResult(call: suspend () -> T): Result<T> {
+@PublishedApi
+internal val logger = Logger.withTag("RemoteHandler")
+
+suspend inline fun <T> toResult(
+    name: String = "UnknownResult",
+    call: suspend () -> T
+): Result<T> {
+    logger.d { "toResult $name" }
     return try {
         Result.success(call())
     } catch (e: ResponseException) { // Handle response errors
+        logger.e(e) { "ResponseException in toResult" }
         val errorBody = e.response.bodyAsText()
         val status = e.response.status
         val exception = when(e) {
@@ -51,6 +60,7 @@ suspend inline fun <T> toResult(call: suspend () -> T): Result<T> {
         }
         Result.failure(exception)
     } catch (e: Exception) { // Catch all other unexpected errors
+        logger.e(e) { "Exception in toResult" }
         val exception = when (e) {
             is HttpRequestTimeoutException,
             is ConnectTimeoutException,

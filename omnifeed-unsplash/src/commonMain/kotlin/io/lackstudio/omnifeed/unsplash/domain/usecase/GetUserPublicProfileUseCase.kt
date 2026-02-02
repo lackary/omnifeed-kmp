@@ -8,6 +8,8 @@ import io.lackstudio.omnifeed.unsplash.domain.repository.UnsplashRepository
 
 class GetUserPublicProfileUseCase(private val repository: UnsplashRepository) : UseCase<String, UserProfile> {
     override suspend operator fun invoke(input: String): UseCaseResult<UserProfile> {
-        return toUseCaseResult { repository.getUserPublicProfile(input) }
+        return toUseCaseResult(name = "GetUserPublicProfileUseCase") {
+            repository.getUserPublicProfile(input)
+        }
     }
 }

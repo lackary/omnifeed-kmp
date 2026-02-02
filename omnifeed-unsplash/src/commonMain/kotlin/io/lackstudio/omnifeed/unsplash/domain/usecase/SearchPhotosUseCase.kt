@@ -20,7 +20,7 @@ data class SearchPhotosParams(
 
 class SearchPhotosUseCase(private val repository: UnsplashRepository) : UseCase<SearchPhotosParams, SearchResults<Photo>> {
     override suspend operator fun invoke(input: SearchPhotosParams): UseCaseResult<SearchResults<Photo>> {
-        return toUseCaseResult {
+        return toUseCaseResult(name = "SearchPhotosUseCase") {
             repository.searchPhotos(
                 query = input.query,
                 page = input.page,

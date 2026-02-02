@@ -8,6 +8,8 @@ import io.lackstudio.omnifeed.unsplash.domain.repository.UnsplashRepository
 
 class GetPhotoUseCase(private val repository: UnsplashRepository) : UseCase<String, PhotoDetail> {
     override suspend operator fun invoke(input: String): UseCaseResult<PhotoDetail> {
-        return toUseCaseResult { repository.getPhoto(input) }
+        return toUseCaseResult(name = "GetPhotoUseCase") {
+            repository.getPhoto(input)
+        }
     }
 }

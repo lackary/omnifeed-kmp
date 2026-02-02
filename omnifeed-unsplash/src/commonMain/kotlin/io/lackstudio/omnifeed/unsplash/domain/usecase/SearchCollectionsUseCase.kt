@@ -15,7 +15,7 @@ data class SearchCollectionsParams(
 
 class SearchCollectionsUseCase(private val repository: UnsplashRepository) : UseCase<SearchCollectionsParams, SearchResults<Collection>> {
     override suspend operator fun invoke(input: SearchCollectionsParams): UseCaseResult<SearchResults<Collection>> {
-        return toUseCaseResult {
+        return toUseCaseResult(name = "SearchCollectionsUseCase") {
             repository.searchCollections(
                 query = input.query,
                 page = input.page,

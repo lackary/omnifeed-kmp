@@ -4,11 +4,10 @@ import co.touchlab.kermit.LogWriter
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import co.touchlab.kermit.StaticConfig
-import io.lackstudio.omnifeed.core.common.util.isDebuggable
 
 fun createOmniFeedLogger(
     tag: String,
-    isDebug: Boolean = isDebuggable,
+    isDebug: Boolean = true, // BuildConfig.DEBUG in future
     logWriter: LogWriter = getPlatformLogWriter(formatter = OmniFeedFormatter())
 ) = Logger(
     config = StaticConfig(

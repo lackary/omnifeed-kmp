@@ -18,7 +18,7 @@ data class GetUserPhotosParams(
 
 class GetUserPhotosUseCase(private val repository: UnsplashRepository) : UseCase<GetUserPhotosParams, List<Photo>> {
     override suspend operator fun invoke(input: GetUserPhotosParams): UseCaseResult<List<Photo>> {
-        return toUseCaseResult {
+        return toUseCaseResult(name = "GetUserPhotosUseCase") {
             repository.getUserPhotos(
                 username = input.username,
                 page = input.page,
