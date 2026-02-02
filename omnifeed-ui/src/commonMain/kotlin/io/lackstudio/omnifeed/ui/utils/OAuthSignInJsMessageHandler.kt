@@ -17,7 +17,6 @@ class OAuthSignInJsMessageHandler(
         // This message is form the params of webview callNative
         val responseText = "KMM Received message. Params: ${message.params}"
 
-        println(responseText)
         this.jsCallback(message.params)
 
         // **Execute Callback**: Pass the result back to the JavaScript function on the web side.

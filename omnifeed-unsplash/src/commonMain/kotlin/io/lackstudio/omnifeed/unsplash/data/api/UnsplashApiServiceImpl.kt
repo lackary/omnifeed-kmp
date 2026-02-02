@@ -25,12 +25,12 @@ class UnsplashApiServiceImpl(
 ) : UnsplashApiService {
 
     override suspend fun getMe(): MeProfileResponse {
-        logger.d{"getMe"}
+        logger.d { "getMe" }
         return httpClient.get(Environment.API_ME).body()
     }
 
     override suspend fun getUserPublicProfile(username: String): UserProfileResponse {
-        logger.d{"getUserPublicProfile username $username"}
+        logger.d { "getUserPublicProfile username: $username" }
         return httpClient.get("${Environment.API_USERS}/$username").body()
     }
 
@@ -40,16 +40,15 @@ class UnsplashApiServiceImpl(
         perPage: Int,
         orderBy: String?,
         stats: Boolean?,
-//        resolution: String?,
         quantity: Int?,
         orientation: String?
     ): List<PhotoScheme> {
+        logger.d { "getUserPhotos username: $username, page: $page" }
         return httpClient.get("${Environment.API_USERS}/$username${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
             parameter(ApiKeys.Params.ORDER_BY, orderBy)
             parameter(ApiKeys.Params.STATS, stats)
-//            parameter(ApiKeys.Params.RESOLUTION, resolution)
             parameter(ApiKeys.Params.QUANTITY, quantity)
             parameter(ApiKeys.Params.ORIENTATION, orientation)
         }.body()
@@ -62,6 +61,7 @@ class UnsplashApiServiceImpl(
         orderBy: String?,
         orientation: String?
     ): List<PhotoScheme> {
+        logger.d { "getUserLikedPhotos username: $username, page: $page" }
         return httpClient.get("${Environment.API_USERS}/$username${Environment.API_LIKES}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -75,6 +75,7 @@ class UnsplashApiServiceImpl(
         page: Int,
         perPage: Int
     ): List<CollectionResponse> {
+        logger.d { "getUserCollections username: $username, page: $page" }
         return httpClient.get("${Environment.API_USERS}/$username${Environment.API_COLLECTIONS}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -87,6 +88,7 @@ class UnsplashApiServiceImpl(
         perPage: Int,
         orientation: String?
     ): List<PhotoScheme> {
+        logger.d { "getCollectionPhotos id: $id, page: $page" }
         return httpClient.get("${Environment.API_COLLECTIONS}/$id${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -95,6 +97,7 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getCollectionRelatedCollections(id: String): List<CollectionResponse> {
+        logger.d { "getCollectionRelatedCollections id: $id" }
         return httpClient.get("${Environment.API_COLLECTIONS}/$id${Environment.API_RELATED}").body()
     }
 
@@ -102,7 +105,7 @@ class UnsplashApiServiceImpl(
         page: Int,
         perPage: Int
     ): List<PhotoScheme> {
-        logger.d{"getPhotos page $page, perPage $perPage"}
+        logger.d { "getPhotos page: $page, perPage: $perPage" }
         return httpClient.get(Environment.API_PHOTOS) {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -110,7 +113,7 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getPhoto(id: String): PhotoDetailResponse {
-        logger.d{"getPhoto id $id"}
+        logger.d { "getPhoto id: $id" }
         return httpClient.get("${Environment.API_PHOTOS}/$id").body()
     }
 
@@ -124,6 +127,7 @@ class UnsplashApiServiceImpl(
         color: String?,
         orientation: String?
     ): SearchResponse<PhotoScheme> {
+        logger.d { "searchPhotos query: $query, page: $page" }
         return httpClient.get("${Environment.API_SEARCH}${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.QUERY, query)
             parameter(ApiKeys.Params.PAGE, page)
@@ -141,6 +145,7 @@ class UnsplashApiServiceImpl(
         page: Int,
         perPage: Int
     ): SearchResponse<CollectionResponse> {
+        logger.d { "searchCollections query: $query, page: $page" }
         return httpClient.get("${Environment.API_SEARCH}${Environment.API_COLLECTIONS}") {
             parameter(ApiKeys.Params.QUERY, query)
             parameter(ApiKeys.Params.PAGE, page)
@@ -153,6 +158,7 @@ class UnsplashApiServiceImpl(
         page: Int,
         perPage: Int
     ): SearchResponse<UserProfileResponse> {
+        logger.d { "searchUsers query: $query, page: $page" }
         return httpClient.get("${Environment.API_SEARCH}${Environment.API_USERS}") {
             parameter(ApiKeys.Params.QUERY, query)
             parameter(ApiKeys.Params.PAGE, page)
@@ -161,7 +167,7 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getCollections(page: Int, perPage: Int): List<CollectionResponse> {
-        logger.d{"getCollections page $page, perPage $perPage"}
+        logger.d { "getCollections page: $page, perPage: $perPage" }
         return httpClient.get(Environment.API_COLLECTIONS) {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -169,12 +175,12 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getCollection(id: String): CollectionResponse {
-        logger.d{"getCollection id $id"}
+        logger.d { "getCollection id: $id" }
         return httpClient.get("${Environment.API_COLLECTIONS}/$id").body()
     }
 
     override suspend fun getTopics(page: Int, perPage: Int): List<TopicResponse> {
-        logger.d{"getTopics page $page, perPage $perPage"}
+        logger.d { "getTopics page: $page, perPage: $perPage" }
         return httpClient.get(Environment.API_TOPICS) {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -182,7 +188,7 @@ class UnsplashApiServiceImpl(
     }
 
     override suspend fun getTopic(idOrSlug: String): TopicResponse {
-        logger.d{"getTopic id $idOrSlug"}
+        logger.d { "getTopic id: $idOrSlug" }
         return httpClient.get("${Environment.API_TOPICS}/$idOrSlug").body()
     }
 
@@ -193,6 +199,7 @@ class UnsplashApiServiceImpl(
         orientation: String?,
         orderBy: String?
     ): List<PhotoScheme> {
+        logger.d { "getTopicPhotos id: $idOrSlug, page: $page" }
         return httpClient.get("${Environment.API_TOPICS}/$idOrSlug${Environment.API_PHOTOS}") {
             parameter(ApiKeys.Params.PAGE, page)
             parameter(ApiKeys.Params.PER_PAGE, perPage)
@@ -204,6 +211,7 @@ class UnsplashApiServiceImpl(
     override suspend fun postOauthToken(
         unsplashTokenRequest: TokenRequest
     ): TokenResponse {
+        logger.d { "postOauthToken" }
         return httpClient.post(urlString = Environment.OAUTH_TOKEN) {
             setBody(unsplashTokenRequest)
         }.body()

@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import com.multiplatform.webview.jsbridge.rememberWebViewJsBridge
 import com.multiplatform.webview.web.LoadingState
 import com.multiplatform.webview.web.WebView
@@ -34,6 +35,7 @@ import io.lackstudio.omnifeed.ui.Res
 import io.lackstudio.omnifeed.ui.utils.OAuthSignInJsMessageHandler
 import kotlinx.coroutines.launch
 
+private val logger = Logger.withTag("OAuthWebViewBottomSheet")
 const val CODE = "code"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,13 +56,13 @@ fun  OAuthWebViewBottomSheet(
     val DEBUG = false
     val webViewState = if (DEBUG) {
         val filName = Res.getUri("files/index.html")
-        println("load the html file: $filName")
+        logger.d { "load the html file: $filName" }
         rememberWebViewStateWithHTMLFile(
             fileName = filName,
             readType = WebViewFileReadType.COMPOSE_RESOURCE_FILES,
         )
     } else {
-        println("WebView load url: $url")
+        logger.d { "WebView load url: $url" }
         rememberWebViewState(url = url)
     }.apply {
         webSettings.apply {
@@ -87,7 +89,7 @@ fun  OAuthWebViewBottomSheet(
             webViewState.cookieManager.removeAllCookies()
 //            webViewState.cookieManager.removeCookies(url) it's doesn't work
             // 2. Reload the original URL (force reload of the login page)
-            println("Reload Url: $url")
+            logger.d { "Reload Url: $url" }
             webViewNavigator.loadUrl(url)
         }
     }
@@ -97,13 +99,13 @@ fun  OAuthWebViewBottomSheet(
 
     // Register the Native message handler (only executed when the Composable is first created)
     LaunchedEffect(jsBridge) {
-        println("KMP JS Bridge registering handler for OAuthSignIn")
+        logger.d { "KMP JS Bridge registering handler for OAuthSignIn" }
         jsBridge.register(OAuthSignInJsMessageHandler { isConfirm ->
             if (isConfirm == "true") {
-                println("Sign In")
+                logger.d { "Sign In" }
                 onDismissRequest()
             } else {
-                println("Sign Out")
+                logger.d { "Sign Out" }
                 onClearAndReloadClicked()
             }
         })
@@ -129,7 +131,7 @@ fun  OAuthWebViewBottomSheet(
                     it.key to (it.value.firstOrNull() ?: "")
                 }
             } catch (e: Exception) {
-                println("the error exception: ${e.message}")
+                logger.e(e) { "the error exception" }
                 // Handle invalid URL format errors
                 emptyMap()
             }
@@ -143,7 +145,7 @@ fun  OAuthWebViewBottomSheet(
             if (!code.isNullOrBlank()) {
                 onAuthCodeReceived(code)
             } else {
-                println("Authorize Code is null or blank")
+                logger.w { "Authorize Code is null or blank" }
             }
         }
     }
@@ -178,7 +180,7 @@ fun  OAuthWebViewBottomSheet(
             // Check if loadingState is LoadingState.Loading
             val loadingState = webViewState.loadingState
             if (loadingState is LoadingState.Loading) {
-                println("Loading...")
+                logger.d { "Loading..." }
                 // Use LinearProgressIndicator to display progress
                 LinearProgressIndicator(
                     progress = {
@@ -190,7 +192,7 @@ fun  OAuthWebViewBottomSheet(
                     strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
                 )
             } else {
-                println("Loading complete.")
+                logger.d { "Loading complete." }
             }
             // WebView component
             WebView(

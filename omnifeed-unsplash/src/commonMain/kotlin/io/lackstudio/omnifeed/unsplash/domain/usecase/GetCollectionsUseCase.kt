@@ -13,7 +13,7 @@ data class GetCollectionsParams(
 
 class GetCollectionsUseCase(private val repository: UnsplashRepository) : UseCase<GetCollectionsParams, List<Collection>> {
     override suspend operator fun invoke(input: GetCollectionsParams): UseCaseResult<List<Collection>> {
-        return toUseCaseResult {
+        return toUseCaseResult(name = "GetCollectionsUseCase") {
             repository.getCollections(page = input.page, perPage = input.perPage)
         }
     }

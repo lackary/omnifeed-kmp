@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.core.network.oauth
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,6 +11,8 @@ class AccessTokenProvider(
     initialTokenType: String,
     initialToken: String
 ) {
+    private val logger = Logger.withTag("AccessTokenProvider")
+
     // Use StateFlow to store the current authorization state, with the initial value from the constructor
     private val _authToken = MutableStateFlow(
         AuthToken(initialTokenType, initialToken)
@@ -20,7 +23,7 @@ class AccessTokenProvider(
     // Call this function to update to a new Access Token (e.g., after a successful OAuth)
     fun setOAuthToken(newType: String, newValue: String) {
         // The OAuth standard uses the Bearer type
-        println("setOAuthToken: $newType, $newValue")
+        logger.i { "setOAuthToken: $newType" }
         _authToken.value = AuthToken(type = newType, value = newValue)
     }
 

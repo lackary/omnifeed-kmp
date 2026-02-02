@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.unsplash.data.repository
 
+import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.core.common.extension.toDomain
 import io.lackstudio.omnifeed.unsplash.data.local.LocalUnsplashPhotoDataSource
 import io.lackstudio.omnifeed.unsplash.data.remote.RemoteUnsplashDataSource
@@ -27,14 +28,18 @@ internal class UnsplashRepositoryImpl(
     private val localUnsplashPhotoDataSource: LocalUnsplashPhotoDataSource
 ) : UnsplashRepository {
 
+    private val logger = Logger.withTag("UnsplashRepository")
+
     override suspend fun getMe(): Me {
-        return remoteUnsplashDataSource.getMe().toDomain { me ->
+        logger.d { "getMe" }
+        return remoteUnsplashDataSource.getMe().toDomain(name = "getMe") { me ->
             me.toMe()
         }
     }
 
     override suspend fun getUserPublicProfile(username: String): UserProfile {
-        return remoteUnsplashDataSource.getUserPublicProfile(username).toDomain {
+        logger.d { "getUserPublicProfile: $username" }
+        return remoteUnsplashDataSource.getUserPublicProfile(username).toDomain(name = "getUserPublicProfile") {
             it.toUserProfile()
         }
     }
@@ -48,6 +53,7 @@ internal class UnsplashRepositoryImpl(
         quantity: Int?,
         orientation: String?
     ): List<Photo> {
+        logger.d { "getUserPhotos: $username, page: $page" }
         return remoteUnsplashDataSource.getUserPhotos(
             username = username,
             page = page,
@@ -56,7 +62,7 @@ internal class UnsplashRepositoryImpl(
             stats = stats,
             quantity = quantity,
             orientation = orientation
-        ).toDomain { list ->
+        ).toDomain(name = "getUserPhotos") { list ->
             list.map { it.toPhotoDetail() }
         }
     }
@@ -68,13 +74,14 @@ internal class UnsplashRepositoryImpl(
         orderBy: String?,
         orientation: String?
     ): List<Photo> {
+        logger.d { "getUserLikedPhotos: $username, page: $page" }
         return remoteUnsplashDataSource.getUserLikedPhotos(
             username = username,
             page = page,
             perPage = perPage,
             orderBy = orderBy,
             orientation = orientation
-        ).toDomain { list ->
+        ).toDomain(name = "getUserLikedPhotos") { list ->
             list.map { it.toPhotoDetail() }
         }
     }
@@ -84,23 +91,26 @@ internal class UnsplashRepositoryImpl(
         page: Int,
         perPage: Int
     ): List<Collection> {
+        logger.d { "getUserCollections: $username, page: $page" }
         return remoteUnsplashDataSource.getUserCollections(
             username = username,
             page = page,
             perPage = perPage
-        ).toDomain { list ->
+        ).toDomain(name = "getUserCollections") { list ->
             list.map { it.toCollection() }
         }
     }
 
     override suspend fun getPhotos(page: Int, perPage: Int): List<Photo> {
-        return remoteUnsplashDataSource.getPhotos(page, perPage).toDomain { dtoList ->
+        logger.d { "getPhotos page: $page" }
+        return remoteUnsplashDataSource.getPhotos(page, perPage).toDomain(name = "getPhotos") { dtoList ->
             dtoList.map { it.toPhotoDetail() }
         }
     }
 
     override suspend fun getPhoto(id: String): PhotoDetail {
-        return remoteUnsplashDataSource.getPhoto(id).toDomain { photo ->
+        logger.d { "getPhoto id: $id" }
+        return remoteUnsplashDataSource.getPhoto(id).toDomain(name = "getPhoto") { photo ->
 //            localUnsplashPhotoDataSource.savePhoto(photo)
             photo.toPhotoDetail()
         }
@@ -116,6 +126,7 @@ internal class UnsplashRepositoryImpl(
         color: String?,
         orientation: String?
     ): SearchResults<Photo> {
+        logger.d { "searchPhotos query: $query, page: $page" }
         return remoteUnsplashDataSource.searchPhotos(
             query = query,
             page = page,
@@ -125,7 +136,7 @@ internal class UnsplashRepositoryImpl(
             contentFilter = contentFilter,
             color = color,
             orientation = orientation
-        ).toDomain { searchResponse ->
+        ).toDomain(name = "searchPhotos") { searchResponse ->
             searchResponse.toSearchResults { it.toPhotoDetail() }
         }
     }
@@ -135,8 +146,9 @@ internal class UnsplashRepositoryImpl(
         page: Int,
         perPage: Int
     ): SearchResults<Collection> {
+        logger.d { "searchCollections query: $query, page: $page" }
         return remoteUnsplashDataSource.searchCollections(query, page, perPage)
-            .toDomain { searchResponse ->
+            .toDomain(name = "searchCollections") { searchResponse ->
                 searchResponse.toSearchResults { it.toCollection() }
             }
     }
@@ -146,20 +158,23 @@ internal class UnsplashRepositoryImpl(
         page: Int,
         perPage: Int
     ): SearchResults<UserProfile> {
+        logger.d { "searchUsers query: $query, page: $page" }
         return remoteUnsplashDataSource.searchUsers(query, page, perPage)
-            .toDomain { searchResponse ->
+            .toDomain(name = "searchUsers") { searchResponse ->
                 searchResponse.toSearchResults { it.toUserProfile() }
             }
     }
 
     override suspend fun getCollections(page: Int, perPage: Int): List<Collection> {
-        return remoteUnsplashDataSource.getCollections(page, perPage).toDomain { list ->
+        logger.d { "getCollections page: $page" }
+        return remoteUnsplashDataSource.getCollections(page, perPage).toDomain(name = "getCollections") { list ->
             list.map { it.toCollection() }
         }
     }
 
     override suspend fun getCollection(id: String): Collection {
-        return remoteUnsplashDataSource.getCollection(id).toDomain { it.toCollection() }
+        logger.d { "getCollection id: $id" }
+        return remoteUnsplashDataSource.getCollection(id).toDomain(name = "getCollection") { it.toCollection() }
     }
 
     override suspend fun getCollectionPhotos(
@@ -168,26 +183,30 @@ internal class UnsplashRepositoryImpl(
         perPage: Int,
         orientation: String?
     ): List<Photo> {
+        logger.d { "getCollectionPhotos id: $id, page: $page" }
         return remoteUnsplashDataSource.getCollectionPhotos(id, page, perPage, orientation)
-            .toDomain { list ->
+            .toDomain(name = "getCollectionPhotos") { list ->
                 list.map { it.toPhotoDetail() }
             }
     }
 
     override suspend fun getCollectionRelatedCollections(id: String): List<Collection> {
-        return remoteUnsplashDataSource.getCollectionRelatedCollections(id).toDomain { list ->
+        logger.d { "getCollectionRelatedCollections id: $id" }
+        return remoteUnsplashDataSource.getCollectionRelatedCollections(id).toDomain(name = "getCollectionRelatedCollections") { list ->
             list.map { it.toCollection() }
         }
     }
 
     override suspend fun getTopics(page: Int, perPage: Int): List<Topic> {
-        return remoteUnsplashDataSource.getTopics(page, perPage).toDomain { list ->
+        logger.d { "getTopics page: $page" }
+        return remoteUnsplashDataSource.getTopics(page, perPage).toDomain(name = "getTopics") { list ->
             list.map { it.toTopic() }
         }
     }
 
     override suspend fun getTopic(idOrSlug: String): Topic {
-        return remoteUnsplashDataSource.getTopic(idOrSlug).toDomain { it.toTopic() }
+        logger.d { "getTopic id: $idOrSlug" }
+        return remoteUnsplashDataSource.getTopic(idOrSlug).toDomain(name = "getTopic") { it.toTopic() }
     }
 
     override suspend fun getTopicPhotos(
@@ -197,19 +216,21 @@ internal class UnsplashRepositoryImpl(
         orientation: String?,
         orderBy: String?
     ): List<Photo> {
+        logger.d { "getTopicPhotos id: $idOrSlug, page: $page" }
         return remoteUnsplashDataSource.getTopicPhotos(
             idOrSlug,
             page,
             perPage,
             orientation,
             orderBy
-        ).toDomain { list ->
+        ).toDomain(name = "getTopicPhotos") { list ->
             list.map { it.toPhotoDetail() }
         }
     }
 
     override suspend fun exchangeOAuth(oAuthCode: OAuthCode): OAuthToken {
-        return remoteUnsplashDataSource.exchangeOAuth(oAuthCode).toDomain { oAuthToken ->
+        logger.i { "exchangeOAuth starting" }
+        return remoteUnsplashDataSource.exchangeOAuth(oAuthCode).toDomain(name = "exchangeOAuth") { oAuthToken ->
             oAuthToken.toOAuthToken()
         }
     }

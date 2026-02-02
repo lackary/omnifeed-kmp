@@ -101,7 +101,6 @@ abstract class BaseViewModel : ViewModel() {
                     onSuccess(result.data) // Call the Success logic passed in from the outside.
                 }
                 is UseCaseResult.Error -> {
-                    println("result: ${result.exception}")
                     val errorMessage = getAppErrorMessage(result.exception) // Use BaseViewModel's error logic.
                     onError(errorMessage) // Call the Error logic passed in from the outside.
                 }
