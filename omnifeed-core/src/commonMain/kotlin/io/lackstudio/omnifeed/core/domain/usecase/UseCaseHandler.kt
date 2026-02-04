@@ -1,0 +1,40 @@
+package io.lackstudio.omnifeed.core.domain.usecase
+
+import co.touchlab.kermit.Logger
+import io.lackstudio.omnifeed.core.common.error.CommonException
+import io.lackstudio.omnifeed.core.network.error.RemoteException
+import io.lackstudio.omnifeed.core.network.error.StructuredApiException
+import io.lackstudio.omnifeed.core.persistence.LocalException
+
+private val logger = Logger.withTag("UseCaseHandler")
+
+/**
+ * Executes a suspend function and wraps its result in a UseCaseResult.
+ * Catches AppException and its subclasses, wrapping them as UseCaseResult.Error.
+ * For other unexpected Exceptions, wraps them as UnknownApiException.
+ *
+ * @param name A unique identifier for the use case.
+ * @param block The suspend function to execute, which should return data of type T.
+ * @return UseCaseResult.Success(T) or UseCaseResult.Error(AppException).
+ */
+suspend fun <T> toUseCaseResult(
+    name: String = "UnknownUseCase",
+    block: suspend () -> T
+): UseCaseResult<T> {
+    return try {
+        logger.i { "toUseCaseResult: executing $name" }
+        val data = block() // Execute the passed-in suspend function
+        UseCaseResult.Success(data)
+    } catch (e: Exception) {
+        // Catch all expected AppExceptions and their subclasses
+        logger.e(e) { "safeUseCaseCall: error executing $name" }
+        when(e) {
+            is StructuredApiException,
+            is RemoteException,
+            is LocalException,
+            is CommonException ->
+                UseCaseResult.Error(exception = e)
+            else -> UseCaseResult.Error(exception = e)
+        }
+    }
+}
