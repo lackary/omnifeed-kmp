@@ -1,3 +1,10 @@
+# [0.11.0](https://github.com/lackary/omnifeed-kmp/compare/0.10.2...0.11.0) (2026-02-04)
+
+
+### Features
+
+* **sdk:** introduce unified OmniFeed SDK entry point and refactor dependency injection ([466c0f9](https://github.com/lackary/omnifeed-kmp/commit/466c0f9064af5e0bb178bad95df2cdece53aff04))
+
 ## [0.10.2](https://github.com/lackary/omnifeed-kmp/compare/0.10.1...0.10.2) (2026-01-19)
 
 
