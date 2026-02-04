@@ -14,7 +14,7 @@ androidxCredential = "1.5.0"
 # Jetbrains
 kotlin = "2.3.0"
 kotlinGradlePlugin = "2.2.10"
-kotlinxSerialization = "1.9.0"
+kotlinxSerialization = "1.10.0"
 kotlinxCoroutines = "1.10.2"
 kotlinxDatetime = "0.7.1"
 lifecycle = "2.9.6"
@@ -24,7 +24,7 @@ composeMultiplatform = "1.10.0"
 # Google
 googleServices = "4.4.4"
 googleGms = "21.5.0"
-googleId = "1.1.1"
+googleId = "1.2.0"
 googleKsp = "2.3.3"
 googleFirebaseBom = "34.8.0"
 
@@ -38,7 +38,7 @@ googleFirebaseAuth = "23.2.1"
 junit = "4.13.2"
 
 # 3rd Party
-ktor = "3.3.3"
+ktor = "3.4.0"
 koin = "4.1.1"
 kevinnzouComposeWebviewMultiplatform = "2.0.3"
 
@@ -66,10 +66,15 @@ kotlinxCoroutinesTest = "1.10.2"
 mockk = "1.14.7"
 
 turbine = "1.2.1"
-robolectric = "4.16"
+robolectric = "4.16.1"
+kotlinStdlib = "2.3.0"
+runner = "1.5.2"
+core = "1.5.0"
 
 [libraries]
 # Android
+androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
+androidx-core = { group = "androidx.test", name = "core", version.ref = "core" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxTestEspresso" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
@@ -90,6 +95,7 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 # JetBrains
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlinStdlib" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
@@ -179,3 +185,4 @@ gms-google-services = { id = "com.google.gms.google-services", version.ref = "go
 # 3rd
 ktorPlugin = { id = "io.ktor.plugin", version.ref = "ktor" }
 buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
+android-lint = { id = "com.android.lint", version.ref = "agp" }
