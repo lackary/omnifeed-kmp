@@ -7,8 +7,8 @@ import co.touchlab.kermit.StaticConfig
 
 fun createOmniFeedLogger(
     tag: String,
-    isDebug: Boolean = true, // BuildConfig.DEBUG in future
-    logWriter: LogWriter = getPlatformLogWriter(formatter = OmniFeedFormatter())
+    isDebug: Boolean = false,
+    logWriter: LogWriter = getPlatformLogWriter()
 ) = Logger(
     config = StaticConfig(
         minSeverity = if (isDebug) Severity.Verbose else Severity.Error,

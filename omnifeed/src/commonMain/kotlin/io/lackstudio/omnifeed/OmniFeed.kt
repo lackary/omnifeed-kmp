@@ -22,7 +22,6 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.SearchPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.SearchUsersUseCase
 import org.koin.core.KoinApplication
 import org.koin.dsl.koinApplication
-import kotlin.reflect.KClass
 
 object OmniFeed {
     private var internalKoinApp: KoinApplication? = null
@@ -102,7 +101,6 @@ object OmniFeed {
 //    }
 //
 //    // --- Public APIs ---
-//
 //    // User call: OmniFeed.searchPhotosUseCase.invoke(...)
 //    val searchPhotosUseCase: SearchPhotosUseCase get() = get(SearchPhotosUseCase::class)
 //
