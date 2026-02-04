@@ -116,7 +116,12 @@ fun AppScreenContent(
     logger: Logger? = null, // Optional Logger for debugging UI
     onIntent: (HomeUiIntent) -> Unit
 ) {
-    logger?.d{"AppScreenContent"}
+    logger?.v{ "AppScreenContent" }
+    logger?.d{ "AppScreenContent" }
+    logger?.i{ "AppScreenContent" }
+    logger?.w{ "AppScreenContent" }
+    logger?.e{ "AppScreenContent" }
+    logger?.a{ "AppScreenContent" }
     // Use a nullable String to store the URL to be displayed. If it's null, the sheet is not shown.
     var authUrlToShow: String? by remember { mutableStateOf(null) }
 
