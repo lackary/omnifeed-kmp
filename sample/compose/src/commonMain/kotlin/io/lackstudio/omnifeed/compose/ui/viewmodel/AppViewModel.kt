@@ -1,7 +1,6 @@
 package io.lackstudio.omnifeed.compose.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.compose.platform.getUnsplashAccessKey
 import io.lackstudio.omnifeed.compose.platform.getUnsplashSecretKey
 import io.lackstudio.omnifeed.compose.ui.event.HomeUiEvent
@@ -33,7 +32,6 @@ class AppViewModel(
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
     private val getMeUseCase: GetMeUseCase,
     private val accessTokenProvider: AccessTokenProvider,
-    private val logger: Logger,
 ) : BaseViewModel() {
 
 
