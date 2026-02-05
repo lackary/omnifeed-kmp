@@ -2,6 +2,7 @@ package io.lackstudio.omnifeed.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.core.common.error.CommonException
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
@@ -12,6 +13,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 abstract class BaseViewModel : ViewModel() {
+
+    // 使用 lazy，這樣當繼承的 class (例如 HomeViewModel) 實例化時，
+    // Tag 就會自動變成 "HomeViewModel"，而不是 "BaseViewModel"
+    protected val logger by lazy {
+        Logger.withTag(this::class.simpleName ?: "BaseViewModel")
+    }
 
     protected open fun getAppErrorMessage(e: Exception): String {
         return when(e) {
@@ -36,7 +43,10 @@ abstract class BaseViewModel : ViewModel() {
             is LocalException.Persistence.ResourceNotFound -> "Resource not found."
             is CommonException.Parsing.InvalidDataFormat -> "Data format error."
             is CommonException.Parsing.SerializationFailed -> "Data convert error."
-            else -> "An unexpected error occurred."
+            else -> {
+                logger.w(throwable = e) { "Unmapped exception encountered" }
+                "An unexpected error occurred."
+            }
         }
     }
 
@@ -65,12 +75,20 @@ abstract class BaseViewModel : ViewModel() {
         viewModelScope.launch {
             flow.value = AppUiState.Loading
 
+            logger.v { "Executing UseCase..." }
+
             when (val result = useCase()) {
                 is UseCaseResult.Success -> {
+                    logger.d { "UseCase Success" }
+
                     flow.value = AppUiState.Success(result.data)
                 }
                 is UseCaseResult.Error -> {
-                    val errorMessage = getAppErrorMessage(result.exception)
+                    val exception = result.exception
+
+                    logger.e(throwable = exception) { "UseCase execution failed" }
+
+                    val errorMessage = getAppErrorMessage(exception)
                     flow.value = AppUiState.Error(errorMessage)
                 }
             }
@@ -96,12 +114,20 @@ abstract class BaseViewModel : ViewModel() {
         viewModelScope.launch {
             onLoading() // First, call the Loading logic passed in from the outside.
 
+            logger.v { "Executing UseCase..." }
+
             when (val result = useCase()) {
                 is UseCaseResult.Success -> {
+                    logger.d { "UseCase Success" }
+
                     onSuccess(result.data) // Call the Success logic passed in from the outside.
                 }
                 is UseCaseResult.Error -> {
-                    val errorMessage = getAppErrorMessage(result.exception) // Use BaseViewModel's error logic.
+                    val exception = result.exception
+
+                    logger.e(throwable = exception) { "UseCase execution failed" }
+
+                    val errorMessage = getAppErrorMessage(exception) // Use BaseViewModel's error logic.
                     onError(errorMessage) // Call the Error logic passed in from the outside.
                 }
             }
