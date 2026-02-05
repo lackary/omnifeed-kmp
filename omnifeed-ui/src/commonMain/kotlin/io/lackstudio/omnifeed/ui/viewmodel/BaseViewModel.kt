@@ -14,8 +14,8 @@ import kotlinx.coroutines.launch
 
 abstract class BaseViewModel : ViewModel() {
 
-    // 使用 lazy，這樣當繼承的 class (例如 HomeViewModel) 實例化時，
-    // Tag 就會自動變成 "HomeViewModel"，而不是 "BaseViewModel"
+    // Automatically get the subclass name as a Tag (e.g., "HomeViewModel", "SearchViewModel")
+    // Use lazy to avoid premature access before init
     protected val logger by lazy {
         Logger.withTag(this::class.simpleName ?: "BaseViewModel")
     }
