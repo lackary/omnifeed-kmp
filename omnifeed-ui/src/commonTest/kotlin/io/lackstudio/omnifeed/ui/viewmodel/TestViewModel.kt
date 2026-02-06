@@ -13,7 +13,7 @@ class TestViewModel : BaseViewModel() {
 
     // Simulate an actual data request action
     fun fetchData(success: Boolean) {
-        handleUseCaseCall(_uiState) {
+        handleUseCaseCall(name = "fetchData", _uiState) {
             if (success) {
                 UseCaseResult.Success("Success Data")
             } else {
@@ -26,6 +26,7 @@ class TestViewModel : BaseViewModel() {
     // This simulates how a real MVI ViewModel internally uses handleUseCaseCall
     fun fetchDataMvi(success: Boolean) {
         handleUseCaseCall(
+            name = "fetchDataMvi",
             onLoading = {
                 // MVI: Manually update state to Loading
                 _uiState.value = AppUiState.Loading

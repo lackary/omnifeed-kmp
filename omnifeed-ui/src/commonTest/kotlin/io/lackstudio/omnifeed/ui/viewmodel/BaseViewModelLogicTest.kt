@@ -51,7 +51,7 @@ class BaseViewModelLogicTest {
         val testFlow = MutableStateFlow<AppUiState<String>>(AppUiState.Loading)
         val useCase: suspend () -> UseCaseResult<String> = { UseCaseResult.Success("Test Data") }
 
-        viewModel.callHandleUseCaseCall(testFlow, useCase)
+        viewModel.callHandleUseCaseCall(flow = testFlow, useCase = useCase)
         advanceUntilIdle()
 
         val currentState = testFlow.value
@@ -65,7 +65,7 @@ class BaseViewModelLogicTest {
         // Test using a common network error
         val useCase: suspend () -> UseCaseResult<String> = { UseCaseResult.Error(RemoteException.Network.Unknown()) }
 
-        viewModel.callHandleUseCaseCall(testFlow, useCase)
+        viewModel.callHandleUseCaseCall(flow = testFlow, useCase = useCase)
         advanceUntilIdle()
 
         val currentState = testFlow.value

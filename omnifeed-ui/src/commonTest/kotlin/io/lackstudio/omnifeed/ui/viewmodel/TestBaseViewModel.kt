@@ -10,10 +10,11 @@ class TestBaseViewModel : BaseViewModel() {
 
     // Expose handleUseCaseCall for testing
     fun <T> callHandleUseCaseCall(
+        name: String = "",
         flow: MutableStateFlow<AppUiState<T>>,
         useCase: suspend () -> UseCaseResult<T>,
     ) {
-        super.handleUseCaseCall(flow, useCase)
+        super.handleUseCaseCall(name = name, flow = flow, useCase = useCase)
     }
 
     // Expose getAppErrorMessage for testing
