@@ -20,6 +20,11 @@ abstract class BaseViewModel : ViewModel() {
         Logger.withTag(this::class.simpleName ?: "BaseViewModel")
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        logger.d { "ViewModel cleared" }
+    }
+
     protected open fun getAppErrorMessage(e: Exception): String {
         return when(e) {
             // Prioritize structured API exceptions (e.g., UnsplashApiException)
@@ -44,7 +49,7 @@ abstract class BaseViewModel : ViewModel() {
             is CommonException.Parsing.InvalidDataFormat -> "Data format error."
             is CommonException.Parsing.SerializationFailed -> "Data convert error."
             else -> {
-                logger.w(throwable = e) { "Unmapped exception encountered" }
+                logger.w { "Encountered unmapped exception: ${e::class.simpleName}" }
                 "An unexpected error occurred."
             }
         }
@@ -69,24 +74,26 @@ abstract class BaseViewModel : ViewModel() {
      * both Success and Error states.
      */
     protected fun <T> handleUseCaseCall(
+        name: String = "",
         flow: MutableStateFlow<AppUiState<T>>,
         useCase: suspend () -> UseCaseResult<T>,
     ) {
         viewModelScope.launch {
+            val logPrefix = if (name.isNotBlank()) "$name " else ""
             flow.value = AppUiState.Loading
 
-            logger.v { "Executing UseCase..." }
+            logger.v { "Executing ${logPrefix}UseCase..." }
 
             when (val result = useCase()) {
                 is UseCaseResult.Success -> {
-                    logger.d { "UseCase Success" }
+                    logger.d { "${logPrefix}UseCase Success" }
 
                     flow.value = AppUiState.Success(result.data)
                 }
                 is UseCaseResult.Error -> {
                     val exception = result.exception
 
-                    logger.e(throwable = exception) { "UseCase execution failed" }
+                    logger.e(throwable = exception) { "${logPrefix}UseCase execution failed" }
 
                     val errorMessage = getAppErrorMessage(exception)
                     flow.value = AppUiState.Error(errorMessage)
@@ -102,6 +109,7 @@ abstract class BaseViewModel : ViewModel() {
      * merging the result into a single MviUiState.
      */
     protected fun <T> handleUseCaseCall(
+        name: String = "",
         // 1. How to set the Loading state.
         onLoading: () -> Unit,
         // 2. The UseCase to be executed.
@@ -111,21 +119,23 @@ abstract class BaseViewModel : ViewModel() {
         // 4. On failure, how to update the MviUiState (receives the error message String).
         onError: (String) -> Unit
     ) {
+        val logPrefix = if (name.isNotBlank()) "$name " else ""
+
         viewModelScope.launch {
             onLoading() // First, call the Loading logic passed in from the outside.
 
-            logger.v { "Executing UseCase..." }
+            logger.v { "Executing ${logPrefix}UseCase..." }
 
             when (val result = useCase()) {
                 is UseCaseResult.Success -> {
-                    logger.d { "UseCase Success" }
+                    logger.d { "${logPrefix}UseCase Success" }
 
                     onSuccess(result.data) // Call the Success logic passed in from the outside.
                 }
                 is UseCaseResult.Error -> {
                     val exception = result.exception
 
-                    logger.e(throwable = exception) { "UseCase execution failed" }
+                    logger.e(throwable = exception) { "${logPrefix}UseCase execution failed" }
 
                     val errorMessage = getAppErrorMessage(exception) // Use BaseViewModel's error logic.
                     onError(errorMessage) // Call the Error logic passed in from the outside.
