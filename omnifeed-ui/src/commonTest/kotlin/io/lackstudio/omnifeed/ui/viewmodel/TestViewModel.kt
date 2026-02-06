@@ -3,7 +3,6 @@ package io.lackstudio.omnifeed.ui.viewmodel
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
 import io.lackstudio.omnifeed.ui.state.AppUiState
-import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 
 // Test ViewModel to simulate real business logic

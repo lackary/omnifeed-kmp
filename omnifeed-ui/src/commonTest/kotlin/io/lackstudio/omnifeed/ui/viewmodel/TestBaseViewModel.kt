@@ -2,7 +2,6 @@ package io.lackstudio.omnifeed.ui.viewmodel
 
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
 import io.lackstudio.omnifeed.ui.state.AppUiState
-import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 
 // A helper class created for testing purposes to expose protected methods
