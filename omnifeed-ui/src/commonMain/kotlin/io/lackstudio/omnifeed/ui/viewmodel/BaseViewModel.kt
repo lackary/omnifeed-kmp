@@ -82,7 +82,7 @@ abstract class BaseViewModel : ViewModel() {
             val logPrefix = if (name.isNotBlank()) "$name " else ""
             flow.value = AppUiState.Loading
 
-            logger.v { "Executing ${logPrefix}UseCase..." }
+            logger.d { "Executing ${logPrefix}UseCase..." }
 
             when (val result = useCase()) {
                 is UseCaseResult.Success -> {
@@ -124,7 +124,7 @@ abstract class BaseViewModel : ViewModel() {
         viewModelScope.launch {
             onLoading() // First, call the Loading logic passed in from the outside.
 
-            logger.v { "Executing ${logPrefix}UseCase..." }
+            logger.d { "Executing ${logPrefix}UseCase..." }
 
             when (val result = useCase()) {
                 is UseCaseResult.Success -> {
