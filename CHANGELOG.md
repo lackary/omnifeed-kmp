@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/lackary/omnifeed-kmp/compare/0.11.0...0.12.0) (2026-02-06)
+
+
+### Features
+
+* **ui:** improve logging and diagnostic capabilities in `BaseViewModel` ([d33d6e2](https://github.com/lackary/omnifeed-kmp/commit/d33d6e2c2d41448989490ceb805119ca6075258f))
+
 # [0.11.0](https://github.com/lackary/omnifeed-kmp/compare/0.10.2...0.11.0) (2026-02-04)
 
 
