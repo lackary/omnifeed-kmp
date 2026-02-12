@@ -1,8 +1,55 @@
-# OmniFeed
+# OmniFeed SDK
 
-Kotlin Multiplatform (KMP) library project for API clients, using Ktor for networking and Koin for dependency injection.
+[![Continuous Integration](https://github.com/lackary/omnifeed-kmp/actions/workflows/ci.yml/badge.svg)](https://github.com/lackary/omnifeed-kmp/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/lackary/omnifeed-kmp?include_prereleases&label=latest)](https://github.com/lackary/omnifeed-kmp/releases)
+[![License](https://img.shields.io/github/license/lackary/omnifeed-kmp)](https://github.com/lackary/omnifeed-kmp/blob/main/LICENSE)
+![Platform](https://img.shields.io/badge/platform-Android%20|%20iOS%20|%20Desktop|%20Web-blue)
+![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-purple?logo=kotlin)
+![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-v1.10.0-blue)
 
-Each API client module is independently usable as a dependency in different apps.
+> **A Modular, Production-Grade Kotlin Multiplatform SDK for Open APIs Integration.**
+> *Designed with Clean Architecture, MVI patterns, and strict separation of concerns.*
+
+## Project Overview
+**OmniFeed** is a comprehensive Kotlin Multiplatform (KMP) library suite designed to provide seamless integration with the Unsplash API.
+
+Unlike monolithic libraries, OmniFeed is architected as a **suite of composable modules**. Consumers can choose to import only the raw data layer (`omnifeed-unsplash`), or leverage the pre-built view models and state management (`omnifeed-ui`) for rapid development.
+
+This project serves as a reference implementation for building **scalable, testable, and publishable KMP SDKs**.
+
+## Modular Architecture
+The library is structured into three distinct layers to enforce separation of concerns:
+
+### 1. `omnifeed-core` (The Foundation)
+- Provides the essential infrastructure for networking and logging.
+- **Tech Stack**: Ktor (Network), Kermit (Logging), Kotlin Serialization.
+- **Design Pattern**: Implements the **Bridge Pattern** for platform-specific loggers and HTTP engines.
+
+### 2. `omnifeed-ui` (The Presentation Layer)
+- Provides reusable, platform-agnostic **ViewModels** and **MVI State Holders**.
+- **MVI Pattern**: Exposes strict `StateFlow` outputs and processes `Intent` inputs, ensuring unidirectional data flow.
+- **Headless UI**: Designed to be UI-framework agnostic (compatible with Jetpack Compose, SwiftUI, or HTML DOM).
+
+### 3. `omnifeed-unsplash` (The Domain & Data Layer)
+- Encapsulates the specific business logic for the Unsplash API.
+- **Clean Architecture**: Strictly separates `Domain` (Use Cases, Entities) from `Data` (Repositories, DTOs, Data Sources).
+- **Features**:
+    - OAuth 2.0 Authorization Flow.
+    - Photo Searching, Listing, and User Profile management.
+    - Offline-first capable caching strategy (Interface ready).
+
+## Key Technical Highlights
+
+### Factory & Facade Patterns
+The SDK utilizes the **Factory Pattern** (e.g., `KtorClientFactory`) to instantiate platform-specific dependencies (Android/iOS/Wasm/Desktop engines) while keeping the consumer API uniform.
+
+### Dependency Injection Ready
+While the library uses [Koin](https://insert-koin.io/) internally for testability, it exposes its components in a way that allows consumers to easily integrate with their own DI solutions (Hilt, Dagger, or manual DI).
+
+### Comprehensive Testing Strategy
+- **Unit Tests**: Domain logic and Use Cases are heavily tested in `commonTest`.
+- **Mocking**: Includes a custom `MockEngine` for Ktor to simulate API responses, ensuring tests are flaky-free and do not hit the real network.
+
 
 ## Kotlin Multiplatform Library Usage Guide
 
@@ -195,14 +242,14 @@ kotlin{
    iosSimulatorArm64()
 
    cocoapods {
-      name = "ComposeApp"
+      name = "Compose"
       version = "1.0.0" // Or any valid version number
       summary = "Some description for the Shared Module"
       homepage = "Link to the Shared Module homepage"
       ios.deploymentTarget = "18.5" // Specify your iOS deployment target
       podfile = project.file("../iosApp/Podfile") // Adjust path if needed
       framework {
-         baseName = "ComposeApp"
+         baseName = "Compose"
          isStatic = true
       }
    }
@@ -222,7 +269,7 @@ target 'iosApp' do
   use_frameworks!
 
   # Pods for iosApp
-  pod 'ComposeApp', :path => '../composeApp'
+  pod 'Compose', :path => '../Compose'
   pod '${dependency_you_need}'
 
 end
