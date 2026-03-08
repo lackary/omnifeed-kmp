@@ -1,6 +1,8 @@
 package io.lackstudio.omnifeed.unsplash.data.remote
 
 import co.touchlab.kermit.Logger
+import io.ktor.client.plugins.ResponseException
+import io.ktor.http.contentType
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 import io.lackstudio.omnifeed.core.network.remote.toResult
 import io.lackstudio.omnifeed.unsplash.data.error.UnsplashApiException
@@ -20,20 +22,28 @@ suspend inline fun <T> toUnsplashResult(call: suspend () -> T): Result<T> {
     // Check if it's the specific API error we're interested in
     if (exception is RemoteException.Api) {
         exception.errorBody?.takeIf { it.isNotBlank() }?.let { bodyString ->
-            logger.e(exception) { "toUnsplashResult, code: ${exception.code} errorBody: $bodyString" }
-            try {
-                val json = Json {
-                    ignoreUnknownKeys = true
-                    prettyPrint = true
-                }
-                val errorResponse = json.decodeFromString<ApiErrorResponse>(bodyString)
+            logger.w { "toUnsplashResult, code: ${exception.code} errorBody: $bodyString" }
+            val responseException = exception.cause as? ResponseException
+            val contentType = responseException?.response?.contentType()?.toString() ?: ""
 
+            // If the server explicitly indicates this is not JSON, treat it as a plain text error
+            if (!contentType.contains("application/json")) {
+                logger.w { "Non-JSON format error ($contentType), displaying plain text directly: $bodyString" }
+                val fallbackError = ApiErrorResponse(errors = listOf(bodyString.trim()))
+                return Result.failure(UnsplashApiException(fallbackError, exception))
+            }
+
+            try {
+                val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
+
+                val errorResponse = json.decodeFromString<ApiErrorResponse>(bodyString)
                 val unsplashApiException =
                     UnsplashApiException(
                         apiError = errorResponse,
                         originalApiException = exception
                     )
-                logger.e { "toUnsplashResult API error: ${unsplashApiException.apiError}" }
+
+                logger.w { "toUnsplashResult API error: ${unsplashApiException.apiError}" }
                 // If parsing is successful, return a new Failure Result containing our custom exception
                 return Result.failure(unsplashApiException)
 
