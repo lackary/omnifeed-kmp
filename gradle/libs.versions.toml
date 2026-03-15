@@ -2,31 +2,31 @@
 agp = "9.1.0"
 
 # Android
-androidxCore = "1.17.0"
+androidxCore = "1.18.0"
 androidxAppcompat = "1.7.1"
-androidxActivity = "1.12.2"
+androidxActivity = "1.13.0"
 androidxTestExt = "1.3.0"
 androidxTestEspresso = "3.7.0"
 androidxLifecycleRuntime = "2.10.0"
-androidxComposeBom = "2026.01.00"
+androidxComposeBom = "2026.03.00"
 androidxCredential = "1.5.0"
 
 # Jetbrains
-kotlin = "2.3.0"
-kotlinGradlePlugin = "2.2.10"
+kotlin = "2.3.10"
+kotlinGradlePlugin = "2.3.10"
 kotlinxSerialization = "1.10.0"
 kotlinxCoroutines = "1.10.2"
-kotlinxDatetime = "0.7.1"
+kotlinxDatetime = "0.7.1-0.6.x-compat"
 lifecycle = "2.9.6"
 composeHotReload = "1.0.0"
-composeMultiplatform = "1.10.0"
+composeMultiplatform = "1.10.2"
 
 # Google
 googleServices = "4.4.4"
-googleGms = "21.5.0"
+googleGms = "21.5.1"
 googleId = "1.2.0"
 googleKsp = "2.3.6"
-googleFirebaseBom = "34.8.0"
+googleFirebaseBom = "34.10.0"
 
 # Firebase
 gitliveFirebase = "2.4.0"
@@ -48,11 +48,11 @@ composeMaterial3 = "1.9.0"
 composeMaterial = "1.7.3"
 
 # kermit
-kermit = "2.0.8"
+kermit = "2.1.0"
 
 # JVM
 slf4j = "2.0.17"
-logback = "1.5.25"
+logback = "1.5.32"
 
 #kopykat = "0.13.0"
 mapstruct = "1.6.3"
@@ -63,13 +63,13 @@ buildkonfig = "0.17.1"
 # test version
 kotlinxCoroutinesTest = "1.10.2"
 #ktorClientMock = "2.3.2"
-mockk = "1.14.7"
+mockk = "1.14.9"
 
 turbine = "1.2.1"
 robolectric = "4.16.1"
-kotlinStdlib = "2.3.0"
-runner = "1.5.2"
-core = "1.5.0"
+kotlinStdlib = "2.3.10"
+runner = "1.7.0"
+core = "1.7.0"
 
 [libraries]
 # Android
