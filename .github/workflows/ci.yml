@@ -4,16 +4,16 @@ on:
   push:
     branches:
       - main
-    # ✅ 改用 paths-ignore (負面表列)
     paths-ignore:
-      - '**.md'                # 忽略 Markdown 文件
+      - '**.md'
       - 'LICENSE'
       - '.gitignore'
-      - 'package.json'         # 忽略 dummy package.json
+      - 'package.json'
       - 'package-lock.json'
-      - '.releaserc.yml'       # 忽略 release 設定
-      - '.github/workflows/release.yml'     # 忽略 Release Workflow 本身
+      - '.releaserc.yml'
+      - '.github/workflows/release.yml'
       - 'run_act_safe.sh'
+      - 'renovate.json'
 
   pull_request:
     branches:
@@ -27,6 +27,7 @@ on:
       - '.releaserc.yml'
       - '.github/workflows/release.yml'
       - 'run_act_safe.sh'
+      - 'renovate.json'
 
   workflow_dispatch:
     inputs:
@@ -50,6 +51,10 @@ on:
         type: boolean
         required: false
         default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
