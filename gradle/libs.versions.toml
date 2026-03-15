@@ -38,7 +38,7 @@ googleFirebaseAuth = "23.2.1"
 junit = "4.13.2"
 
 # 3rd Party
-ktor = "3.4.0"
+ktor = "3.4.1"
 koin = "4.1.1"
 kevinnzouComposeWebviewMultiplatform = "2.0.3"
 
