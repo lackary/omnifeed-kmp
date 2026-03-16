@@ -10,6 +10,9 @@ jobs:
   release:
     name: Semantic Release
     runs-on: macos-latest
+    env:
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
 
     permissions:
       contents: write
