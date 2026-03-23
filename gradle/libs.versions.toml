@@ -12,21 +12,21 @@ androidxComposeBom = "2026.03.00"
 androidxCredential = "1.5.0"
 
 # Jetbrains
-kotlin = "2.3.10"
-kotlinGradlePlugin = "2.3.10"
+kotlin = "2.3.20"
+kotlinGradlePlugin = "2.3.20"
 kotlinxSerialization = "1.10.0"
 kotlinxCoroutines = "1.10.2"
 kotlinxDatetime = "0.7.1-0.6.x-compat"
-lifecycle = "2.9.6"
+lifecycle = "2.10.0"
 composeHotReload = "1.0.0"
-composeMultiplatform = "1.10.2"
+composeMultiplatform = "1.10.3"
 
 # Google
 googleServices = "4.4.4"
 googleGms = "21.5.1"
 googleId = "1.2.0"
 googleKsp = "2.3.6"
-googleFirebaseBom = "34.10.0"
+googleFirebaseBom = "34.11.0"
 
 # Firebase
 gitliveFirebase = "2.4.0"
@@ -39,7 +39,7 @@ junit = "4.13.2"
 
 # 3rd Party
 ktor = "3.4.1"
-koin = "4.1.1"
+koin = "4.2.0"
 kevinnzouComposeWebviewMultiplatform = "2.0.3"
 
 # material
@@ -67,7 +67,7 @@ mockk = "1.14.9"
 
 turbine = "1.2.1"
 robolectric = "4.16.1"
-kotlinStdlib = "2.3.10"
+kotlinStdlib = "2.3.20"
 runner = "1.7.0"
 core = "1.7.0"
 
