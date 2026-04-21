@@ -1,3 +1,10 @@
+## [0.12.4](https://github.com/lackary/omnifeed-kmp/compare/0.12.3...0.12.4) (2026-04-21)
+
+
+### Bug Fixes
+
+* **deps:** update non-major updates (patch & minor) ([fc3c9ff](https://github.com/lackary/omnifeed-kmp/commit/fc3c9ffe724b17e0ffedfcc2f50bc84d99006f51))
+
 ## [0.12.3](https://github.com/lackary/omnifeed-kmp/compare/0.12.2...0.12.3) (2026-04-06)
 
 
