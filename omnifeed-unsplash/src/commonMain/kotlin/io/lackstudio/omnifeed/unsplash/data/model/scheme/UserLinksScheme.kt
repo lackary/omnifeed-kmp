@@ -8,5 +8,5 @@ data class UserLinksScheme(
     val html: String,
     val photos: String,
     val likes: String,
-    val portfolio: String
+    val portfolio: String? = null
 )
