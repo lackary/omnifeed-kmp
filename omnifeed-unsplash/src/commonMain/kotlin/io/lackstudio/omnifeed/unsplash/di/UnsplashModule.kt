@@ -8,8 +8,8 @@ import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.core.network.provideHttpClientEngine
 import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiService
 import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiServiceImpl
-import io.lackstudio.omnifeed.unsplash.data.local.LocalUnsplashPhotoDataSource
-import io.lackstudio.omnifeed.unsplash.data.local.LocalUnsplashDataSourceImpl
+import io.lackstudio.omnifeed.unsplash.data.local.source.LocalUnsplashPhotoDataSource
+import io.lackstudio.omnifeed.unsplash.data.local.source.LocalUnsplashDataSourceImpl
 import io.lackstudio.omnifeed.unsplash.domain.repository.UnsplashRepository
 import io.lackstudio.omnifeed.unsplash.data.repository.UnsplashRepositoryImpl
 import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSource

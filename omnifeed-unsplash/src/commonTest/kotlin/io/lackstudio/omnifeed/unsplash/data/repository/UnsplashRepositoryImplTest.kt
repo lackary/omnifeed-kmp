@@ -13,8 +13,8 @@ import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiService
 import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiServiceImpl
 import io.lackstudio.omnifeed.unsplash.data.error.UnsplashApiException
-import io.lackstudio.omnifeed.unsplash.data.local.LocalUnsplashPhotoDataSource
-import io.lackstudio.omnifeed.unsplash.data.model.response.PhotoDetailResponse
+import io.lackstudio.omnifeed.unsplash.data.local.source.LocalUnsplashPhotoDataSource
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.PhotoDetailResponse
 import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSource
 import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSourceImpl
 import io.lackstudio.omnifeed.unsplash.di.BaseKoinTest

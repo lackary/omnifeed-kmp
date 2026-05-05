@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.unsplash.data.local
+package io.lackstudio.omnifeed.unsplash.data.local.source
 
 import io.lackstudio.omnifeed.unsplash.data.remote.model.response.PhotoDetailResponse
 

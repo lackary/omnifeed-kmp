@@ -2,7 +2,7 @@ package io.lackstudio.omnifeed.unsplash.data.repository
 
 import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.core.common.extension.toDomain
-import io.lackstudio.omnifeed.unsplash.data.local.LocalUnsplashPhotoDataSource
+import io.lackstudio.omnifeed.unsplash.data.local.source.LocalUnsplashPhotoDataSource
 import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSource
 import io.lackstudio.omnifeed.unsplash.domain.model.Collection
 import io.lackstudio.omnifeed.unsplash.domain.model.Me

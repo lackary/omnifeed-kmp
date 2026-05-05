@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.unsplash.data.model.response
 
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.PhotoDetailResponse
 import io.lackstudio.omnifeed.unsplash.test.MockData
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
