@@ -1,23 +1,23 @@
 package io.lackstudio.omnifeed.unsplash.mapper
 
-import io.lackstudio.omnifeed.unsplash.data.model.response.PhotoDetailResponse
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.AlternativeSlugsScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.BreadcrumbScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.CategoryScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.CurrentUserCollectionScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.ExifScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.LocationScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.ParticipantScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.PhotoLinksScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.PhotoScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.PhotoUrlsScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.PositionScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.RelatedCollectionScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.SponsorshipScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.TopicSimpleScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.TopicSubmissionsScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.UserLinksScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.UserScheme
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.AlternativeSlugsDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.BreadcrumbDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.CategoryDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.CurrentUserCollectionDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.ExifDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.LocationDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.ParticipantDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.PhotoDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.PhotoLinksDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.PhotoUrlsDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.PhotoUserDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.PositionDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.RelatedCollectionDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.SponsorshipDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.TopicSimpleDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.TopicSubmissionsDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.UserLinksDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.PhotoDetailResponse
 import io.lackstudio.omnifeed.unsplash.domain.model.AlternativeSlugs
 import io.lackstudio.omnifeed.unsplash.domain.model.Breadcrumb
 import io.lackstudio.omnifeed.unsplash.domain.model.Category
@@ -37,7 +37,7 @@ import io.lackstudio.omnifeed.unsplash.domain.model.TopicSimple
 import io.lackstudio.omnifeed.unsplash.domain.model.TopicSubmissions
 import io.lackstudio.omnifeed.unsplash.domain.model.UserLinks
 
-fun PhotoScheme.toPhotoDetail(): Photo {
+fun PhotoDto.toPhotoDetail(): Photo {
     return Photo(
         altDescription = this.altDescription,
         alternativeSlugs = this.alternativeSlugs.toAlternativeSlugs(),
@@ -102,7 +102,7 @@ fun PhotoDetailResponse.toPhotoDetail(): PhotoDetail {
     )
 }
 
-fun AlternativeSlugsScheme.toAlternativeSlugs(): AlternativeSlugs {
+fun AlternativeSlugsDto.toAlternativeSlugs(): AlternativeSlugs {
     return AlternativeSlugs(
         german = this.german,
         english = this.english,
@@ -116,7 +116,7 @@ fun AlternativeSlugsScheme.toAlternativeSlugs(): AlternativeSlugs {
     )
 }
 
-fun PhotoLinksScheme.toPhotoLinks(): PhotoLinks {
+fun PhotoLinksDto.toPhotoLinks(): PhotoLinks {
     return PhotoLinks(
         self = this.self,
         html = this.html,
@@ -125,7 +125,7 @@ fun PhotoLinksScheme.toPhotoLinks(): PhotoLinks {
     )
 }
 
-fun SponsorshipScheme.toSponsorship(): Sponsorship {
+fun SponsorshipDto.toSponsorship(): Sponsorship {
     return Sponsorship(
         impressionUrls = this.impressionUrls,
         sponsor = this.sponsor.toSponsor(),
@@ -134,7 +134,7 @@ fun SponsorshipScheme.toSponsorship(): Sponsorship {
     )
 }
 
-fun PhotoUrlsScheme.toPhotoUrls(): PhotoUrls {
+fun PhotoUrlsDto.toPhotoUrls(): PhotoUrls {
     return PhotoUrls(
         raw = this.raw,
         full = this.full,
@@ -145,7 +145,7 @@ fun PhotoUrlsScheme.toPhotoUrls(): PhotoUrls {
     )
 }
 
-fun UserLinksScheme.toUserLinks(): UserLinks {
+fun UserLinksDto.toUserLinks(): UserLinks {
     return UserLinks(
         html = this.html,
         likes = this.photos,
@@ -155,7 +155,7 @@ fun UserLinksScheme.toUserLinks(): UserLinks {
     )
 }
 
-fun ParticipantScheme.toSponsor(): Sponsor {
+fun ParticipantDto.toSponsor(): Sponsor {
     return Sponsor(
         id = this.id,
         updatedAt = this.updatedAt,
@@ -182,7 +182,7 @@ fun ParticipantScheme.toSponsor(): Sponsor {
     )
 }
 
-fun UserScheme.toPhotoUser(): PhotoUser {
+fun PhotoUserDto.toPhotoUser(): PhotoUser {
     return PhotoUser(
         id = this.id,
         updatedAt = this.updatedAt,
@@ -209,13 +209,13 @@ fun UserScheme.toPhotoUser(): PhotoUser {
     )
 }
 
-fun BreadcrumbScheme.toBreadcrumb(): Breadcrumb {
+fun BreadcrumbDto.toBreadcrumb(): Breadcrumb {
     return Breadcrumb(
         title = this.title
     )
 }
 
-fun CurrentUserCollectionScheme.toCurrentUserCollection(): CurrentUserCollection {
+fun CurrentUserCollectionDto.toCurrentUserCollection(): CurrentUserCollection {
     return CurrentUserCollection(
         id = this.id,
         title = this.title,
@@ -231,7 +231,7 @@ fun CurrentUserCollectionScheme.toCurrentUserCollection(): CurrentUserCollection
     )
 }
 
-fun ExifScheme.toExif(): Exif {
+fun ExifDto.toExif(): Exif {
     return Exif(
         make = this.make,
         model = this.model,
@@ -243,7 +243,7 @@ fun ExifScheme.toExif(): Exif {
     )
 }
 
-fun LocationScheme.toLocation(): Location {
+fun LocationDto.toLocation(): Location {
     return Location(
         name = this.name,
         city = this.city,
@@ -252,14 +252,14 @@ fun LocationScheme.toLocation(): Location {
     )
 }
 
-fun PositionScheme.toPosition(): Position {
+fun PositionDto.toPosition(): Position {
     return Position(
         latitude = this.latitude,
         longitude = this.longitude
     )
 }
 
-fun TopicSubmissionsScheme.toTopicSubmissions(): TopicSubmissions {
+fun TopicSubmissionsDto.toTopicSubmissions(): TopicSubmissions {
     return TopicSubmissions(
         texturesPatterns = this.texturesPatterns?.toCategory(),
         threeDRenders = this.threeDRenders?.toCategory(),
@@ -282,14 +282,14 @@ fun TopicSubmissionsScheme.toTopicSubmissions(): TopicSubmissions {
     )
 }
 
-fun CategoryScheme.toCategory(): Category {
+fun CategoryDto.toCategory(): Category {
     return Category(
         status = this.status,
         approvedOn = this.approvedOn
     )
 }
 
-fun TopicSimpleScheme.toTopicSimple(): TopicSimple {
+fun TopicSimpleDto.toTopicSimple(): TopicSimple {
     return TopicSimple(
         id = this.id,
         slug = this.slug,
@@ -298,7 +298,7 @@ fun TopicSimpleScheme.toTopicSimple(): TopicSimple {
     )
 }
 
-fun RelatedCollectionScheme.toRelatedCollection(): RelatedCollection {
+fun RelatedCollectionDto.toRelatedCollection(): RelatedCollection {
     return RelatedCollection(
         total = this.total,
         type = this.type,

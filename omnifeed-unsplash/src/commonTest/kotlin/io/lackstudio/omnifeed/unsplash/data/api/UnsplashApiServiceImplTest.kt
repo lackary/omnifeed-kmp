@@ -9,6 +9,8 @@ import io.lackstudio.omnifeed.core.common.logging.LogConfiguration.OMNIFEED_KTOR
 import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
+import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiService
+import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiServiceImpl
 import io.lackstudio.omnifeed.unsplash.di.BaseKoinTest
 import io.lackstudio.omnifeed.unsplash.network.MOCK_COLLECTION_ID
 import io.lackstudio.omnifeed.unsplash.network.MOCK_PHOTO_ID

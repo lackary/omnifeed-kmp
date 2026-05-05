@@ -10,12 +10,12 @@ import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
-import io.lackstudio.omnifeed.unsplash.data.api.UnsplashApiService
-import io.lackstudio.omnifeed.unsplash.data.api.UnsplashApiServiceImpl
+import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiService
+import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiServiceImpl
 import io.lackstudio.omnifeed.unsplash.data.local.LocalUnsplashPhotoDataSource
 import io.lackstudio.omnifeed.unsplash.data.model.response.PhotoDetailResponse
-import io.lackstudio.omnifeed.unsplash.data.remote.RemoteUnsplashDataSource
-import io.lackstudio.omnifeed.unsplash.data.remote.RemoteUnsplashDataSourceImpl
+import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSource
+import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSourceImpl
 import io.lackstudio.omnifeed.unsplash.data.repository.UnsplashRepositoryImpl
 import io.lackstudio.omnifeed.unsplash.di.BaseKoinTest
 import io.lackstudio.omnifeed.unsplash.domain.repository.UnsplashRepository

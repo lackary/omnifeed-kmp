@@ -47,7 +47,7 @@ import io.lackstudio.omnifeed.compose.utils.Environment
 import io.lackstudio.omnifeed.core.network.extension.hrefWithHost
 import io.lackstudio.omnifeed.ui.component.OAuthWebViewBottomSheet
 import io.lackstudio.omnifeed.ui.state.AppUiState
-import io.lackstudio.omnifeed.unsplash.data.model.request.AuthorizeRequest as UnsplashAuthorizeRequest
+import io.lackstudio.omnifeed.unsplash.data.remote.model.request.AuthorizeRequest as UnsplashAuthorizeRequest
 import io.lackstudio.omnifeed.unsplash.utils.Environment as UnsplashEnvironment
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow

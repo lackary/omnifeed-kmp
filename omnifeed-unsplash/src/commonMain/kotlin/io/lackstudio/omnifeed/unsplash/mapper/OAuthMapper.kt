@@ -1,7 +1,7 @@
 package io.lackstudio.omnifeed.unsplash.mapper
 
-import io.lackstudio.omnifeed.unsplash.data.model.request.TokenRequest
-import io.lackstudio.omnifeed.unsplash.data.model.response.TokenResponse
+import io.lackstudio.omnifeed.unsplash.data.remote.model.request.TokenRequest
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.TokenResponse
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthToken
 

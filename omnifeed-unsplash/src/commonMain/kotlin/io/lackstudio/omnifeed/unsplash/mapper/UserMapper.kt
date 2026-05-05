@@ -1,12 +1,12 @@
-    package io.lackstudio.omnifeed.unsplash.mapper
+package io.lackstudio.omnifeed.unsplash.mapper
 
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.BadgeScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.PreviewPhotoScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.ProfileImageScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.SocialScheme
-import io.lackstudio.omnifeed.unsplash.data.model.response.MeProfileResponse
-import io.lackstudio.omnifeed.unsplash.data.model.response.UserProfileResponse
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.TagsScheme
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.BadgeDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.PreviewPhotoDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.ProfileImageDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.SocialDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.TagsDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.MeProfileResponse
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.UserProfileResponse
 import io.lackstudio.omnifeed.unsplash.domain.model.Badge
 import io.lackstudio.omnifeed.unsplash.domain.model.Me
 import io.lackstudio.omnifeed.unsplash.domain.model.PreviewPhoto
@@ -85,7 +85,7 @@ fun UserProfileResponse.toUserProfile(): UserProfile {
     )
 }
 
-fun ProfileImageScheme.toProfileImage(): ProfileImage {
+fun ProfileImageDto.toProfileImage(): ProfileImage {
     return ProfileImage(
         large = this.large,
         medium = this.medium,
@@ -93,7 +93,7 @@ fun ProfileImageScheme.toProfileImage(): ProfileImage {
     )
 }
 
-fun BadgeScheme.toBadge(): Badge {
+fun BadgeDto.toBadge(): Badge {
     return Badge(
         title = this.title,
         primary = this.primary,
@@ -102,7 +102,7 @@ fun BadgeScheme.toBadge(): Badge {
     )
 }
 
-fun PreviewPhotoScheme.toPhotoDetail(): PreviewPhoto {
+fun PreviewPhotoDto.toPhotoDetail(): PreviewPhoto {
     return PreviewPhoto(
         id = this.id,
         slug = this.slug,
@@ -116,7 +116,7 @@ fun PreviewPhotoScheme.toPhotoDetail(): PreviewPhoto {
 
 
 
-fun SocialScheme.toSocial(): Social {
+fun SocialDto.toSocial(): Social {
     return Social(
         instagramUsername = this.instagramUsername,
         portfolioUrl = this.portfolioUrl,
@@ -125,7 +125,7 @@ fun SocialScheme.toSocial(): Social {
     )
 }
 
-fun TagsScheme.toTags(): Tags {
+fun TagsDto.toTags(): Tags {
     return Tags(
         custom = this.custom.map { tagScheme -> tagScheme.toTag() },
         aggregated = this.aggregated.map { tagScheme -> tagScheme.toTag() }
