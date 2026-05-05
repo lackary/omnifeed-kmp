@@ -2,7 +2,7 @@ package io.lackstudio.omnifeed.unsplash.data.error
 
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 import io.lackstudio.omnifeed.core.network.error.StructuredApiException
-import io.lackstudio.omnifeed.unsplash.data.model.response.ApiErrorResponse
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.ApiErrorResponse
 
 class UnsplashApiException(
     val apiError: ApiErrorResponse,

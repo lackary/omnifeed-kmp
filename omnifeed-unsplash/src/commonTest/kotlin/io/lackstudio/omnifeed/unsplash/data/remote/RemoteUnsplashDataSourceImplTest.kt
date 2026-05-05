@@ -5,8 +5,8 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.platformLogWriter
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.logging.LogLevel
-import io.lackstudio.omnifeed.unsplash.data.api.UnsplashApiService
-import io.lackstudio.omnifeed.unsplash.data.api.UnsplashApiServiceImpl
+import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiService
+import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiServiceImpl
 import io.lackstudio.omnifeed.unsplash.di.BaseKoinTest
 import io.ktor.http.HttpStatusCode
 import io.lackstudio.omnifeed.core.common.logging.LogConfiguration.OMNIFEED_KTOR_TAG
@@ -14,6 +14,8 @@ import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.unsplash.data.error.UnsplashApiException
+import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSource
+import io.lackstudio.omnifeed.unsplash.data.remote.source.RemoteUnsplashDataSourceImpl
 import io.lackstudio.omnifeed.unsplash.network.MOCK_COLLECTION_ID
 import io.lackstudio.omnifeed.unsplash.network.MOCK_ID_NOT_FOUND
 import io.lackstudio.omnifeed.unsplash.network.MOCK_PHOTO_ID

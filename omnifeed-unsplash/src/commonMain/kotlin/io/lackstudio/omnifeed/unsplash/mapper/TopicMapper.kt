@@ -1,6 +1,6 @@
 package io.lackstudio.omnifeed.unsplash.mapper
 
-import io.lackstudio.omnifeed.unsplash.data.model.response.TopicResponse
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.TopicResponse
 import io.lackstudio.omnifeed.unsplash.domain.model.Topic
 
 fun TopicResponse.toTopic(): Topic {

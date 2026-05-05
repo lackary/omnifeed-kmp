@@ -1,7 +1,7 @@
 package io.lackstudio.omnifeed.unsplash.mapper
 
-import io.lackstudio.omnifeed.unsplash.data.model.response.CollectionResponse
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.LinksScheme
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.LinksDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.response.CollectionResponse
 import io.lackstudio.omnifeed.unsplash.domain.model.Collection
 import io.lackstudio.omnifeed.unsplash.domain.model.Links
 
@@ -26,7 +26,7 @@ fun CollectionResponse.toCollection(): Collection {
     )
 }
 
-fun LinksScheme.toLinks(): Links {
+fun LinksDto.toLinks(): Links {
     return Links(
         self = this.self,
         html = this.html,

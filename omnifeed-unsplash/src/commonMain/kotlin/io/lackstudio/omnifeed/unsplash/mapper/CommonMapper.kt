@@ -1,17 +1,17 @@
 package io.lackstudio.omnifeed.unsplash.mapper
 
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.MetaScheme
-import io.lackstudio.omnifeed.unsplash.data.model.scheme.TagScheme
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.MetaDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.TagDto
 import io.lackstudio.omnifeed.unsplash.domain.model.Meta
 import io.lackstudio.omnifeed.unsplash.domain.model.Tag
 
-fun MetaScheme.toMeta(): Meta {
+fun MetaDto.toMeta(): Meta {
     return Meta(
         index = this.index
     )
 }
 
-fun TagScheme.toTag(): Tag {
+fun TagDto.toTag(): Tag {
     return Tag(
         type = this.type,
         title = this.title

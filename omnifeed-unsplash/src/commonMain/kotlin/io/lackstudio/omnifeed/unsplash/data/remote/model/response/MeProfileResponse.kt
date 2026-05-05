@@ -1,0 +1,49 @@
+package io.lackstudio.omnifeed.unsplash.data.remote.model.response
+
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.UserDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.UserProfileDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.BadgeDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.MetaDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.PreviewPhotoDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.ProfileImageDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.SocialDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.TagsDto
+import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.UserLinksDto
+import io.lackstudio.omnifeed.unsplash.utils.constants.ApiKeys
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class MeProfileResponse(
+    override val id: String,
+    @SerialName(ApiKeys.Common.UPDATED_AT) override val updatedAt: String,
+    override val username: String,
+    override val name: String,
+    @SerialName(ApiKeys.User.FIRST_NAME) override val firstName: String,
+    @SerialName(ApiKeys.User.LAST_NAME) override val lastName: String? = null,
+    @SerialName(ApiKeys.Social.TWITTER_USERNAME) override val twitterUsername: String? = null,
+    @SerialName(ApiKeys.Social.PORTFOLIO_URL) override val portfolioUrl: String? = null,
+    override val bio: String? = null,
+    override val location: String? = null,
+    override val links: UserLinksDto,
+    @SerialName(ApiKeys.Common.PROFILE_IMAGE) override val profileImage: ProfileImageDto,
+    @SerialName(ApiKeys.Social.INSTAGRAM_USERNAME) override val instagramUsername: String? = null,
+    @SerialName(ApiKeys.Statistics.TOTAL_COLLECTIONS) override val totalCollections: Long,
+    @SerialName(ApiKeys.Statistics.TOTAL_LIKES) override val totalLikes: Long,
+    @SerialName(ApiKeys.Statistics.TOTAL_PHOTOS) override val totalPhotos: Long,
+    @SerialName(ApiKeys.Statistics.TOTAL_PROMOTED_PHOTOS) override val totalPromotedPhotos: Long,
+    @SerialName(ApiKeys.Statistics.TOTAL_ILLUSTRATIONS) override val totalIllustrations: Long,
+    @SerialName(ApiKeys.Statistics.TOTAL_PROMOTED_ILLUSTRATIONS) override val totalPromotedIllustrations: Long,
+    @SerialName(ApiKeys.User.ACCEPTED_TOS) override val acceptedTos: Boolean,
+    @SerialName(ApiKeys.Common.FOR_HIRE) override val forHire: Boolean,
+    override val social: SocialDto,
+    override val photos: List<PreviewPhotoDto>,
+    override val badge: BadgeDto? = null,
+    override val tags: TagsDto,
+    @SerialName(ApiKeys.User.ALLOW_MESSAGES) override val allowMessages: Boolean,
+    @SerialName(ApiKeys.User.NUMERIC_ID) override val numericId: Long,
+    override val downloads: Long,
+    override val meta: MetaDto,
+    val uid: String,
+    val confirmed: Boolean
+) : UserProfileDto
