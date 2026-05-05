@@ -1,3 +1,10 @@
+## [0.12.6](https://github.com/lackary/omnifeed-kmp/compare/0.12.5...0.12.6) (2026-05-05)
+
+
+### Bug Fixes
+
+* **unsplash:** make portfolio property nullable ([e8b9ebe](https://github.com/lackary/omnifeed-kmp/commit/e8b9ebe0a91429d719c87c93aadda8456633bdf2))
+
 ## [0.12.5](https://github.com/lackary/omnifeed-kmp/compare/0.12.4...0.12.5) (2026-04-27)
 
 
