@@ -17,7 +17,7 @@ base {
     archivesName.set("omnifeed-core")
 }
 kotlin {
-    androidLibrary {
+    android {
         namespace = modulePackageName
         compileSdk = 36
         minSdk = 30
