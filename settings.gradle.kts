@@ -23,8 +23,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "omnifeed-kmp"
 
-include(":sample:compose")
-include(":sample:androidApp")
+include(":sampleApp:compose")
+include(":sampleApp:androidApp")
 include(":omnifeed")
 include(":omnifeed-core")
 include(":omnifeed-ui")

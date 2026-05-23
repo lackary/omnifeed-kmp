@@ -13,14 +13,14 @@ Pod::Spec.new do |spec|
         raise "
         Kotlin framework 'Compose' doesn't exist yet, so a proper Xcode project can't be generated.
         'pod install' should be executed after running ':generateDummyFramework' Gradle task:
-            ./gradlew :sample:compose:generateDummyFramework
+            ./gradlew :sampleApp:compose:generateDummyFramework
         Alternatively, proper pod installation is performed during Gradle sync in the IDE (if Podfile location is set)"
     end
     spec.xcconfig = {
         'ENABLE_USER_SCRIPT_SANDBOXING' => 'NO',
     }
     spec.pod_target_xcconfig = {
-        'KOTLIN_PROJECT_PATH' => ':sample:compose',
+        'KOTLIN_PROJECT_PATH' => ':sampleApp:compose',
         'PRODUCT_MODULE_NAME' => 'Compose',
     }
     spec.script_phases = [
