@@ -12,7 +12,10 @@ on:
       - 'package-lock.json'
       - '.releaserc.yml'
       - '.github/workflows/release.yml'
+      - '.github/workflows/deploy-web.yml'
       - 'run_act_safe.sh'
+      - 'site/**'
+      - 'doc'
       - 'renovate.json'
 
   pull_request:
@@ -26,7 +29,10 @@ on:
       - 'package-lock.json'
       - '.releaserc.yml'
       - '.github/workflows/release.yml'
+      - '.github/workflows/deploy-web.yml'
       - 'run_act_safe.sh'
+      - 'site/**'
+      - 'doc'
       - 'renovate.json'
 
   workflow_dispatch:
