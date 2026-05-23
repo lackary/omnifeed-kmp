@@ -25,6 +25,7 @@ rootProject.name = "omnifeed-kmp"
 
 include(":sampleApp:shared")
 include(":sampleApp:androidApp")
+include(":sampleApp:desktopApp")
 include(":omnifeed")
 include(":omnifeed-core")
 include(":omnifeed-ui")

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose.compiler)
+    alias(libs.plugins.gms.google.services)
 }
 
 android {

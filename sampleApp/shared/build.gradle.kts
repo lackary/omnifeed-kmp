@@ -43,25 +43,16 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.compose.hot.reload)
-    alias(libs.plugins.gms.google.services)
     alias(libs.plugins.kotlin.native.cocoapods)
     alias(libs.plugins.buildkonfig)
 }
 
+    val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
+    val unsplashSecretKey = resolveConfigValue(unsplashSecretKeyName, project) ?: ""
+    val googleServicesWebClientId = resolveConfigValue(googleServicesWebClientIdName, project) ?: ""
+
 buildkonfig {
     packageName = "$modulePackageName.config"
-    val localProps = Properties()
-    val localPropsFile = rootProject.file("local.properties")
-
-    if (localPropsFile.exists()) {
-        localProps.load(localPropsFile.inputStream())
-    }
-
-    val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
-
-    val unsplashSecretKey = resolveConfigValue(unsplashSecretKeyName, project) ?: ""
-
-    val googleServicesWebClientId = resolveConfigValue(googleServicesWebClientIdName, project) ?: ""
 
     defaultConfigs {
         buildConfigField(STRING, "UNSPLASH_ACCESS_KEY", unsplashAccessKey)
@@ -178,7 +169,7 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.koin.test)
-            implementation(libs.compose.ui.test)
+            implementation(libs.compose.ui.test.core)
         }
 
         androidMain.dependencies {
@@ -203,38 +194,13 @@ kotlin {
         }
         jvmTest.dependencies {
             implementation(libs.kotlin.test)
-            implementation(compose.desktop.uiTestJUnit4)
+            implementation(libs.compose.ui.test.junit4)
         }
     }
 }
 
-//dependencies {
-//    debugImplementation("org.jetbrains.compose.ui:ui-tooling:1.10.0")
-//}
-
-compose.desktop {
-    application {
-        mainClass = "$modulePackageName.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "io.lackstudio.omnifeed.app"
-            packageVersion = "1.0.0"
-        }
-    }
-}
-
-afterEvaluate {
-    tasks.withType<JavaExec> {
-        jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
-        jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED")
-
-        if (System.getProperty("os.name").contains("Mac")) {
-            jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
-            jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
-            jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
-        }
-    }
+dependencies {
+    androidRuntimeClasspath(libs.compose.ui.tooling)
 }
 
 // Skip Android Lint tasks (to avoid running Lint like generateDebugAndroidTestLintModel)

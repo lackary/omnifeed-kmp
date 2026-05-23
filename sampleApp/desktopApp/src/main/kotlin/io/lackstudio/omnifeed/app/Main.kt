@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.shared
+package io.lackstudio.omnifeed.app
 
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -10,7 +10,6 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.serialization.kotlinx.json.json
-import io.lackstudio.omnifeed.shared.config.BuildKonfig
 import io.lackstudio.omnifeed.shared.di.initKoin
 import io.lackstudio.omnifeed.shared.helper.AppInitializer
 import io.lackstudio.omnifeed.shared.ui.screen.App
@@ -19,7 +18,7 @@ import io.lackstudio.omnifeed.ui.component.webview.initKCEF
 @OptIn(KMPAuthInternalApi::class)
 fun main() = application {
     System.setProperty("PID", ProcessHandle.current().pid().toString())
-    AppInitializer.onApplicationStart(BuildKonfig.GOOGLE_SERVICES_WEB_CLIENT_ID)
+    AppInitializer.onApplicationStart()
 
     val globalLogger = Logger.withTag("OmniHub")
     val appHttpClient = HttpClient(CIO) {

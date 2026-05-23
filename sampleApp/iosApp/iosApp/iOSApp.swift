@@ -18,7 +18,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             fatalError("Unable to read CLIENT_ID from GoogleService-Info.plist")
         }
         logger.debug("webClientID: \(webClientID)")
-        AppInitializer.shared.onApplicationStart(webClientId: webClientID)
+        AppInitializer.shared.onApplicationStart(serverId: webClientID)
         
         return true
     }
