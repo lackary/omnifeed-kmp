@@ -47,7 +47,7 @@ This project follows a **Modular Clean Architecture** to ensure the SDK is maint
 - `omnifeed-unsplash/` - Unsplash-specific implementation (Models, Repositories, Remote Data Sources).
 - `omnifeed-ui/` - Shared UI components and resources.
 - `omnifeed/` - The main aggregation module and public entry point.
-- `sample/` - Demonstration apps (Android/iOS) using the SDK.
+- `sampleApp/` - Demonstration apps (Android/iOS) using the SDK.
 
 ## 7. AI Commit Message Generation Rules
 When generating commit messages (via the AI "Pencil" icon or Gemini chat), strictly follow these rules:
