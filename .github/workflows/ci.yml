@@ -86,7 +86,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Create Dynamic Secrets XConfig File
-        working-directory: './sample/iosApp/Configuration'
+        working-directory: './sampleApp/iosApp/Configuration'
         run: |
           XCONFIG_DEBUG_FILENAME="Secrets-Debug.xconfig"
           XCONFIG_RELEASE_FILENAME="Secrets-Release.xconfig"
@@ -146,7 +146,7 @@ jobs:
           echo "SIM=$SIM" >> $GITHUB_ENV
 
       - name: Xcode Build (clean build .xcworkspace)
-        working-directory: './sample/iosApp'
+        working-directory: './sampleApp/iosApp'
         run: |
           echo "Building iOS target via .xcworkspace..."
           xcodebuild clean build \

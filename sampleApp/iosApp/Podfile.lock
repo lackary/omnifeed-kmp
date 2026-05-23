@@ -9,7 +9,6 @@ PODS:
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/UserDefaults (~> 8.0)
     - PromisesObjC (~> 2.4)
-  - Compose (1.0.0)
   - FirebaseAppCheckInterop (12.4.0)
   - FirebaseAuth (12.4.0):
     - FirebaseAppCheckInterop (~> 12.4.0)
@@ -64,12 +63,13 @@ PODS:
   - GTMSessionFetcher/Core (3.5.0)
   - PromisesObjC (2.4.0)
   - RecaptchaInterop (101.0.0)
+  - Shared (1.0.0)
 
 DEPENDENCIES:
-  - Compose (from `../compose`)
   - FirebaseAuth
   - FirebaseCore
   - GoogleSignIn
+  - Shared (from `../shared`)
 
 SPEC REPOS:
   trunk:
@@ -89,13 +89,12 @@ SPEC REPOS:
     - RecaptchaInterop
 
 EXTERNAL SOURCES:
-  Compose:
-    :path: "../compose"
+  Shared:
+    :path: "../shared"
 
 SPEC CHECKSUMS:
   AppAuth: 1c1a8afa7e12f2ec3a294d9882dfa5ab7d3cb063
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
-  Compose: 9c508fcb458002aeb2735b1647ffd464112dde99
   FirebaseAppCheckInterop: f734c802f21fe1da0837708f0f9a27218c8a4ed0
   FirebaseAuth: 4a2aed737c84114a9d9b33d11ae1b147d6b94889
   FirebaseAuthInterop: 858e6b754966e70740a4370dd1503dfffe6dbb49
@@ -108,7 +107,8 @@ SPEC CHECKSUMS:
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
+  Shared: 4385762afeb52d75b53e56372aa48441c3d02d15
 
-PODFILE CHECKSUM: 4ef8443c625e1f31088c9497fb9164c15cd8289a
+PODFILE CHECKSUM: 3a1ff0995c93eef4cf8c5a8fe05a9a18a11b4135
 
 COCOAPODS: 1.16.2

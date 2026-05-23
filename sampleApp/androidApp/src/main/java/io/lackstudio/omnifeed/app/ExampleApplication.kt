@@ -9,7 +9,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.serialization.kotlinx.json.json
-import io.lackstudio.omnifeed.compose.di.initKoin
+import io.lackstudio.omnifeed.shared.di.initKoin
 import org.koin.dsl.module
 
 class ExampleApplication : Application() {

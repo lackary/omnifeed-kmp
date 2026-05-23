@@ -11,7 +11,7 @@ This document provides high-level context for Gemini to navigate the OmniFeed KM
     - `src/androidMain/`, `src/iosMain/`, etc.: Platform-specific API keys or client configurations.
 - `omnifeed-ui/`: Shared UI library.
     - `src/commonMain/`: Compose Multiplatform components like `OAuthWebViewBottomSheet`.
-- `sample/`: Reference implementations for Android, iOS, and Desktop.
+- `sampleApp/`: Reference implementations for Android, iOS, and Desktop.
 
 ## 2. Tech Stack & Versions
 - **KMP:** Targeting Android, iOS (CocoaPods), JVM (Desktop), and WasmJs (Web).

@@ -6,9 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import io.lackstudio.omnifeed.compose.ui.screen.App
-import io.lackstudio.omnifeed.compose.ui.screen.AppScreenContent
-import io.lackstudio.omnifeed.compose.ui.state.HomeUiState
+import io.lackstudio.omnifeed.shared.ui.screen.App
+import io.lackstudio.omnifeed.shared.ui.screen.AppScreenContent
+import io.lackstudio.omnifeed.shared.ui.state.HomeUiState
 import io.lackstudio.omnifeed.ui.state.AppUiState
 
 class MainActivity : ComponentActivity() {

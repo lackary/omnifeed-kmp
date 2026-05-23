@@ -242,14 +242,14 @@ kotlin{
    iosSimulatorArm64()
 
    cocoapods {
-      name = "Compose"
+      name = "Shared"
       version = "1.0.0" // Or any valid version number
       summary = "Some description for the Shared Module"
       homepage = "Link to the Shared Module homepage"
       ios.deploymentTarget = "18.5" // Specify your iOS deployment target
       podfile = project.file("../iosApp/Podfile") // Adjust path if needed
       framework {
-         baseName = "Compose"
+         baseName = "Shared"
          isStatic = true
       }
    }
@@ -258,7 +258,7 @@ kotlin{
 
 ### 2. Initialize Pods
 
-Define your dependencies in the `Podfile` located in your iOS project directory (`sample/iosApp/Podfile`).
+Define your dependencies in the `Podfile` located in your iOS project directory (`sampleApp/iosApp/Podfile`).
 
 ```sh
 # Uncomment the next line to define a global platform for your project
@@ -269,7 +269,7 @@ target 'iosApp' do
   use_frameworks!
 
   # Pods for iosApp
-  pod 'Compose', :path => '../Compose'
+  pod 'Shared', :path => '../Shared'
   pod '${dependency_you_need}'
 
 end
@@ -295,7 +295,7 @@ Run the following command from the **project root directory**:
 
 Once the script finishes successfully:
 
-1. Open `sample/iosApp/iosApp.xcworkspace` in Xcode.
+1. Open `sampleApp/iosApp/iosApp.xcworkspace` in Xcode.
 2. Select the `iosApp` target.
 3. **Run** the app (Cmd + R).
 
