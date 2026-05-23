@@ -5,13 +5,13 @@ on:
     branches:
       - main
     paths:
-      - 'web/**'
+      - 'site/**'
 
   pull_request:
     branches:
       - '**'
     paths:
-      - 'web/**'
+      - 'site/**'
 
 permissions:
   contents: read
@@ -43,7 +43,7 @@ jobs:
       - name: Upload artifact (static web content)
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./web
+          path: ./site
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -58,7 +58,7 @@ jobs:
 #            🚀 **Static Web Page Deployed!**
 #
 #            🌐 URL: [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})
-#            ✅ Folder: `web/`
+#            ✅ Folder: `site/`
 #            🔧 Commit: `${{ github.sha }}`
       - name: Post deployment comment
         if: success()
