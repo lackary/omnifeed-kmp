@@ -8,7 +8,7 @@ pluginManagement {
         maven("https://jogamp.org/deployment/maven/")
     }
     plugins {
-        id("com.codingfeline.buildkonfig") version "0.20.0" apply false
+        id("com.codingfeline.buildkonfig") version "0.21.2" apply false
     }
 }
 
