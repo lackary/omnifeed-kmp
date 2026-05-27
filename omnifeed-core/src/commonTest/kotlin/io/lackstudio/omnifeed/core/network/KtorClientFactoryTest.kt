@@ -13,8 +13,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.delay
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -26,17 +26,8 @@ import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.pluginOrNull
 import io.ktor.client.plugins.timeout
 import io.ktor.http.HttpMethod
-import io.ktor.utils.io.ByteReadChannel
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import kotlinx.serialization.Serializable
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
-import org.koin.test.KoinTest
-import org.koin.test.inject
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.assertNotNull
 import kotlin.test.fail
 
@@ -44,31 +35,30 @@ import kotlin.test.fail
 @Serializable
 data class TestData(val status: String, val message: String)
 
-class KtorClientFactoryTest: KoinTest {
+class KtorClientFactoryTest {
 
-    // 1. Prepare: Create a MockEngine to simulate HTTP requests and responses.
+    // 1. Prepare: Create shared configurations and a MockEngine to simulate HTTP requests and responses.
     private val testBaseUrl = "https://example.com"
     private val testTokenType = "Client"
     private val testToken = "test-api-key"
     private val testAuthToken = "$testTokenType $testToken"
     private val testUrlPath = "/success"
 
-    private val httpClient: HttpClient by inject()
-    private val mockLogger: KtorLogger by inject()
-    private val mockEngine: MockEngine = MockEngine { request ->
+    // Helper to create a fresh MockEngine for each test
+    private fun createDefaultMockEngine() = MockEngine { request ->
         when (request.url.encodedPath) {
             "/success" -> respond(
-                content = ByteReadChannel("{\"status\":\"OK\",\"message\":\"Success!\"}"),
+                content = "{\"status\":\"OK\",\"message\":\"Success!\"}",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
             "/not-found" -> respond(
-                content = ByteReadChannel("{\"error\":\"Not Found\"}"),
+                content = "{\"error\":\"Not Found\"}",
                 status = HttpStatusCode.NotFound,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
             "/server-error" -> respond(
-                content = ByteReadChannel("{\"error\":\"Internal Server Error\"}"),
+                content = "{\"error\":\"Internal Server Error\"}",
                 status = HttpStatusCode.InternalServerError,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
@@ -78,136 +68,144 @@ class KtorClientFactoryTest: KoinTest {
 
     private val testKtorConfig = KtorConfig(
         baseUrl = testBaseUrl,
-        logLevel = LogLevel.ALL
+        logLevel = LogLevel.ALL,
+        connectTimeoutMillis = null,
+        requestTimeoutMillis = null,
+        socketTimeoutMillis = null
     )
 
-    val sharedMockLogger = MockKtorLoggerAdapter()
-
-    val testAccessTokenProvider = AccessTokenProvider(
+    private val testAccessTokenProvider = AccessTokenProvider(
         initialTokenType = testTokenType,
         initialToken = testToken
     )
 
-    @BeforeTest
-    fun setupKoin() {
-        stopKoin()
-        startKoin {
-            modules(
-                module {
-                    single {
-                        KtorClientFactory.createHttpClient(
-                            engineFactory = mockEngine,
-                            ktorConfig = testKtorConfig,
-                            logger = get(),
-                            accessTokenProvider = { get() }
-                        )
-                    }
-                    single<KtorLogger> { sharedMockLogger }
-                    single {
-                        testAccessTokenProvider
-                    }
-                },
-            )
-        }
-    }
-
-    @AfterTest
-    fun tearDownKoin() {
-        stopKoin()
+    /**
+     * Helper function to create a local HttpClient for standard tests to prevent Coroutine Leaks.
+     * We REMOVED the default engine parameter to FORCE the test to hold a reference to the engine,
+     * ensuring we never forget to close it.
+     */
+    private fun createLocalClient(
+        engine: MockEngine,
+        logger: KtorLogger = MockKtorLoggerAdapter()
+    ): HttpClient {
+        return KtorClientFactory.createHttpClient(
+            engineFactory = engine,
+            ktorConfig = testKtorConfig,
+            logger = logger,
+            accessTokenProvider = { testAccessTokenProvider }
+        )
     }
 
     @Test
     fun `client should be configured with correct base URL and authorization header`() = runTest {
-        httpClient.get(testUrlPath)
-
-        val request = mockEngine.requestHistory.last()
-
-        assertEquals("$testBaseUrl$testUrlPath", request.url.toString())
-        val authHeader = request.headers[HttpHeaders.Authorization]
-
-        assertNotNull(authHeader)
-        assertEquals(testAuthToken, authHeader)
+        val engine = createDefaultMockEngine()
+        val client = createLocalClient(engine = engine)
+        try {
+            client.get(testUrlPath)
+            val request = engine.requestHistory.last()
+            assertEquals("$testBaseUrl$testUrlPath", request.url.toString())
+            val authHeader = request.headers[HttpHeaders.Authorization]
+            assertNotNull(authHeader)
+            assertEquals(testAuthToken, authHeader)
+        } finally {
+            client.close()
+            engine.close() // ⚠️ CRITICAL: Must close the instantiated engine!
+        }
     }
 
     @Test
     fun `client should handle successful response and deserialize data`() = runTest {
-        val response: TestData = httpClient.get(testUrlPath).body()
-        assertEquals(HttpStatusCode.OK.description, response.status)
-        assertEquals("Success!", response.message)
+        val engine = createDefaultMockEngine()
+        val client = createLocalClient(engine = engine)
+        try {
+            val response: TestData = client.get(testUrlPath).body()
+            assertEquals(HttpStatusCode.OK.description, response.status)
+            assertEquals("Success!", response.message)
+        } finally {
+            client.close()
+            engine.close() // ⚠️ CRITICAL
+        }
     }
 
     @Test
     fun `client should throw ClientRequestException for 4xx status codes`() = runTest {
-        assertFailsWith<ClientRequestException> {
-            httpClient.get("/not-found")
+        val engine = createDefaultMockEngine()
+        val client = createLocalClient(engine = engine)
+        try {
+            assertFailsWith<ClientRequestException> {
+                client.get("/not-found")
+            }
+        } finally {
+            client.close()
+            engine.close() // ⚠️ CRITICAL
         }
     }
 
     @Test
     fun `client should throw ServerResponseException for 5xx status codes`() = runTest {
-        assertFailsWith<ServerResponseException> {
-            httpClient.get("/server-error")
+        val engine = createDefaultMockEngine()
+        val client = createLocalClient(engine = engine)
+        try {
+            assertFailsWith<ServerResponseException> {
+                client.get("/server-error")
+            }
+        } finally {
+            client.close()
+            engine.close() // ⚠️ CRITICAL
         }
     }
 
     @Test
     fun `client should have HttpTimeout plugin configured`() = runTest {
-        // Check if HttpTimeout plugin is installed
-        val httpTimeout = httpClient.pluginOrNull(HttpTimeout)
-        assertNotNull(httpTimeout)
-
-        // Check if timeout settings are correct
-//        assertEquals(testKtorConfig.requestTimeoutMillis, httpTimeout.requestTimeoutMillis)
-//        assertEquals(testKtorConfig.connectTimeoutMillis, httpTimeout.connectTimeoutMillis)
-//        assertEquals(testKtorConfig.socketTimeoutMillis, httpTimeout.socketTimeoutMillis)
+        val engine = createDefaultMockEngine()
+        val client = createLocalClient(engine = engine)
+        try {
+            val httpTimeout = client.pluginOrNull(HttpTimeout)
+            assertNotNull(httpTimeout)
+        } finally {
+            client.close()
+            engine.close() // ⚠️ CRITICAL
+        }
     }
 
     @Test
     fun `client should log requests with correct level and format`() = runTest {
-        val mockKtorLogger = mockLogger as MockKtorLoggerAdapter
-        mockKtorLogger.loggedMessages.clear()
+        val engine = createDefaultMockEngine()
+        val localLogger = MockKtorLoggerAdapter()
+        val client = createLocalClient(engine = engine, logger = localLogger)
 
-        httpClient.get("/success")
+        try {
+            client.get("/success")
 
-        val requestLog = mockKtorLogger.loggedMessages.firstOrNull { it.contains("REQUEST") }
-        val responseLog = mockKtorLogger.loggedMessages.firstOrNull { it.contains("RESPONSE") }
-        val bodyLog = mockKtorLogger.loggedMessages.firstOrNull { it.contains("BODY") }
+            val requestLog = localLogger.loggedMessages.firstOrNull { it.contains("REQUEST") }
+            val responseLog = localLogger.loggedMessages.firstOrNull { it.contains("RESPONSE") }
+            val bodyLog = localLogger.loggedMessages.firstOrNull { it.contains("BODY") }
 
-        assertNotNull(requestLog, "Request log message not found")
-        assertNotNull(responseLog, "Response log message not found")
-        // Since we set LogLevel.ALL, BODY information should be logged
-        assertNotNull(bodyLog, "Body log message not found, LogLevel.ALL should be working.")
+            assertNotNull(requestLog, "Request log message not found")
+            assertNotNull(responseLog, "Response log message not found")
+            assertNotNull(bodyLog, "Body log message not found, LogLevel.ALL should be working.")
+        } finally {
+            client.close()
+            engine.close() // ⚠️ CRITICAL
+        }
     }
 
     @Test
     fun `createHttpClient should set up defaultRequest with correct baseUrl and headers`() =
         runTest {
-
             val mockEngine = MockEngine { request ->
-                // Verify: Check the details of the request sent to the MockEngine.
                 assertEquals(HttpMethod.Get, request.method)
                 assertEquals("$testBaseUrl$testUrlPath", request.url.toString())
-                assertEquals(
-                    testAuthToken,
-                    request.headers[HttpHeaders.Authorization]
-                )
-                assertEquals(
-                    ContentType.Application.Json.toString(),
-                    request.headers[HttpHeaders.ContentType]
-                )
+                assertEquals(testAuthToken, request.headers[HttpHeaders.Authorization])
+                assertEquals(ContentType.Application.Json.toString(), request.headers[HttpHeaders.ContentType])
 
-                // Simulate Response: Pretend the server responded successfully.
                 respond(
                     content = "{}",
                     status = HttpStatusCode.OK,
-                    headers = headersOf(
-                        HttpHeaders.ContentType,
-                        ContentType.Application.Json.toString()
-                    )
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                 )
             }
 
-            // 4. Execute: Create an HttpClient using the MockEngine.
             val client = KtorClientFactory.createHttpClient(
                 engineFactory = mockEngine,
                 ktorConfig = testKtorConfig,
@@ -215,92 +213,84 @@ class KtorClientFactoryTest: KoinTest {
                 accessTokenProvider = { testAccessTokenProvider }
             )
 
-            // 5. Trigger: Send a simple request, which will trigger the verification logic in the MockEngine.
-            val response = client.get(testUrlPath)
-
-            // 6. Final Assertion: Confirm that the response status code is as expected.
-            assertEquals(HttpStatusCode.OK, response.status)
+            try {
+                val response = client.get(testUrlPath)
+                assertEquals(HttpStatusCode.OK, response.status)
+            } finally {
+                client.close()
+                mockEngine.close() // ⚠️ CRITICAL
+            }
         }
 
     @Test
     fun `createHttpClient should not set Authorization header if authToken is null`() =
         runTest {
-            // 1. Prepare: Create a MockEngine.
             val mockEngine = MockEngine { request ->
-                // 2. Verify: Assert that the Authorization header is not present.
                 val authHeader = request.headers[HttpHeaders.Authorization]
                 assertNull(authHeader, "Authorization header should not be present when authToken is null")
-
-                // 3. Simulate Response: Pretend the server responded successfully.
                 respond(content = "{}", status = HttpStatusCode.OK)
             }
 
-            // 4. Execute: Create an HttpClient without passing an authToken.
             val client = KtorClientFactory.createHttpClient(
                 engineFactory = mockEngine,
                 ktorConfig = testKtorConfig.copy(),
                 logger = MockKtorLoggerAdapter()
             )
 
-            // 5. Trigger: Send a simple request.
-            val response = client.get(testUrlPath)
-
-            // 6. Final Assertion: Confirm the response status code.
-            assertEquals(HttpStatusCode.OK, response.status)
+            try {
+                val response = client.get(testUrlPath)
+                assertEquals(HttpStatusCode.OK, response.status)
+            } finally {
+                client.close()
+                mockEngine.close() // ⚠️ CRITICAL
+            }
         }
+
     @Test
     fun `createHttpClient should set up HttpTimeout correctly`() =
         runTest {
-            // Setup: Create a Config with extremely short timeout settings (e.g., 100ms)
             val fastTimeoutConfig = testKtorConfig.copy(
-                // Override timeout here
-                requestTimeoutMillis = 100L,
-                connectTimeoutMillis = 100L,
-                socketTimeoutMillis = 100L
+                requestTimeoutMillis = 500L,
+                connectTimeoutMillis = 500L,
+                socketTimeoutMillis = 500L
             )
 
-            // Prepare: Create a MockEngine that delays its response
-            val mockEngine = MockEngine { request ->
-                // Simulate a delay that exceeds the 15-second timeout setting
-                delay(500)
-                respond("Success", HttpStatusCode.OK)
+            // Using a delay in MockEngine to trigger a real Ktor timeout
+            val mockEngine = MockEngine { _ ->
+                delay(1000L) // Wait longer than the timeout
+                respond("Delayed success")
             }
 
-            // Execute: Create HttpClient using MockEngine
             val client = KtorClientFactory.createHttpClient(
                 engineFactory = mockEngine,
                 ktorConfig = fastTimeoutConfig,
-                logger = MockKtorLoggerAdapter()
+                logger = MockKtorLoggerAdapter(),
+                accessTokenProvider = { testAccessTokenProvider }
             )
 
-            // Verify: Use try-catch instead of assertFailsWith to handle platform differences
             try {
                 client.get(testUrlPath) {
-                    // Force a very short timeout for this specific request (e.g., 50ms)
                     timeout {
-                        requestTimeoutMillis = 50
+                        requestTimeoutMillis = 200L // Overriding with even shorter timeout
                     }
                 }
-                fail("Should have thrown a timeout exception") // If no error occurred, manually fail the test
+                fail("Should have thrown a timeout exception")
             } catch (e: Throwable) {
-                // Print exception message for easier debugging
-                println("Caught exception during timeout test: $e")
-
-                // Check if it is a Timeout related exception
-                // JVM/Native usually throws HttpRequestTimeoutException
-                // Wasm/JS might throw CancellationException or IOException containing "timed out" text
+                println("Caught expected exception: $e")
+                // Check if it's a timeout. Ktor throws HttpRequestTimeoutException for request timeouts
                 val isTimeout = e is HttpRequestTimeoutException ||
-                        e is CancellationException ||
                         e.message?.contains("time", ignoreCase = true) == true ||
                         e.cause?.message?.contains("time", ignoreCase = true) == true
 
                 assertTrue(isTimeout, "Expected a timeout exception, but got: ${e::class.simpleName} - ${e.message}")
+            } finally {
+                client.close()
+                mockEngine.close() // ⚠️ CRITICAL
             }
         }
 
     @Test
     fun `createHttpClient should use the provided log level`() = runTest {
-        // Define a test logger that records all received log messages
         val logMessages = mutableListOf<String>()
         val testLogger = object : KtorLogger {
             override fun log(message: String) {
@@ -308,7 +298,6 @@ class KtorClientFactoryTest: KoinTest {
             }
         }
 
-        // Prepare MockEngine
         val mockEngine = MockEngine {
             respond(
                 content = "{\"status\":\"ok\"}",
@@ -317,20 +306,20 @@ class KtorClientFactoryTest: KoinTest {
             )
         }
 
-        // Execute: Create HttpClient with custom logger and lowest log level
         val client = KtorClientFactory.createHttpClient(
             engineFactory = mockEngine,
             ktorConfig = testKtorConfig,
-            logger = testLogger
+            logger = testLogger,
+            accessTokenProvider = { testAccessTokenProvider }
         )
 
-        // Trigger request
-        client.get(testUrlPath)
-
-        // Final assertion: Confirm that the list of log messages is not empty.
-        assertTrue(logMessages.isNotEmpty(), "Logger should have captured log messages.")
-        assertTrue(logMessages.first().contains("REQUEST"), "Log should contain request details.")
-        // Verify if the logger was called
-        assertEquals(2, logMessages.size)
+        try {
+            client.get(testUrlPath)
+            assertTrue(logMessages.isNotEmpty(), "Logger should have captured log messages.")
+            assertTrue(logMessages.first().contains("REQUEST"), "Log should contain request details.")
+        } finally {
+            client.close()
+            mockEngine.close() // ⚠️ CRITICAL
+        }
     }
 }

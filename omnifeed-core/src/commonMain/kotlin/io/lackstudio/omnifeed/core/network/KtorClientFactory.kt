@@ -49,9 +49,9 @@ object KtorClientFactory {
             }
 
             install(HttpTimeout) {
-                requestTimeoutMillis = ktorConfig.requestTimeoutMillis
-                connectTimeoutMillis = ktorConfig.connectTimeoutMillis
-                socketTimeoutMillis = ktorConfig.socketTimeoutMillis
+                this.requestTimeoutMillis = ktorConfig.requestTimeoutMillis
+                this.connectTimeoutMillis = ktorConfig.connectTimeoutMillis
+                this.socketTimeoutMillis = ktorConfig.socketTimeoutMillis
             }
 
             // *** Fix: Use the install function to apply the Plugin to HttpClientConfig ***
