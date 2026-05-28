@@ -9,7 +9,7 @@ import io.lackstudio.omnifeed.unsplash.test.MockData
 import io.lackstudio.omnifeed.unsplash.utils.Environment
 import io.lackstudio.omnifeed.unsplash.utils.constants.ApiKeys
 
-// 定義與測試檔案中一致的常數，以免打錯字導致測試失敗
+// Define constants consistent with test files to avoid typos leading to test failures
 const val MOCK_USERNAME = "pawel_czerwinski"
 const val MOCK_PHOTO_ID = "4ICax0QMs8U"
 const val MOCK_COLLECTION_ID = "8961198"
@@ -17,12 +17,12 @@ const val MOCK_QUERY = "Taipei"
 const val MOCK_TOPIC_ID_OR_SLUG = "wallpapers"
 const val MOCK_ID_NOT_FOUND = "non-existent-id"
 
-val UnsplashMockEngine = MockEngine { request ->
+val UnsplashMockEngine get() = MockEngine { request ->
     val url = request.url
     val path = url.encodedPath
     val args = url.parameters
 
-    // 設定 JSON Header
+    // Set JSON Header
     val responseHeaders = headersOf(HttpHeaders.ContentType, "application/json")
     val lastPathSegment = path.substringAfterLast("/")
     
@@ -123,7 +123,7 @@ val UnsplashMockEngine = MockEngine { request ->
             respond(MockData.TOPIC_ID_OR_SLUG_PHOTOS_LIST, HttpStatusCode.OK, responseHeaders)
         }
         else -> {
-            // 捕捉未處理的路由，方便 Debug
+            // Capture unhandled routes for easier debugging
             error("Unhandled Mock Request: ${request.url.encodedPath}")
         }
     }
