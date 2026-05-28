@@ -1,68 +1,23 @@
 package io.lackstudio.omnifeed.unsplash.data.api
 
-import co.touchlab.kermit.LogWriter
-import co.touchlab.kermit.Logger
-import co.touchlab.kermit.platformLogWriter
-import io.ktor.client.engine.HttpClientEngine
-import io.ktor.client.plugins.logging.LogLevel
-import io.lackstudio.omnifeed.core.common.logging.LogConfiguration.OMNIFEED_KTOR_TAG
-import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
-import io.lackstudio.omnifeed.core.network.KtorConfig
-import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
-import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiService
-import io.lackstudio.omnifeed.unsplash.data.remote.api.UnsplashApiServiceImpl
-import io.lackstudio.omnifeed.unsplash.di.BaseKoinTest
+import io.lackstudio.omnifeed.unsplash.di.BaseUnsplashTest
 import io.lackstudio.omnifeed.unsplash.network.MOCK_COLLECTION_ID
 import io.lackstudio.omnifeed.unsplash.network.MOCK_PHOTO_ID
 import io.lackstudio.omnifeed.unsplash.network.MOCK_QUERY
 import io.lackstudio.omnifeed.unsplash.network.MOCK_TOPIC_ID_OR_SLUG
 import io.lackstudio.omnifeed.unsplash.network.MOCK_USERNAME
-import io.lackstudio.omnifeed.unsplash.network.UnsplashMockEngine
-import io.lackstudio.omnifeed.unsplash.platform.getUnsplashAccessKey
-import io.lackstudio.omnifeed.unsplash.utils.Environment
-import org.koin.dsl.module
-import org.koin.test.inject
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.coroutines.test.runTest
 import kotlin.test.assertNotNull
 
-class UnsplashApiServiceImplTest: BaseKoinTest() {
-
-    override val unsplashTestLogWriter: LogWriter
-        get() = platformLogWriter()
-    override val engine: HttpClientEngine
-        get() = UnsplashMockEngine
-//        get() = provideHttpClientEngineTest()
-    override val ktorConfig: KtorConfig
-        get() = KtorConfig(
-            baseUrl = Environment.BASE_API_URL,
-            logLevel = LogLevel.ALL
-        )
-    override val kermitLogger: Logger
-        get() = createOmniFeedLogger(
-            tag = OMNIFEED_KTOR_TAG,
-            logWriter = platformLogWriter()
-        )
-    override val accessTokenProvider: AccessTokenProvider
-        get() = AccessTokenProvider(
-            initialTokenType = Environment.AUTH_SCHEME_PUBLIC,
-            initialToken = getUnsplashAccessKey()
-        )
-    override val testModules = listOf(
-        module {
-            single<UnsplashApiService> { UnsplashApiServiceImpl(get(), get()) }
-        }
-    )
-
-    private val unsplashApiService: UnsplashApiService by inject()
+class UnsplashApiServiceImplTest : BaseUnsplashTest() {
 
     /**
      * getUserPublicProfile Test
      */
     @Test
     fun `getUserPublicProfile should return a single user's public profile by username with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val user = unsplashApiService.getUserPublicProfile(MOCK_USERNAME)
 
             assertEquals(MOCK_USERNAME, user.username)
@@ -73,7 +28,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getUserPhotos should return a user's photo list with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val stats = true
             val userPhotos =
@@ -89,7 +44,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getUserLikedPhotos should return a user's liked Photos with the Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val likedPhotos =
                 unsplashApiService.getUserLikedPhotos(
@@ -104,7 +59,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getUserCollections should return a user collections`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 8
             val userCollections =
                 unsplashApiService.getUserCollections(
@@ -119,7 +74,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getPhotos should return a photo list with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val photos = unsplashApiService.getPhotos(page = 1, perPage = pageSize)
 
@@ -131,7 +86,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getPhoto should return a single photo by id with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val photo = unsplashApiService.getPhoto(id = MOCK_PHOTO_ID)
 
             assertNotNull(photo, "Photo should be not present null")
@@ -143,7 +98,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `searchPhotos should return a photo list by query word with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val searchPhotos = unsplashApiService.searchPhotos(query = MOCK_QUERY, page = 1, perPage = pageSize)
 
@@ -155,7 +110,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `searchCollections should return a collection list by query with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val searchCollections = unsplashApiService.searchCollections(query = MOCK_QUERY, page = 1, perPage = pageSize)
 
@@ -167,7 +122,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `searchUsers should return a user list by query with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val searchUsers = unsplashApiService.searchUsers(query = MOCK_QUERY, page = 1, perPage = pageSize)
 
@@ -179,7 +134,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getCollections should return a collection list with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val collections = unsplashApiService.getCollections(page = 1, perPage = pageSize)
 
@@ -191,7 +146,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getCollection should return a single collection by id with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val collection = unsplashApiService.getCollection(MOCK_COLLECTION_ID)
 
             assertEquals(MOCK_COLLECTION_ID,collection.id)
@@ -202,7 +157,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
      */
     @Test
     fun `getCollectionPhotos should return a collection's photos by id with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val collectionPhotos =
                 unsplashApiService.getCollectionPhotos(MOCK_COLLECTION_ID, page = 1, perPage = pageSize)
@@ -222,7 +177,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
 
     @Test
     fun `getTopics should return a topic list with the correct Authorization header` () =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val topics = unsplashApiService.getTopics(page = 1, perPage = pageSize)
 
@@ -230,7 +185,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
         }
     @Test
     fun `getTopic should return a topic by id or slug with the correct Authorization header`() =
-        runTest {
+        runUnsplashTest {
             val topic = unsplashApiService.getTopic(MOCK_TOPIC_ID_OR_SLUG)
 
             assertEquals(MOCK_TOPIC_ID_OR_SLUG, topic.slug)
@@ -238,7 +193,7 @@ class UnsplashApiServiceImplTest: BaseKoinTest() {
 
     @Test
     fun `getTopicPhotos should return a topic photo list by id or slug with the correctAuthorization header`() =
-        runTest {
+        runUnsplashTest {
             val pageSize = 10
             val topicPhotos = unsplashApiService.getTopicPhotos(idOrSlug = MOCK_TOPIC_ID_OR_SLUG, page = 1, perPage = pageSize)
 

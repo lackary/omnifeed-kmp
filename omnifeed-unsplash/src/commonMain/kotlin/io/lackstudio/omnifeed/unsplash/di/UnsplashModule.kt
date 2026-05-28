@@ -2,7 +2,7 @@ package io.lackstudio.omnifeed.unsplash.di
 
 import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.core.common.logging.KtorKermitLogger
-import io.lackstudio.omnifeed.core.network. KtorClientFactory
+import io.lackstudio.omnifeed.core.network.KtorClientFactory
 import io.lackstudio.omnifeed.core.network.KtorConfig
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.core.network.provideHttpClientEngine
