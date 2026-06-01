@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import io.lackstudio.omnifeed.core.common.error.CommonException
+import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
 import io.lackstudio.omnifeed.core.network.error.StructuredApiException
@@ -50,7 +51,7 @@ abstract class BaseViewModel : ViewModel() {
             is CommonException.Parsing.SerializationFailed -> "Data convert error."
             else -> {
                 logger.w { "Encountered unmapped exception: ${e::class.simpleName}" }
-                "An unexpected error occurred."
+                e.getFriendlyMessage()
             }
         }
     }
