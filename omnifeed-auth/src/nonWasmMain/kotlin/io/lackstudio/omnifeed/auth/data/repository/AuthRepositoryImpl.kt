@@ -55,6 +55,15 @@ class AuthRepositoryImpl(
         firebaseAuth.signOut()
     }
 
+    override suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            firebaseAuth.currentUser?.delete() ?: throw Exception("No user logged in")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun FirebaseUser.toDomain(): User {
         return User(
             id = uid,
