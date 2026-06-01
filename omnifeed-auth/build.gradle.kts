@@ -38,6 +38,11 @@ kotlin {
 
     jvm()
 
+    js {
+        browser()
+        binaries.executable()
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
@@ -58,9 +63,28 @@ kotlin {
         }
         
         androidMain.get().dependsOn(nonWasmMain)
+
+        /**
+         * Note: The error "Expected omnifeedAuthModule has no actual declaration in module <commonMain> for Native"
+         * occurs during the OmniHub iOS build because KMP cannot find the path to nonWasmMain when compiling 
+         * metadata for the iOS intermediate layer (iosMain).
+         * 
+         * To simplify the configuration using iosMain, ensure that applyDefaultHierarchyTemplate() is enabled
+         * and use the following code to maintain the hierarchy link:
+         * 
+         * // Force apply the default hierarchy template to ensure iosMain is automatically created
+         * applyDefaultHierarchyTemplate() 
+         * 
+         * val iosMain by getting {
+         *    dependsOn(nonWasmMain)
+         * }
+         * 
+         * This way, the child source sets iosArm64Main and iosSimulatorArm64Main won't need manual dependsOn(nonWasmMain).
+         */
         iosArm64Main.get().dependsOn(nonWasmMain)
         iosSimulatorArm64Main.get().dependsOn(nonWasmMain)
         jvmMain.get().dependsOn(nonWasmMain)
+        jsMain.get().dependsOn(nonWasmMain)
         
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.google.firebase.bom))

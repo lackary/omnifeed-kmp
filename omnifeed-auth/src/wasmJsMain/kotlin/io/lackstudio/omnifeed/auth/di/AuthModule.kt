@@ -15,7 +15,7 @@ actual val omnifeedAuthModule: Module = module {
         object : AuthRepository {
             override val currentUser: Flow<User?> = flowOf(null)
             override suspend fun signInWithEmail(email: String, password: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun signUpWithEmail(email: String, password: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
+            override suspend fun signUpWithEmail(email: String, password: String, displayName: String?): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
             override suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
             override suspend fun signOut() {}
         }

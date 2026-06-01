@@ -24,11 +24,17 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun signUpWithEmail(email: String, password: String): Result<User> {
+    override suspend fun signUpWithEmail(email: String, password: String, displayName: String?): Result<User> {
         return try {
             val result = firebaseAuth.createUserWithEmailAndPassword(email, password)
-            val user = result.user?.toDomain() ?: throw Exception("Registration failed: User is null")
-            Result.success(user)
+            val firebaseUser = result.user ?: throw Exception("Registration failed: User is null")
+            
+            // Update profile with displayName if provided
+            if (displayName != null) {
+                firebaseUser.updateProfile(displayName = displayName)
+            }
+            
+            Result.success(firebaseUser.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }

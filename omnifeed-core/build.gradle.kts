@@ -53,10 +53,10 @@ kotlin {
 
     jvm()
 
-//    js {
-//        browser()
-//        binaries.executable()
-//    }
+    js {
+        binaries.executable()
+        browser()
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -86,7 +86,6 @@ kotlin {
             // Kotlinx
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.datatime)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -130,10 +129,6 @@ kotlin {
         iosTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.ktor.client.darwin)
-        }
-
-        webMain.dependencies {
-
         }
     }
 }

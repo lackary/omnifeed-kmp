@@ -56,10 +56,10 @@ kotlin {
 
     jvm()
 
-//    js {
-//        browser()
-//        binaries.executable()
-//    }
+    js {
+        browser()
+        binaries.executable()
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -77,7 +77,6 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.ktor.client.core)
             implementation(libs.lifecycle.viewmodel.compose)
-            implementation(libs.kevinnzou.compose.webview.multiplatform)
             implementation(project(":omnifeed-core"))
         }
         commonTest.dependencies {

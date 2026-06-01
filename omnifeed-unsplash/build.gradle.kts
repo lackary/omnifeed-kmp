@@ -69,10 +69,10 @@ kotlin {
 
     jvm()
 
-//    js {
-//        browser()
-//        binaries.executable()
-//    }
+    js {
+        browser()
+        binaries.executable()
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -126,8 +126,6 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.darwin)
         }
-
-        wasmJsMain.dependencies { }
     }
 }
 

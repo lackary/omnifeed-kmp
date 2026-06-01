@@ -4,7 +4,7 @@ import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 
 class SignUpWithEmailUseCase(private val repository: AuthRepository) {
-    suspend operator fun invoke(email: String, password: String): Result<User> {
-        return repository.signUpWithEmail(email, password)
+    suspend operator fun invoke(email: String, password: String, displayName: String? = null): Result<User> {
+        return repository.signUpWithEmail(email, password, displayName)
     }
 }
