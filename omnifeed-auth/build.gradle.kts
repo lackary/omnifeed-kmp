@@ -51,7 +51,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":omnifeed-core"))
+            implementation(projects.omnifeedCore)
             api(libs.koin.core)
         }
         
