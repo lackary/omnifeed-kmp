@@ -16,6 +16,12 @@ import java.util.prefs.Preferences
 internal val logger = Logger.withTag("FirebaseUtils")
 
 /**
+ * Global holder for Firebase API Key on JVM for REST fallback.
+ */
+private var _firebaseApiKey: String? = null
+actual val firebaseApiKey: String? get() = _firebaseApiKey
+
+/**
  *  Initializes the Firebase SDK for the JVM platform using the provided configuration.
  *
  * This function sets up the [FirebasePlatform] using the Java Preferences API for persistent storage
@@ -60,6 +66,7 @@ actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: Stri
 
     val config = base64ToJson<GoogleServiceWeb>(firebaseConfig)
     if (config != null) {
+        _firebaseApiKey = config.apiKey
         Firebase.initialize(
             context = Application(),
             options = FirebaseOptions(

@@ -42,3 +42,5 @@ actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: Stri
         logger.w { "Firebase JS config not found" }
     }
 }
+
+actual val firebaseApiKey: String? = null
