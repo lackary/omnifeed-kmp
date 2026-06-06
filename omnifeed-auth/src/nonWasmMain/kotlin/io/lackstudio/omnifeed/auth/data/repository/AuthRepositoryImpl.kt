@@ -8,6 +8,8 @@ import io.lackstudio.omnifeed.auth.data.model.request.SignInWithIdpRequest
 import io.lackstudio.omnifeed.auth.data.model.response.SignInWithIdpResponse
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.auth.platform.firebaseApiKey
+import io.lackstudio.omnifeed.auth.platform.loadAuthUser
+import io.lackstudio.omnifeed.auth.platform.saveAuthUser
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -28,6 +30,11 @@ class AuthRepositoryImpl(
 ) : AuthRepository {
 
     private val manualUser = MutableStateFlow<User?>(null)
+
+    init {
+        // Load user from persistent storage (used for platforms like JVM with REST fallback)
+        manualUser.value = loadAuthUser()
+    }
 
     override val currentUser: Flow<User?> = combine(
         firebaseAuth.authStateChanged.map { it?.toDomain() },
@@ -113,6 +120,7 @@ class AuthRepositoryImpl(
 
             // Update manual user state for platforms with limited SDK (e.g. JVM)
             manualUser.value = user
+            saveAuthUser(user)
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -121,6 +129,7 @@ class AuthRepositoryImpl(
 
     override suspend fun signOut() {
         manualUser.value = null
+        saveAuthUser(null)
         firebaseAuth.signOut()
     }
 

@@ -6,8 +6,11 @@ import com.google.firebase.FirebasePlatform
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
+import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.utils.GoogleServiceWeb
 import io.lackstudio.omnifeed.core.utils.base64ToJson
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.util.prefs.BackingStoreException
 import java.util.prefs.Preferences
 
@@ -21,6 +24,8 @@ internal val logger = Logger.withTag("FirebaseUtils")
 private var _firebaseApiKey: String? = null
 actual val firebaseApiKey: String? get() = _firebaseApiKey
 
+private var _preferencesPathName: String? = null
+
 /**
  *  Initializes the Firebase SDK for the JVM platform using the provided configuration.
  *
@@ -31,6 +36,7 @@ actual val firebaseApiKey: String? get() = _firebaseApiKey
  * @param firebaseConfig A Base64 encoded JSON string containing the Firebase configuration (GoogleServiceWeb).
  */
 actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: String?) {
+    _preferencesPathName = preferencesPathName
     if (firebaseConfig == null) {
         logger.e { "firebaseConfig must have a value" }
         return
@@ -80,5 +86,38 @@ actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: Stri
         logger.i { "Firebase JVM initialized successfully" }
     } else {
         logger.w { "Firebase JVM config not found" }
+    }
+}
+
+private const val AUTH_USER_KEY = "manual_auth_user"
+
+actual fun saveAuthUser(user: User?) {
+    val path = _preferencesPathName ?: return
+    val prefs = Preferences.userRoot().node(path)
+    if (user != null) {
+        try {
+            val json = Json.encodeToString(user)
+            prefs.put(AUTH_USER_KEY, json)
+            prefs.flush()
+        } catch (e: Exception) {
+            logger.e(throwable = e) { "Failed to save auth user" }
+        }
+    } else {
+        prefs.remove(AUTH_USER_KEY)
+        try {
+            prefs.flush()
+        } catch (e: Exception) {}
+    }
+}
+
+actual fun loadAuthUser(): User? {
+    val path = _preferencesPathName ?: return null
+    val prefs = Preferences.userRoot().node(path)
+    val json = prefs.get(AUTH_USER_KEY, null) ?: return null
+    return try {
+        Json.decodeFromString<User>(json)
+    } catch (e: Exception) {
+        logger.e(throwable = e) { "Failed to load auth user" }
+        null
     }
 }

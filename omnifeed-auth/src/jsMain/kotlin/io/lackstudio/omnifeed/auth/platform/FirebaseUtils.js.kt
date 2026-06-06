@@ -44,3 +44,6 @@ actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: Stri
 }
 
 actual val firebaseApiKey: String? = null
+
+actual fun saveAuthUser(user: io.lackstudio.omnifeed.auth.domain.model.User?) {}
+actual fun loadAuthUser(): io.lackstudio.omnifeed.auth.domain.model.User? = null
