@@ -1,3 +1,4 @@
+import com.android.build.api.withAndroid
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
@@ -8,6 +9,7 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.native.cocoapods)
     id("maven-publish")
 }
 
@@ -16,6 +18,20 @@ base {
 }
 
 kotlin {
+
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate {
+        common {
+            group("nonWasm") {
+                // Include all platforms that require Firebase support in this group (exclude Wasm)
+                withAndroid()
+                withJvm()
+                withIos()
+                withJs()
+            }
+        }
+    }
+
     android {
         namespace = modulePackageName
         compileSdk = 36
@@ -27,12 +43,21 @@ kotlin {
         androidResources { enable = true }
     }
 
-    val xcf = XCFramework()
-    listOf(iosArm64(), iosSimulatorArm64()).forEach {
-        it.binaries.framework {
+    iosArm64()
+    iosSimulatorArm64()
+
+    cocoapods {
+        version = project.version.toString()
+        summary = "OmniFeed Authentication Module"
+        homepage = "https://github.com/lackary/omnifeed-kmp"
+        ios.deploymentTarget = "18.2"
+        framework {
             baseName = "OmniFeedAuth"
-            xcf.add(this)
             isStatic = true
+        }
+        pod("GoogleSignIn") {
+            version = "~> 9.0.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
         }
     }
 
@@ -54,46 +79,34 @@ kotlin {
             implementation(projects.omnifeedCore)
             api(libs.koin.core)
         }
-        
-        val nonWasmMain by creating {
-            dependsOn(commonMain.get())
-            dependencies {
-                api(libs.gitlive.firebase.auth)
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
-        
-        androidMain.get().dependsOn(nonWasmMain)
-
-        /**
-         * Note: The error "Expected omnifeedAuthModule has no actual declaration in module <commonMain> for Native"
-         * occurs during the OmniHub iOS build because KMP cannot find the path to nonWasmMain when compiling 
-         * metadata for the iOS intermediate layer (iosMain).
-         * 
-         * To simplify the configuration using iosMain, ensure that applyDefaultHierarchyTemplate() is enabled
-         * and use the following code to maintain the hierarchy link:
-         * 
-         * // Force apply the default hierarchy template to ensure iosMain is automatically created
-         * applyDefaultHierarchyTemplate() 
-         * 
-         * val iosMain by getting {
-         *    dependsOn(nonWasmMain)
-         * }
-         * 
-         * This way, the child source sets iosArm64Main and iosSimulatorArm64Main won't need manual dependsOn(nonWasmMain).
-         */
-        iosArm64Main.get().dependsOn(nonWasmMain)
-        iosSimulatorArm64Main.get().dependsOn(nonWasmMain)
-        jvmMain.get().dependsOn(nonWasmMain)
-        jsMain.get().dependsOn(nonWasmMain)
         
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.google.firebase.bom))
             implementation(libs.google.firebase.auth)
             implementation(libs.google.firebase.common)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.google.gms.play.service.auth)
+            implementation(libs.google.googleid)
+            implementation(libs.androidx.core.ktx)
         }
 
-        commonTest.dependencies {
-            implementation(kotlin("test"))
+        wasmJsMain.dependencies {
+            implementation(libs.kotlin.wrappers.browser)
+        }
+
+        jsMain.dependencies {
+            implementation(libs.kotlin.wrappers.browser)
+        }
+
+        val nonWasmMain by getting {
+            dependsOn(commonMain.get())
+            dependencies {
+                api(libs.gitlive.firebase.auth)
+            }
         }
     }
 }

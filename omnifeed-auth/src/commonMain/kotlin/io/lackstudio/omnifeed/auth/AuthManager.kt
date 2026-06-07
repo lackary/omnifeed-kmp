@@ -1,0 +1,16 @@
+package io.lackstudio.omnifeed.auth
+
+data class GoogleAuthTokens(
+    val idToken: String,
+    val accessToken: String? = null
+)
+
+interface AuthManager {
+    fun setRedirectUrl(url: String)
+    fun setClientId(id: String)
+    fun setSuccessHtml(html: String)
+    
+    fun getRedirectUrl(): String
+    fun startLogin(authUrl: String)
+    suspend fun signInWithGoogle(context: Any? = null): GoogleAuthTokens?
+}

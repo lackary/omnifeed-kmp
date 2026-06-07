@@ -20,6 +20,7 @@ kotlinxDatetime = "0.8.0-0.6.x-compat"
 lifecycle = "2.10.0"
 composeHotReload = "1.1.1"
 composeMultiplatform = "1.11.0"
+kotlin-wrappers = "2026.5.6"
 
 # Google
 googleServices = "4.4.4"
@@ -104,6 +105,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
+kotlin-wrappers-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlin-wrappers" }
 compose-ui-test-core = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "composeMultiplatform" }
 compose-ui-test-junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "composeMultiplatform" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
