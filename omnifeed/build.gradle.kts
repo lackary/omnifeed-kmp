@@ -77,6 +77,7 @@ kotlin {
                 api(project(":omnifeed-core"))
                 api(project(":omnifeed-ui"))
                 api(project(":omnifeed-unsplash"))
+                api(project(":omnifeed-auth"))
             }
         }
 
@@ -91,6 +92,7 @@ kotlin {
                 // Add Android-specific dependencies here. Note that this source set depends on
                 // commonMain by default and will correctly pull the Android artifacts of any KMP
                 // dependencies declared in commonMain.
+                implementation(project.dependencies.platform(libs.google.firebase.bom))
             }
         }
 

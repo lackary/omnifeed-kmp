@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class SignInWithIdpRequest(
     val postBody: String,
     val requestUri: String = "http://localhost",
+    val idToken: String? = null,
     val returnIdpCredential: Boolean = true,
     val returnSecureToken: Boolean = true
 )
