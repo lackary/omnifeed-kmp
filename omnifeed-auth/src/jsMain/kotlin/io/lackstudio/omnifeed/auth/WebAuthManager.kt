@@ -2,8 +2,12 @@ package io.lackstudio.omnifeed.auth
 
 import co.touchlab.kermit.Logger
 import kotlinx.browser.window
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 
 class WebAuthManager : AuthManager {
 
@@ -16,6 +20,7 @@ class WebAuthManager : AuthManager {
     override fun setSuccessHtml(html: String) { _successHtml = html }
 
     private val logger = Logger.withTag("WebAuthManager")
+    private var currentContinuation: CancellableContinuation<GoogleAuthTokens?>? = null
 
     override fun getRedirectUrl(): String {
         if (_redirectUrl != null) return _redirectUrl!!
@@ -28,22 +33,82 @@ class WebAuthManager : AuthManager {
         window.location.href = authUrl
     }
 
-    override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? = suspendCancellableCoroutine { continuation ->
-        try {
-            initAndPromptGoogleSignIn(
-                clientId = _clientId ?: ""
-            ) { credential ->
-                if (credential != null) {
-                    logger.d { "Google Sign-In: Received credential" }
-                    continuation.resume(GoogleAuthTokens(idToken = credential))
-                } else {
-                    logger.w { "Google Sign-In: Credential is null" }
-                    continuation.resume(null)
+    override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
+        // Ensure any previous ongoing login process is cancelled to avoid overlapping states
+        currentContinuation?.let {
+            if (it.isActive) {
+                logger.d { "Cancelling previous Google Sign-In attempt" }
+                it.resume(null)
+            }
+        }
+        currentContinuation = null
+
+        // IMPORTANT: Clear Google's g_state cookie.
+        // When a user manually closes the Google sign-in window, Google sets this cookie and enters a suppression period,
+        // causing subsequent prompt() calls to have no response. Clearing it ensures the prompt can be re-triggered on every click.
+        clearGoogleStateCookie()
+
+        return try {
+            withTimeout(30000.milliseconds) {
+                suspendCancellableCoroutine { continuation ->
+                    currentContinuation = continuation
+                    try {
+                        val clientId = _clientId
+                        if (clientId.isNullOrBlank()) {
+                            logger.e { "Google Client ID is missing. Please call setClientId() first." }
+                            continuation.resume(null)
+                            currentContinuation = null
+                            return@suspendCancellableCoroutine
+                        }
+
+                        initAndPromptGoogleSignIn(clientId) { credential ->
+                            // Ensure response is only handled for the current continuation
+                            if (currentContinuation == continuation) {
+                                if (credential != null) {
+                                    logger.d { "Google Sign-In: Received credential successfully" }
+                                    continuation.resume(GoogleAuthTokens(idToken = credential))
+                                } else {
+                                    logger.w { "Google Sign-In: Credential is null (dismissed or suppressed)" }
+                                    continuation.resume(null)
+                                }
+                                currentContinuation = null
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logger.e(throwable = e) { "Google Sign-In: Error during JS initialization" }
+                        if (continuation.isActive) {
+                            continuation.resume(null)
+                        }
+                        currentContinuation = null
+                    }
+
+                    continuation.invokeOnCancellation {
+                        if (currentContinuation == continuation) {
+                            currentContinuation = null
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
-            logger.e(throwable = e) { "Google Sign-In: Error during initialization" }
-            continuation.resume(null)
+            if (e is TimeoutCancellationException) {
+                logger.e { "Google Sign-In: Timed out after 30s waiting for user action." }
+            } else {
+                logger.e(throwable = e) { "Google Sign-In: Unexpected error." }
+            }
+            currentContinuation = null
+            null
+        }
+    }
+
+    private fun clearGoogleStateCookie() {
+        try {
+            // Google Identity Services sets the g_state cookie after a user dismisses the prompt.
+            // Clearing it is the most effective Kotlin-side fix for the "no response on click" issue.
+            val document = window.document
+            document.cookie = "g_state=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+            logger.d { "Google g_state cookie cleared successfully" }
+        } catch (e: Exception) {
+            logger.w { "Failed to clear g_state cookie: ${e.message}" }
         }
     }
 }

@@ -24,17 +24,37 @@ class DesktopAuthManager : AuthManager {
     private val logger = Logger.withTag("DesktopAuthManager")
     private val callbackPort = 54321
     private var resultDeferred: CompletableDeferred<GoogleAuthTokens?>? = null
+    private var currentServerSocket: ServerSocket? = null
+    private var serverThread: Thread? = null
 
     override fun getRedirectUrl(): String {
         return _redirectUrl ?: "http://localhost:$callbackPort/callback"
     }
 
+    private fun cleanup() {
+        logger.d { "Cleaning up previous auth session..." }
+        try {
+            currentServerSocket?.close()
+        } catch (e: Exception) {
+            logger.e(throwable = e) { "Failed to close server socket during cleanup" }
+        }
+        currentServerSocket = null
+
+        resultDeferred?.let {
+            if (it.isActive) {
+                it.complete(null)
+            }
+        }
+        resultDeferred = null
+    }
+
     override fun startLogin(authUrl: String) {
         // Start a thread to run the Server (to avoid blocking the UI)
-        thread {
+        serverThread = thread {
             try {
                 // Simple HTTP Server
                 ServerSocket(callbackPort).use { serverSocket ->
+                    currentServerSocket = serverSocket
                     logger.d { "Desktop Auth Server listening on port $callbackPort..." }
 
                     // Open the system browser and go to the OAuth2 login page
@@ -44,9 +64,15 @@ class DesktopAuthManager : AuthManager {
 
                     var authenticated = false
                     // Loop to handle potential redirects (e.g., fragment to query for Google)
-                    while (!authenticated) {
+                    while (!authenticated && !Thread.currentThread().isInterrupted) {
                         // Wait for browser redirect (Blocking)
-                        serverSocket.accept().use { clientSocket ->
+                        val socket = try {
+                            serverSocket.accept()
+                        } catch (e: Exception) {
+                            null
+                        } ?: break
+
+                        socket.use { clientSocket ->
                             // Read Request
                             val reader = clientSocket.getInputStream().bufferedReader()
                             val requestLine = reader.readLine() // e.g., "GET /callback?code=XYZ... HTTP/1.1"
@@ -79,7 +105,7 @@ class DesktopAuthManager : AuthManager {
                             writer.println("\r\n")
 
                             if (authenticated) {
-                                writer.print(_successHtml ?: "<html><body><h1>Login Successful</h1></body></html>")
+                                writer.print(_successHtml ?: "<html><body><h1>Login Successful</h1><p>You can close this window now.</p></body></html>")
                             } else {
                                 writer.print("<html><script>if(window.location.hash){window.location.search=window.location.hash.substring(1);}else{document.body.innerHTML='<h1>Login Failed</h1><p>No authorization code or token found.</p>';}</script><body><p>Processing login...</p></body></html>")
                             }
@@ -98,12 +124,19 @@ class DesktopAuthManager : AuthManager {
                 }
 
             } catch (e: Exception) {
-                logger.e(throwable = e) { "Error in DesktopAuthManager" }
+                if (currentServerSocket != null) { // Only log if not intentionally closed
+                    logger.e(throwable = e) { "Error in DesktopAuthManager server: ${e.message}" }
+                }
+                resultDeferred?.complete(null)
+            } finally {
+                currentServerSocket = null
             }
         }
     }
 
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
+        cleanup()
+        
         val deferred = CompletableDeferred<GoogleAuthTokens?>()
         resultDeferred = deferred
 
@@ -122,6 +155,6 @@ class DesktopAuthManager : AuthManager {
 
         startLogin(authUrl)
 
-        return resultDeferred?.await()
+        return deferred.await()
     }
 }
