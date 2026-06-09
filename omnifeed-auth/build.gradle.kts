@@ -94,16 +94,11 @@ kotlin {
             implementation(libs.androidx.core.ktx)
         }
 
-        wasmJsMain.dependencies {
-            implementation(libs.kotlin.wrappers.browser)
-        }
-
-        jsMain.dependencies {
+        webMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
         }
 
         val nonWasmMain by getting {
-            dependsOn(commonMain.get())
             dependencies {
                 api(libs.gitlive.firebase.auth)
             }

@@ -34,6 +34,9 @@ class WebAuthManager : AuthManager {
     }
 
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
+        // Inject the JS bridge if it's not already there
+        WebAuthBridge.injectIfNeeded()
+
         // Ensure any previous ongoing login process is cancelled to avoid overlapping states
         currentContinuation?.let {
             if (it.isActive) {
