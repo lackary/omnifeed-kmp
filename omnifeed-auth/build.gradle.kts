@@ -17,6 +17,37 @@ base {
     archivesName.set("omnifeed-auth")
 }
 
+val generateJsResources by tasks.registering {
+    val jsFile = project.file("src/webMain/resources/google-auth-bridge.js")
+    val outputDir = project.layout.buildDirectory.dir("generated/kotlin/jsResources")
+    val outputFile = outputDir.map { it.file("io/lackstudio/omnifeed/auth/GoogleAuthBridgeJs.kt") }
+
+    inputs.file(jsFile)
+    outputs.dir(outputDir)
+
+    doLast {
+        val jsContent = jsFile.readText()
+            .replace("$", "\${'$'}") // Escape $ for Kotlin string templates
+            .replace("\"\"\"", "\\\"\\\"\\\"") // Escape triple quotes
+
+        val file = outputFile.get().asFile
+        file.parentFile.mkdirs()
+        file.writeText("""
+            package io.lackstudio.omnifeed.auth
+
+            /**
+             * Automatically generated JavaScript resource constants. Do not modify manually.
+             * Source file: src/webMain/resources/google-auth-bridge.js
+             */
+            internal object GoogleAuthBridgeJs {
+                val CONTENT = ""${"\""}
+                $jsContent
+                ""${"\""}.trimIndent()
+            }
+        """.trimIndent())
+    }
+}
+
 kotlin {
 
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
@@ -97,6 +128,7 @@ kotlin {
         webMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
         }
+        webMain.get().kotlin.srcDirs(generateJsResources)
 
         val nonWasmMain by getting {
             dependencies {

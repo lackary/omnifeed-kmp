@@ -2,7 +2,7 @@
  * Google Identity Services Bridge for Kotlin/JS and Kotlin/Wasm
  */
 window.initAndPromptGoogleSignIn = function(clientId, callback) {
-    console.log("JS Bridge: Initializing Google Auth with Client ID: " + clientId);
+    console.log("JS Bridge (Injected): Initializing Google Auth with Client ID: " + clientId);
     if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
         console.error("JS Bridge: Google Identity Services SDK not loaded yet.");
         callback(null)
