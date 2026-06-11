@@ -133,6 +133,7 @@ kotlin {
         val nonWasmMain by getting {
             dependencies {
                 api(libs.gitlive.firebase.auth)
+                api(libs.gitlive.firebase.firestore)
             }
         }
     }

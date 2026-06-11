@@ -4,6 +4,7 @@ import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
+import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.data.model.request.SignInWithIdpRequest
 import io.lackstudio.omnifeed.auth.data.model.request.DeleteAccountRequest
@@ -21,15 +22,20 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.serialization.json.Json
 
 
 class AuthRepositoryImpl(
-    private val firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
 ) : AuthRepository {
 
     private val logger = Logger.withTag("AuthRepositoryImpl")
@@ -40,12 +46,32 @@ class AuthRepositoryImpl(
         manualUser.value = loadAuthUser()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override val currentUser: Flow<User?> = combine(
-        firebaseAuth.authStateChanged.map { it?.toDomain() },
+        firebaseAuth.authStateChanged,
         manualUser
-    ) { sdkUser, manualUser -> 
-        logger.d { "currentUser: sdkUser=$sdkUser, manualUser=$manualUser" }
-        manualUser ?: sdkUser 
+    ) { sdkUser, manualUser ->
+        logger.d { "currentUser: sdkUser=${sdkUser?.uid}, manualUser=${manualUser?.id}" }
+        sdkUser ?: manualUser
+    }.flatMapLatest { user ->
+        if (user == null) return@flatMapLatest flowOf(null)
+        
+        val uid = if (user is FirebaseUser) user.uid else (user as User).id
+        
+        // Listen to Firestore for extra fields
+        firestore.collection("users").document(uid).snapshots().map { snapshot ->
+            val isUnsplashLinked = try {
+                snapshot.get<Boolean>("isUnsplashLinked")
+            } catch (e: Exception) {
+                false
+            }
+
+            if (user is FirebaseUser) {
+                user.toDomain().copy(isUnsplashLinked = isUnsplashLinked)
+            } else {
+                (user as User).copy(isUnsplashLinked = isUnsplashLinked)
+            }
+        }
     }
 
     override suspend fun signInWithEmail(email: String, password: String): Result<User> {
@@ -99,10 +125,8 @@ class AuthRepositoryImpl(
             
             // Force set as linked and update manual state if exists
             val finalUser = linkedUser.copy(isGoogleLinked = true)
-            if (manualUser.value != null) {
-                manualUser.value = finalUser
-                saveAuthUser(finalUser)
-            }
+            manualUser.value = finalUser
+            saveAuthUser(finalUser)
             
             Result.success(finalUser)
         } catch (e: Throwable) {
@@ -112,6 +136,26 @@ class AuthRepositoryImpl(
             } else {
                 Result.failure(e)
             }
+        }
+    }
+
+    override suspend fun linkWithUnsplash(accessToken: String): Result<User> {
+        return try {
+            val user = currentUser.first() ?: throw Exception("No user logged in to link with")
+            
+            // 1. Use set(merge = true) to ensure the document is created if it doesn't exist
+            // This fulfills the "automatic creation" requirement
+            firestore.collection("users").document(user.id)
+                .set(mapOf("isUnsplashLinked" to true), merge = true)
+            
+            // 2. Update local state
+            val updatedUser = user.copy(isUnsplashLinked = true)
+            manualUser.value = updatedUser
+            saveAuthUser(updatedUser)
+
+            Result.success(updatedUser)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
@@ -203,7 +247,7 @@ class AuthRepositoryImpl(
                 install(ContentNegotiation) {
                     json(Json {
                         ignoreUnknownKeys = true
-                        encodeDefaults = true // 確保 requestUri 等預設值會被放入 JSON
+                        encodeDefaults = true // Ensure default values like requestUri are included in the JSON
                     })
                 }
             }

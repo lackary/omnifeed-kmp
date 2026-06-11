@@ -9,5 +9,6 @@ data class User(
     val displayName: String?,
     val photoUrl: String?,
     val isGoogleLinked: Boolean = false,
+    val isUnsplashLinked: Boolean = false,
     val idToken: String? = null // Firebase ID Token for REST-based flows
 )
