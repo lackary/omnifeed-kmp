@@ -4,9 +4,12 @@ import io.lackstudio.omnifeed.auth.di.omnifeedAuthModule
 import io.lackstudio.omnifeed.auth.domain.usecase.DeleteAccountUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithGoogleUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithCustomServiceUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.UnlinkCustomServiceUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.ObserveUserUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithGoogleUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithCustomServiceUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignUpWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignOutUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.UnlinkProviderUseCase
@@ -107,7 +110,10 @@ object OmniFeed {
     val signInWithEmailUseCase: SignInWithEmailUseCase get() = getDependency()
     val signUpWithEmailUseCase: SignUpWithEmailUseCase get() = getDependency()
     val signInWithGoogleUseCase: SignInWithGoogleUseCase get() = getDependency()
+    val signInWithCustomServiceUseCase: SignInWithCustomServiceUseCase get() = getDependency()
     val linkWithGoogleUseCase: LinkWithGoogleUseCase get() = getDependency()
+    val linkWithCustomServiceUseCase: LinkWithCustomServiceUseCase get() = getDependency()
+    val unlinkCustomServiceUseCase: UnlinkCustomServiceUseCase get() = getDependency()
     val linkWithEmailUseCase: LinkWithEmailUseCase get() = getDependency()
     val updatePasswordUseCase: UpdatePasswordUseCase get() = getDependency()
     val unlinkProviderUseCase: UnlinkProviderUseCase get() = getDependency()

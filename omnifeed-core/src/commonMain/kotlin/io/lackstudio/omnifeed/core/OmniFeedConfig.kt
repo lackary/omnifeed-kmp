@@ -4,7 +4,6 @@ import co.touchlab.kermit.Logger
 
 /**
  * 1. Defines the Unsplash-specific configuration data structure.
- * Although these are Unsplash settings, they are defined in Core for unified access.
  */
 data class UnsplashConfig(
     val token: String,
@@ -12,12 +11,23 @@ data class UnsplashConfig(
 )
 
 /**
- * 2. Main configuration entry point for the SDK.
+ * 2. Configuration for a custom authentication service.
+ */
+data class CustomServiceConfig(
+    val authEndpoint: String,
+    val linkedField: String
+)
+
+/**
+ * 3. Main configuration entry point for the SDK.
  */
 data class OmniFeedConfig(
     // General settings
     val appLogger: Logger? = null,
 
-    // Module settings (required to be provided by the App)
-    val unsplash: UnsplashConfig
+    // Module settings
+    val unsplash: UnsplashConfig,
+
+    // Auth settings for multiple custom services (e.g., "unsplash", "github")
+    val customServices: Map<String, CustomServiceConfig> = emptyMap()
 )

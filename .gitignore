@@ -58,5 +58,13 @@ npm-debug.log*
 .npmrc
 .nvmrc
 
+# Firebase
+.firebaserc
+firebase-debug.log*
+.firebase/
+
 # CI need
 .secrets
+
+# Common
+*.log

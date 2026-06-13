@@ -13,6 +13,7 @@ import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.auth.platform.firebaseApiKey
 import io.lackstudio.omnifeed.auth.platform.loadAuthUser
 import io.lackstudio.omnifeed.auth.platform.saveAuthUser
+import io.lackstudio.omnifeed.core.CustomServiceConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -35,7 +36,8 @@ import kotlinx.serialization.json.Json
 
 class AuthRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val customServices: Map<String, CustomServiceConfig> = emptyMap()
 ) : AuthRepository {
 
     private val logger = Logger.withTag("AuthRepositoryImpl")
@@ -58,18 +60,20 @@ class AuthRepositoryImpl(
         
         val uid = if (user is FirebaseUser) user.uid else (user as User).id
         
-        // Listen to Firestore for extra fields
+        // Listen to Firestore for all configured custom services
         firestore.collection("users").document(uid).snapshots().map { snapshot ->
-            val isUnsplashLinked = try {
-                snapshot.get<Boolean>("isUnsplashLinked")
-            } catch (e: Exception) {
-                false
+            val linkedStatus = customServices.mapValues { (_, config) ->
+                try {
+                    snapshot.get<Boolean>(config.linkedField)
+                } catch (e: Exception) {
+                    false
+                }
             }
 
             if (user is FirebaseUser) {
-                user.toDomain().copy(isUnsplashLinked = isUnsplashLinked)
+                user.toDomain().copy(customLinkedServices = linkedStatus)
             } else {
-                (user as User).copy(isUnsplashLinked = isUnsplashLinked)
+                (user as User).copy(customLinkedServices = linkedStatus)
             }
         }
     }
@@ -116,6 +120,58 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun signInWithCustomService(serviceName: String, accessToken: String): Result<User> {
+        return try {
+            val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
+            
+            // 1. Get Firebase Custom Token from your backend, passing the serviceName as provider
+            val customToken = fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
+            
+            // 2. Sign in to Firebase with the custom token
+            val result = firebaseAuth.signInWithCustomToken(customToken)
+            val user = result.user?.toDomain() ?: throw Exception("Custom service login failed: User is null")
+            
+            // 3. Update status in local map
+            val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
+                put(serviceName, true)
+            }
+            val finalUser = user.copy(customLinkedServices = updatedLinkedServices)
+            
+            // 4. Update local state and Firestore
+            manualUser.value = finalUser
+            saveAuthUser(finalUser)
+            firestore.collection("users").document(finalUser.id)
+                .set(mapOf(config.linkedField to true), merge = true)
+            
+            Result.success(finalUser)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun fetchFirebaseCustomToken(endpoint: String, customAccessToken: String, provider: String): String {
+        val httpClient = HttpClient {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        
+        val response = httpClient.post(endpoint) {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf(
+                "access_token" to customAccessToken,
+                "provider" to provider
+            ))
+        }
+        
+        if (response.status.value != 200) {
+            throw Exception("Failed to fetch custom token: ${response.status}")
+        }
+        
+        val body = response.body<Map<String, String>>()
+        return body["custom_token"] ?: throw Exception("No custom token in response")
+    }
+
     override suspend fun linkWithGoogle(idToken: String, accessToken: String?): Result<User> {
         return try {
             val user = firebaseAuth.currentUser ?: throw Exception("No user logged in to link with")
@@ -139,20 +195,46 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun linkWithUnsplash(accessToken: String): Result<User> {
+    override suspend fun linkWithCustomService(serviceName: String, accessToken: String): Result<User> {
         return try {
             val user = currentUser.first() ?: throw Exception("No user logged in to link with")
+            val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
             
-            // 1. Use set(merge = true) to ensure the document is created if it doesn't exist
-            // This fulfills the "automatic creation" requirement
+            // 1. Update cloud
             firestore.collection("users").document(user.id)
-                .set(mapOf("isUnsplashLinked" to true), merge = true)
+                .set(mapOf(config.linkedField to true), merge = true)
             
             // 2. Update local state
-            val updatedUser = user.copy(isUnsplashLinked = true)
+            val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
+                put(serviceName, true)
+            }
+            val updatedUser = user.copy(customLinkedServices = updatedLinkedServices)
             manualUser.value = updatedUser
             saveAuthUser(updatedUser)
 
+            Result.success(updatedUser)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun unlinkCustomService(serviceName: String): Result<User> {
+        return try {
+            val user = currentUser.first() ?: throw Exception("No user logged in")
+            val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
+            
+            // 1. Remove link status from cloud
+            firestore.collection("users").document(user.id)
+                .set(mapOf(config.linkedField to false), merge = true)
+            
+            // 2. Update local state
+            val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
+                put(serviceName, false)
+            }
+            val updatedUser = user.copy(customLinkedServices = updatedLinkedServices)
+            manualUser.value = updatedUser
+            saveAuthUser(updatedUser)
+            
             Result.success(updatedUser)
         } catch (e: Exception) {
             Result.failure(e)
@@ -299,6 +381,17 @@ class AuthRepositoryImpl(
 
             if (sdkUser == null && !isManual) {
                 throw Exception("No user logged in")
+            }
+
+            val uid = sdkUser?.uid ?: manualUserValue?.id
+            if (uid != null) {
+                try {
+                    logger.d { "Attempting to delete Firestore document for user: $uid" }
+                    firestore.collection("users").document(uid).delete()
+                    logger.d { "Firestore document deleted SUCCESS" }
+                } catch (e: Exception) {
+                    logger.w(throwable = e) { "Failed to delete Firestore document: ${e.message}" }
+                }
             }
 
             // 1. Try SDK delete if available

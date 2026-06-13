@@ -18,5 +18,6 @@ fun loggerModule(customLogger: Logger?) = module {
 }
 
 fun coreModule(config: OmniFeedConfig) = module {
+    single { config }
     includes(loggerModule(config.appLogger))
 }
