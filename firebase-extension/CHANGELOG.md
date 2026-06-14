@@ -1,2 +1,4 @@
 ## 0.13.0
 - Initial alpha release of OmniFeed Custom Auth Service.
+- [Fix] Downgrade Node.js to 20 (LTS) for better regional deployment stability.
+- [Fix] Remove unsupported `allowInsecure` parameter from httpsTrigger.

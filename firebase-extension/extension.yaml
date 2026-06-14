@@ -17,9 +17,8 @@ resources:
       HTTPS trigger to verify third-party tokens.
     properties:
       location: ${param:LOCATION}
-      runtime: nodejs22
-      httpsTrigger:
-        allowInsecure: false
+      runtime: nodejs20
+      httpsTrigger: {}
 
 # Parameters requested from the developer during installation
 params:
