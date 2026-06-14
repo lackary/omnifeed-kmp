@@ -40,7 +40,6 @@ params:
     label: Auth Providers Configuration (JSON)
     description: >-
       A JSON string defining supported providers and their verify_urls.
-      Example: {"unsplash": {"verify_url": "https://api.unsplash.com/me"}}
     type: string
     example: '{"unsplash": {"verify_url": "https://api.unsplash.com/me"}}'
     required: true
