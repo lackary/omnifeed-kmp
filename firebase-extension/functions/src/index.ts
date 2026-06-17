@@ -77,15 +77,43 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
 
     const thirdPartyUser = await verifyResponse.json();
     const thirdPartyId = thirdPartyUser.id;
+    const uid = `custom:${providerTag}:${thirdPartyId}`;
 
+    // Extract user info
+    const email = thirdPartyUser.email || null;
+    const displayName = thirdPartyUser.name || thirdPartyUser.username || thirdPartyUser.login;
+    const photoURL = thirdPartyUser.profile_image?.large || thirdPartyUser.avatar_url || null;
+
+    // 1. Create or Update user record in Firebase Auth to ensure info shows in Console
+    try {
+      await getAuth().getUser(uid);
+      // User exists, update info if needed
+      await getAuth().updateUser(uid, {
+        email: email || undefined,
+        displayName: displayName || undefined,
+        photoURL: photoURL || undefined
+      });
+    } catch (error: any) {
+      if (error.code === "auth/user-not-found") {
+        // User doesn't exist, create it
+        await getAuth().createUser({
+          uid: uid,
+          email: email || undefined,
+          displayName: displayName || undefined,
+          photoURL: photoURL || undefined
+        });
+        logger.info(`Created new Firebase user record for ${uid}`);
+      } else {
+        throw error;
+      }
+    }
+
+    // 2. Generate Custom Token with additional claims
     const additionalClaims = {
       provider: providerTag,
       username: thirdPartyUser.username || thirdPartyUser.login,
-      display_name: thirdPartyUser.name,
-      photo_url: thirdPartyUser.profile_image?.large || thirdPartyUser.avatar_url || null,
     };
 
-    const uid = `custom:${providerTag}:${thirdPartyId}`;
     const customToken = await getAuth().createCustomToken(uid, additionalClaims);
 
     logger.info(`Successfully generated Custom Token for user ${uid}`);
