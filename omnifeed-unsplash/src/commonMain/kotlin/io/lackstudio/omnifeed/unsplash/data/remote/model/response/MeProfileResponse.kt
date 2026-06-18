@@ -1,6 +1,5 @@
 package io.lackstudio.omnifeed.unsplash.data.remote.model.response
 
-import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.UserDto
 import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.UserProfileDto
 import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.BadgeDto
 import io.lackstudio.omnifeed.unsplash.data.remote.model.dto.MetaDto
@@ -31,8 +30,10 @@ data class MeProfileResponse(
     @SerialName(ApiKeys.Statistics.TOTAL_COLLECTIONS) override val totalCollections: Long,
     @SerialName(ApiKeys.Statistics.TOTAL_LIKES) override val totalLikes: Long,
     @SerialName(ApiKeys.Statistics.TOTAL_PHOTOS) override val totalPhotos: Long,
+    @SerialName(ApiKeys.Statistics.TOTAL_FREE_PHOTOS) override val totalFreePhotos: Long,
     @SerialName(ApiKeys.Statistics.TOTAL_PROMOTED_PHOTOS) override val totalPromotedPhotos: Long,
     @SerialName(ApiKeys.Statistics.TOTAL_ILLUSTRATIONS) override val totalIllustrations: Long,
+    @SerialName(ApiKeys.Statistics.TOTAL_FREE_ILLUSTRATIONS) override val totalFreeIllustrations: Long,
     @SerialName(ApiKeys.Statistics.TOTAL_PROMOTED_ILLUSTRATIONS) override val totalPromotedIllustrations: Long,
     @SerialName(ApiKeys.User.ACCEPTED_TOS) override val acceptedTos: Boolean,
     @SerialName(ApiKeys.Common.FOR_HIRE) override val forHire: Boolean,
@@ -45,5 +46,13 @@ data class MeProfileResponse(
     override val downloads: Long,
     override val meta: MetaDto,
     val uid: String,
-    val confirmed: Boolean
+    val confirmed: Boolean,
+    val teams: List<String>,
+    // read_user permission
+    val email: String? = null,
+    @SerialName(ApiKeys.User.UPLOADS_REMAINING) val uploadsRemaining: Int? = null,
+    @SerialName(ApiKeys.User.UNLIMITED_UPLOADS) val unlimitedUploads: Boolean? = null,
+    @SerialName(ApiKeys.User.DMCA_VERIFICATION) val dmcaVerification: String? = null,
+    @SerialName(ApiKeys.User.UNREAD_IN_APP_NOTIFICATIONS) val unreadInAppNotifications: Boolean? = null,
+    @SerialName(ApiKeys.User.UNREAD_HIGHLIGHT_NOTIFICATIONS) val unreadHighlightNotifications: Boolean? = null,
 ) : UserProfileDto

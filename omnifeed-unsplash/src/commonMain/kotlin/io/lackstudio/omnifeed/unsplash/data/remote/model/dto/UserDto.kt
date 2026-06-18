@@ -17,8 +17,10 @@ interface UserDto {
     val totalCollections: Long
     val totalLikes: Long
     val totalPhotos: Long
+    val totalFreePhotos: Long
     val totalPromotedPhotos: Long
     val totalIllustrations: Long
+    val totalFreeIllustrations: Long
     val totalPromotedIllustrations: Long
     val acceptedTos: Boolean
     val forHire: Boolean

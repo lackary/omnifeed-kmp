@@ -52,6 +52,11 @@ internal object ApiKeys {
         const val FIRST_NAME = "first_name"
         const val LAST_NAME = "last_name"
         const val NUMERIC_ID = "numeric_id"
+        const val UPLOADS_REMAINING = "uploads_remaining"
+        const val UNLIMITED_UPLOADS = "unlimited_uploads"
+        const val DMCA_VERIFICATION = "dmca_verification"
+        const val UNREAD_IN_APP_NOTIFICATIONS = "unread_in_app_notifications"
+        const val UNREAD_HIGHLIGHT_NOTIFICATIONS = "unread_highlight_notifications"
     }
 
     object Photo {
@@ -94,8 +99,10 @@ internal object ApiKeys {
         const val TOTAL_COLLECTIONS = "total_collections"
         const val TOTAL_LIKES = "total_likes"
         const val TOTAL_PHOTOS = "total_photos"
+        const val TOTAL_FREE_PHOTOS = "total_free_photos"
         const val TOTAL_PROMOTED_PHOTOS = "total_promoted_photos"
         const val TOTAL_ILLUSTRATIONS = "total_illustrations"
+        const val TOTAL_FREE_ILLUSTRATIONS = "total_free_illustrations"
         const val TOTAL_PROMOTED_ILLUSTRATIONS = "total_promoted_illustrations"
     }
 
