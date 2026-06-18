@@ -76,6 +76,7 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
     }
 
     const thirdPartyUser = await verifyResponse.json();
+    logger.debug(`Third party user data received: ${JSON.stringify(thirdPartyUser)}`);
     const thirdPartyId = thirdPartyUser.id;
     const uid = `custom:${providerTag}:${thirdPartyId}`;
 
