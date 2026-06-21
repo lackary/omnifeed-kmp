@@ -85,6 +85,8 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
     const displayName = thirdPartyUser.name || thirdPartyUser.username || thirdPartyUser.login;
     const photoURL = thirdPartyUser.profile_image?.large || thirdPartyUser.avatar_url || null;
 
+    let firebaseUid = uid;
+
     // 1. Create or Update user record in Firebase Auth to ensure info shows in Console
     try {
       await getAuth().getUser(uid);
@@ -96,14 +98,25 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
       });
     } catch (error: any) {
       if (error.code === "auth/user-not-found") {
-        // User doesn't exist, create it
-        await getAuth().createUser({
-          uid: uid,
-          email: email || undefined,
-          displayName: displayName || undefined,
-          photoURL: photoURL || undefined
-        });
-        logger.info(`Created new Firebase user record for ${uid}`);
+        try {
+          // User doesn't exist, create it
+          await getAuth().createUser({
+            uid: uid,
+            email: email || undefined,
+            displayName: displayName || undefined,
+            photoURL: photoURL || undefined
+          });
+          logger.info(`Created new Firebase user record for ${uid}`);
+        } catch (createError: any) {
+          if (createError.code === "auth/email-already-exists" && email) {
+            // Email already exists under a different UID (e.g. Google login)
+            const existingUser = await getAuth().getUserByEmail(email);
+            firebaseUid = existingUser.uid;
+            logger.info(`Email ${email} already exists. Mapping to existing user ${firebaseUid}`);
+          } else {
+            throw createError;
+          }
+        }
       } else {
         throw error;
       }
@@ -115,7 +128,7 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
       username: thirdPartyUser.username || thirdPartyUser.login,
     };
 
-    const customToken = await getAuth().createCustomToken(uid, additionalClaims);
+    const customToken = await getAuth().createCustomToken(firebaseUid, additionalClaims);
 
     logger.info(`Successfully generated Custom Token for user ${uid}`);
     res.json({custom_token: customToken});
