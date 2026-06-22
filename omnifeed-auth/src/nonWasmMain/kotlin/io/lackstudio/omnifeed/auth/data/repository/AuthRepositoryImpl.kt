@@ -46,6 +46,7 @@ class AuthRepositoryImpl(
     init {
         // Load user from persistent storage (used for platforms like JVM with REST fallback)
         manualUser.value = loadAuthUser()
+        logger.d { "init: manualUser=${manualUser.value?.id}" }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,18 +54,24 @@ class AuthRepositoryImpl(
         firebaseAuth.authStateChanged,
         manualUser
     ) { sdkUser, manualUser ->
-        logger.d { "currentUser: sdkUser=${sdkUser?.uid}, manualUser=${manualUser?.id}" }
+        logger.d { "currentUser combine: sdkUser=${sdkUser?.uid}, manualUser=${manualUser?.id}" }
         sdkUser ?: manualUser
     }.flatMapLatest { user ->
-        if (user == null) return@flatMapLatest flowOf(null)
+        if (user == null) {
+            logger.d { "currentUser flatMapLatest: user is null" }
+            return@flatMapLatest flowOf(null)
+        }
         
         val uid = if (user is FirebaseUser) user.uid else (user as User).id
+        logger.d { "currentUser flatMapLatest: user identified as $uid, listening to Firestore..." }
         
         // Listen to Firestore for all configured custom services
         firestore.collection("users").document(uid).snapshots().map { snapshot ->
             val linkedStatus = customServices.mapValues { (_, config) ->
                 try {
-                    snapshot.get<Boolean>(config.linkedField)
+                    val isLinked = snapshot.get<Boolean>(config.linkedField)
+                    logger.v { "Service link status: ${config.linkedField} = $isLinked" }
+                    isLinked
                 } catch (e: Exception) {
                     false
                 }
@@ -121,13 +128,16 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun signInWithCustomService(serviceName: String, accessToken: String): Result<User> {
+        logger.d { "signInWithCustomService: serviceName=$serviceName" }
         return try {
             val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
             
             // 1. Get Firebase Custom Token from your backend, passing the serviceName as provider
+            logger.i { "Fetching custom token from ${config.authEndpoint}" }
             val customToken = fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
             
             // 2. Sign in to Firebase with the custom token
+            logger.i { "Signing in with custom token..." }
             val result = firebaseAuth.signInWithCustomToken(customToken)
             val user = result.user?.toDomain() ?: throw Exception("Custom service login failed: User is null")
             
@@ -143,8 +153,10 @@ class AuthRepositoryImpl(
             firestore.collection("users").document(finalUser.id)
                 .set(mapOf(config.linkedField to true), merge = true)
             
+            logger.i { "signInWithCustomService SUCCESS for user ${finalUser.id}" }
             Result.success(finalUser)
         } catch (e: Exception) {
+            logger.e(e) { "signInWithCustomService FAILED" }
             Result.failure(e)
         }
     }
@@ -196,15 +208,28 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun linkWithCustomService(serviceName: String, accessToken: String): Result<User> {
+        logger.d { "linkWithCustomService: serviceName=$serviceName" }
         return try {
             val user = currentUser.first() ?: throw Exception("No user logged in to link with")
             val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
             
-            // 1. Update cloud
+            // 1. Notify backend / Verify token
+            logger.i { "Verifying token with backend to trigger linking logic: ${config.authEndpoint}" }
+            try {
+                // We call the auth endpoint to verify the token and trigger backend logic/logs
+                fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
+                logger.d { "Backend verification SUCCESS" }
+            } catch (e: Exception) {
+                logger.e(e) { "Backend verification FAILED" }
+                throw e
+            }
+
+            // 2. Update cloud
+            logger.d { "Updating Firestore for user: ${user.id}" }
             firestore.collection("users").document(user.id)
                 .set(mapOf(config.linkedField to true), merge = true)
             
-            // 2. Update local state
+            // 3. Update local state
             val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
                 put(serviceName, true)
             }
@@ -212,8 +237,10 @@ class AuthRepositoryImpl(
             manualUser.value = updatedUser
             saveAuthUser(updatedUser)
 
+            logger.i { "linkWithCustomService SUCCESS for user ${updatedUser.id}" }
             Result.success(updatedUser)
         } catch (e: Exception) {
+            logger.e(e) { "linkWithCustomService FAILED" }
             Result.failure(e)
         }
     }
