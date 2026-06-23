@@ -55,7 +55,11 @@ class AuthRepositoryImpl(
         manualUser
     ) { sdkUser, manualUser ->
         logger.d { "currentUser combine: sdkUser=${sdkUser?.uid}, manualUser=${manualUser?.id}" }
-        sdkUser ?: manualUser
+        
+        // Filter out partially initialized SDK users (empty UID) which can happen on some platforms during login
+        val validSdkUser = if (sdkUser != null && sdkUser.uid.isValidUid()) sdkUser else null
+        
+        validSdkUser ?: manualUser
     }.flatMapLatest { user ->
         if (user == null) {
             logger.d { "currentUser flatMapLatest: user is null" }
@@ -63,6 +67,11 @@ class AuthRepositoryImpl(
         }
         
         val uid = if (user is FirebaseUser) user.uid else (user as User).id
+        if (!uid.isValidUid()) {
+            logger.w { "currentUser flatMapLatest: uid is invalid ($uid), skipping Firestore sync" }
+            val domainUser = if (user is FirebaseUser) user.toDomain() else user as User
+            return@flatMapLatest flowOf(domainUser)
+        }
         logger.d { "currentUser flatMapLatest: user identified as $uid, listening to Firestore..." }
         
         // Listen to Firestore for all configured custom services
@@ -139,7 +148,9 @@ class AuthRepositoryImpl(
             // 2. Sign in to Firebase with the custom token
             logger.i { "Signing in with custom token..." }
             val result = firebaseAuth.signInWithCustomToken(customToken)
-            val user = result.user?.toDomain() ?: throw Exception("Custom service login failed: User is null")
+            val fbUser = result.user
+            logger.d { "signInWithCustomToken: result user uid = ${fbUser?.uid}" }
+            val user = fbUser?.toDomain() ?: throw Exception("Custom service login failed: User is null")
             
             // 3. Update status in local map
             val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
@@ -150,8 +161,13 @@ class AuthRepositoryImpl(
             // 4. Update local state and Firestore
             manualUser.value = finalUser
             saveAuthUser(finalUser)
-            firestore.collection("users").document(finalUser.id)
-                .set(mapOf(config.linkedField to true), merge = true)
+            if (finalUser.id.isValidUid()) {
+                logger.d { "signInWithCustomService: updating Firestore for user ${finalUser.id}" }
+                firestore.collection("users").document(finalUser.id)
+                    .set(mapOf(config.linkedField to true), merge = true)
+            } else {
+                logger.w { "signInWithCustomService: user ID is invalid (${finalUser.id}), skipping Firestore update" }
+            }
             
             logger.i { "signInWithCustomService SUCCESS for user ${finalUser.id}" }
             Result.success(finalUser)
@@ -225,9 +241,13 @@ class AuthRepositoryImpl(
             }
 
             // 2. Update cloud
-            logger.d { "Updating Firestore for user: ${user.id}" }
-            firestore.collection("users").document(user.id)
-                .set(mapOf(config.linkedField to true), merge = true)
+            if (user.id.isValidUid()) {
+                logger.d { "Updating Firestore for user: ${user.id}" }
+                firestore.collection("users").document(user.id)
+                    .set(mapOf(config.linkedField to true), merge = true)
+            } else {
+                logger.w { "linkWithCustomService: user ID is invalid, skipping Firestore update" }
+            }
             
             // 3. Update local state
             val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
@@ -251,8 +271,12 @@ class AuthRepositoryImpl(
             val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
             
             // 1. Remove link status from cloud
-            firestore.collection("users").document(user.id)
-                .set(mapOf(config.linkedField to false), merge = true)
+            if (user.id.isValidUid()) {
+                firestore.collection("users").document(user.id)
+                    .set(mapOf(config.linkedField to false), merge = true)
+            } else {
+                logger.w { "unlinkCustomService: user ID is invalid, skipping Firestore update" }
+            }
             
             // 2. Update local state
             val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
@@ -411,10 +435,10 @@ class AuthRepositoryImpl(
             }
 
             val uid = sdkUser?.uid ?: manualUserValue?.id
-            if (uid != null) {
+            if (uid.isValidUid()) {
                 try {
                     logger.d { "Attempting to delete Firestore document for user: $uid" }
-                    firestore.collection("users").document(uid).delete()
+                    firestore.collection("users").document(uid!!).delete()
                     logger.d { "Firestore document deleted SUCCESS" }
                 } catch (e: Exception) {
                     logger.w(throwable = e) { "Failed to delete Firestore document: ${e.message}" }
@@ -511,5 +535,9 @@ class AuthRepositoryImpl(
             photoUrl = photoURL,
             isGoogleLinked = googleLinked
         )
+    }
+
+    private fun String?.isValidUid(): Boolean {
+        return this != null && this.isNotBlank() && this.length > 5
     }
 }
