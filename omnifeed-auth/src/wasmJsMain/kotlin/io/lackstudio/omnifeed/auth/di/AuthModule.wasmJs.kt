@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.auth.di
 
+import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.auth.domain.usecase.DeleteAccountUseCase
@@ -34,7 +35,10 @@ actual val omnifeedAuthModule: Module = module {
             override suspend fun linkWithEmail(email: String, password: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
             override suspend fun updatePassword(newPassword: String): Result<Unit> = Result.failure(Exception("Not implemented on WasmJs"))
             override suspend fun unlinkProvider(providerId: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun signOut() {}
+            override suspend fun signOut() {
+                val authManager = getOrNull<AuthManager>()
+                authManager?.signOut()
+            }
             override suspend fun deleteAccount(): Result<Unit> = Result.failure(Exception("Not implemented on WasmJs"))
         }
     }

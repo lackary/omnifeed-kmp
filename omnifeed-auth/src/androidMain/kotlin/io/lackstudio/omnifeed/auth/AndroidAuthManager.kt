@@ -75,6 +75,10 @@ class AndroidAuthManager(private val context: Context) : AuthManager {
         }
     }
 
+    override suspend fun signOut() {
+        // No additional cleanup needed for Credential Manager on Android for now
+    }
+
     private fun Context.findActivity(): Activity? {
         var context = this
         while (context is ContextWrapper) {

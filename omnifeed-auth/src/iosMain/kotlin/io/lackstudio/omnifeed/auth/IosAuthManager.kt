@@ -64,6 +64,11 @@ class IosAuthManager : AuthManager {
             }
         }
 
+    @OptIn(ExperimentalForeignApi::class)
+    override suspend fun signOut() {
+        GIDSignIn.sharedInstance.signOut()
+    }
+
     private fun getRootViewController(): UIViewController? {
         val keyWindow = UIApplication.sharedApplication.windows.asSequence()
             .mapNotNull { it as? UIWindow }

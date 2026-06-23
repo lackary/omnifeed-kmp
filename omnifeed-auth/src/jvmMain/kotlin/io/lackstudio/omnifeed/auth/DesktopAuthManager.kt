@@ -157,4 +157,8 @@ class DesktopAuthManager : AuthManager {
 
         return deferred.await()
     }
+
+    override suspend fun signOut() {
+        cleanup()
+    }
 }

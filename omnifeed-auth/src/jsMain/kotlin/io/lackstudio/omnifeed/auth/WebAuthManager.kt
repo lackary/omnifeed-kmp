@@ -103,6 +103,31 @@ class WebAuthManager : AuthManager {
         }
     }
 
+    override suspend fun signOut() {
+        logger.d { "signOut: Clearing all cookies and storage" }
+        try {
+            // 1. Clear Google state cookie specifically
+            clearGoogleStateCookie()
+
+            // 2. Clear all cookies for the current domain
+            val document = window.document
+            val cookies = document.cookie.split(";")
+            for (cookie in cookies) {
+                val name = cookie.split("=").firstOrNull()?.trim()
+                if (!name.isNullOrEmpty()) {
+                    document.cookie = "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;"
+                }
+            }
+
+            // 3. Clear Storage
+            window.localStorage.clear()
+            window.sessionStorage.clear()
+            
+        } catch (e: Exception) {
+            logger.w { "Error during WebAuthManager signOut: ${e.message}" }
+        }
+    }
+
     private fun clearGoogleStateCookie() {
         try {
             // Google Identity Services sets the g_state cookie after a user dismisses the prompt.

@@ -29,7 +29,8 @@ actual val omnifeedAuthModule: Module = module {
         AuthRepositoryImpl(
             firebaseAuth = get(),
             firestore = get(),
-            customServices = config.customServices
+            customServices = config.customServices,
+            authManager = get()
         )
     }
     factory { SignInWithEmailUseCase(get()) }

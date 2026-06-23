@@ -10,6 +10,7 @@ import io.lackstudio.omnifeed.auth.data.model.request.SignInWithIdpRequest
 import io.lackstudio.omnifeed.auth.data.model.request.DeleteAccountRequest
 import io.lackstudio.omnifeed.auth.data.model.response.SignInWithIdpResponse
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
+import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnifeed.auth.platform.firebaseApiKey
 import io.lackstudio.omnifeed.auth.platform.loadAuthUser
 import io.lackstudio.omnifeed.auth.platform.saveAuthUser
@@ -37,7 +38,8 @@ import kotlinx.serialization.json.Json
 class AuthRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val customServices: Map<String, CustomServiceConfig> = emptyMap()
+    private val customServices: Map<String, CustomServiceConfig> = emptyMap(),
+    private val authManager: AuthManager? = null
 ) : AuthRepository {
 
     private val logger = Logger.withTag("AuthRepositoryImpl")
@@ -421,6 +423,7 @@ class AuthRepositoryImpl(
         manualUser.value = null
         saveAuthUser(null)
         firebaseAuth.signOut()
+        authManager?.signOut()
     }
 
     override suspend fun deleteAccount(): Result<Unit> {
