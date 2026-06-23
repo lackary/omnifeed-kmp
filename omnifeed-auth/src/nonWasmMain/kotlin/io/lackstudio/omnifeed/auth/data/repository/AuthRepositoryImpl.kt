@@ -7,8 +7,12 @@ import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.data.model.request.SignInWithIdpRequest
+import io.lackstudio.omnifeed.auth.data.model.request.SignInWithCustomTokenRequest
+import io.lackstudio.omnifeed.auth.data.model.request.LookupRequest
 import io.lackstudio.omnifeed.auth.data.model.request.DeleteAccountRequest
 import io.lackstudio.omnifeed.auth.data.model.response.SignInWithIdpResponse
+import io.lackstudio.omnifeed.auth.data.model.response.SignInWithCustomTokenResponse
+import io.lackstudio.omnifeed.auth.data.model.response.LookupResponse
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnifeed.auth.platform.firebaseApiKey
@@ -78,21 +82,34 @@ class AuthRepositoryImpl(
         
         // Listen to Firestore for all configured custom services
         firestore.collection("users").document(uid).snapshots().map { snapshot ->
+            logger.d { "currentUser Firestore snapshot for $uid: exists=${snapshot.exists}" }
             val linkedStatus = customServices.mapValues { (_, config) ->
                 try {
-                    val isLinked = snapshot.get<Boolean>(config.linkedField)
-                    logger.v { "Service link status: ${config.linkedField} = $isLinked" }
-                    isLinked
+                    val status = snapshot.get<Boolean>(config.linkedField)
+                    logger.v { "Service ${config.linkedField} status: $status" }
+                    status
                 } catch (e: Exception) {
                     false
                 }
             }
 
-            if (user is FirebaseUser) {
-                user.toDomain().copy(customLinkedServices = linkedStatus)
-            } else {
-                (user as User).copy(customLinkedServices = linkedStatus)
-            }
+            val firestoreDisplayName = try { snapshot.get<String?>("displayName") } catch (e: Exception) { null }
+            val firestoreEmail = try { snapshot.get<String?>("email") } catch (e: Exception) { null }
+            val firestorePhotoUrl = try { snapshot.get<String?>("photoUrl") } catch (e: Exception) { null }
+            val firestoreGoogleLinked = try { snapshot.get<Boolean?>("isGoogleLinked") ?: false } catch (e: Exception) { false }
+            
+            logger.d { "Firestore sync values: name=$firestoreDisplayName, email=$firestoreEmail, googleLinked=$firestoreGoogleLinked" }
+
+            val domainUser = if (user is FirebaseUser) user.toDomain() else user as User
+            val finalUser = domainUser.copy(
+                customLinkedServices = linkedStatus,
+                displayName = domainUser.displayName.takeIf { !it.isNullOrBlank() } ?: firestoreDisplayName,
+                email = domainUser.email.takeIf { !it.isNullOrBlank() } ?: firestoreEmail,
+                photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() } ?: firestorePhotoUrl,
+                isGoogleLinked = domainUser.isGoogleLinked || firestoreGoogleLinked
+            )
+            logger.d { "currentUser final: name=${finalUser.displayName}, email=${finalUser.email}, googleLinked=${finalUser.isGoogleLinked}" }
+            finalUser
         }
     }
 
@@ -100,6 +117,7 @@ class AuthRepositoryImpl(
         return try {
             val result = firebaseAuth.signInWithEmailAndPassword(email, password)
             val user = result.user?.toDomain() ?: throw Exception("Login failed: User is null")
+            saveUserToFirestore(user)
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -116,7 +134,9 @@ class AuthRepositoryImpl(
                 firebaseUser.updateProfile(displayName = displayName)
             }
             
-            Result.success(firebaseUser.toDomain())
+            val user = firebaseUser.toDomain()
+            saveUserToFirestore(user)
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -127,6 +147,7 @@ class AuthRepositoryImpl(
             val credential = GoogleAuthProvider.credential(idToken, accessToken)
             val result = firebaseAuth.signInWithCredential(credential)
             val user = result.user?.toDomain() ?: throw Exception("Google login failed: User is null")
+            saveUserToFirestore(user)
             Result.success(user)
         } catch (e: Throwable) {
             // Handle cases where the platform SDK doesn't implement certain methods (e.g., JVM)
@@ -152,7 +173,14 @@ class AuthRepositoryImpl(
             val result = firebaseAuth.signInWithCustomToken(customToken)
             val fbUser = result.user
             logger.d { "signInWithCustomToken: result user uid = ${fbUser?.uid}" }
-            val user = fbUser?.toDomain() ?: throw Exception("Custom service login failed: User is null")
+            
+            // Check if SDK failed to provide a UID (common on JVM)
+            if (fbUser == null || !fbUser.uid.isValidUid()) {
+                logger.w { "SDK returned invalid/empty UID (${fbUser?.uid}), falling back to REST sign-in..." }
+                return signInWithCustomTokenRest(customToken, serviceName)
+            }
+            
+            val user = fbUser.toDomain()
             
             // 3. Update status in local map
             val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
@@ -161,6 +189,7 @@ class AuthRepositoryImpl(
             val finalUser = user.copy(customLinkedServices = updatedLinkedServices)
             
             // 4. Update local state and Firestore
+            saveUserToFirestore(finalUser)
             manualUser.value = finalUser
             saveAuthUser(finalUser)
             if (finalUser.id.isValidUid()) {
@@ -211,6 +240,7 @@ class AuthRepositoryImpl(
             
             // Force set as linked and update manual state if exists
             val finalUser = linkedUser.copy(isGoogleLinked = true)
+            saveUserToFirestore(finalUser)
             manualUser.value = finalUser
             saveAuthUser(finalUser)
             
@@ -256,6 +286,7 @@ class AuthRepositoryImpl(
                 put(serviceName, true)
             }
             val updatedUser = user.copy(customLinkedServices = updatedLinkedServices)
+            saveUserToFirestore(updatedUser)
             manualUser.value = updatedUser
             saveAuthUser(updatedUser)
 
@@ -367,6 +398,7 @@ class AuthRepositoryImpl(
                 idToken = resultData.idToken
             )
 
+            saveUserToFirestore(user)
             manualUser.value = user
             saveAuthUser(user)
             Result.success(user)
@@ -411,8 +443,74 @@ class AuthRepositoryImpl(
             )
 
             // Update manual user state for platforms with limited SDK (e.g. JVM)
+            saveUserToFirestore(user)
             manualUser.value = user
             saveAuthUser(user)
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun signInWithCustomTokenRest(customToken: String, serviceName: String): Result<User> {
+        return try {
+            val apiKey = firebaseApiKey ?: throw Exception("Firebase API Key not found")
+            val httpClient = HttpClient {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+            }
+
+            val response = httpClient.post("https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=$apiKey") {
+                contentType(ContentType.Application.Json)
+                setBody(SignInWithCustomTokenRequest(token = customToken))
+            }
+
+            if (response.status.value != 200) {
+                val errorBody = response.body<String>()
+                throw Exception("Firebase REST Custom Token failed (${response.status}): $errorBody")
+            }
+
+            val resultData = response.body<SignInWithCustomTokenResponse>()
+            val firebaseIdToken = resultData.idToken ?: throw Exception("REST login failed: idToken is null")
+
+            // 2. lookup user info to get localId (UID)
+            val lookupResponse = httpClient.post("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=$apiKey") {
+                contentType(ContentType.Application.Json)
+                setBody(LookupRequest(idToken = firebaseIdToken))
+            }
+
+            if (lookupResponse.status.value != 200) {
+                val errorBody = lookupResponse.body<String>()
+                throw Exception("Firebase REST Lookup failed (${lookupResponse.status}): $errorBody")
+            }
+
+            val lookupData = lookupResponse.body<LookupResponse>()
+            val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST login failed: No user info found")
+            val uid = userInfo.localId
+
+            val user = User(
+                id = uid,
+                email = userInfo.email,
+                displayName = userInfo.displayName,
+                photoUrl = userInfo.photoUrl,
+                isGoogleLinked = userInfo.providerUserInfo.any { it.providerId == "google.com" },
+                customLinkedServices = mapOf(serviceName to true),
+                idToken = firebaseIdToken
+            )
+
+            // Update manual user state
+            saveUserToFirestore(user)
+            manualUser.value = user
+            saveAuthUser(user)
+            
+            // Still try to let the SDK know so authStateChanged might trigger (best effort)
+            try {
+                firebaseAuth.signInWithCustomToken(customToken)
+            } catch (e: Exception) {
+                logger.w { "Silent SDK sign-in failed: ${e.message}" }
+            }
+
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -521,6 +619,29 @@ class AuthRepositoryImpl(
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private suspend fun saveUserToFirestore(user: User) {
+        if (user.id.isValidUid()) {
+            try {
+                val data = mutableMapOf<String, Any?>()
+                user.displayName?.let { data["displayName"] = it }
+                user.email?.let { data["email"] = it }
+                user.photoUrl?.let { data["photoUrl"] = it }
+                
+                // Only update isGoogleLinked if it's true to avoid overwriting existing true with false on JVM
+                if (user.isGoogleLinked) {
+                    data["isGoogleLinked"] = true
+                }
+                
+                if (data.isNotEmpty()) {
+                    logger.d { "Saving user profile to Firestore for ${user.id}: $data" }
+                    firestore.collection("users").document(user.id).set(data, merge = true)
+                }
+            } catch (e: Exception) {
+                logger.w(e) { "Failed to sync user profile to Firestore" }
+            }
         }
     }
 
