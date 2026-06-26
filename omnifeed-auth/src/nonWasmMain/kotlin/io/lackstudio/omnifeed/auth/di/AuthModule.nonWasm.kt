@@ -4,6 +4,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.firestore
 import io.lackstudio.omnifeed.auth.data.repository.AuthRepositoryImpl
+import io.lackstudio.omnifeed.auth.data.storage.KSafeLocalStorage
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.auth.domain.usecase.DeleteAccountUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithEmailUseCase
@@ -18,18 +19,22 @@ import io.lackstudio.omnifeed.auth.domain.usecase.SignUpWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignOutUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.UnlinkProviderUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.UpdatePasswordUseCase
+import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
+import io.lackstudio.omnifeed.core.OmniFeedConfig
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
 actual val omnifeedAuthModule: Module = module {
+    includes(authLocalModule)
     single { Firebase.auth }
     single { Firebase.firestore }
     single<AuthRepository> {
-        val config = get<io.lackstudio.omnifeed.core.OmniFeedConfig>()
+        val config = get<OmniFeedConfig>()
         AuthRepositoryImpl(
             firebaseAuth = get(),
             firestore = get(),
             customServices = config.customServices,
+            firebaseLocalStorage = get(),
             authManager = get()
         )
     }

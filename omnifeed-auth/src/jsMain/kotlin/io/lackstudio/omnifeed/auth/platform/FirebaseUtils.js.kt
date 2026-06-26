@@ -4,6 +4,8 @@ import co.touchlab.kermit.Logger
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
+import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
+import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.utils.GoogleServiceWeb
 import io.lackstudio.omnifeed.core.utils.base64ToJson
 
@@ -17,13 +19,12 @@ internal val logger = Logger.withTag("FirebaseUtils")
  * This function decodes a Base64-encoded JSON string into a [GoogleServiceWeb] object
  * to configure the Firebase options including API key, project ID, and application ID.
  *
- * @param preferencesPathName This parameter is not utilized in the JS implementation.
- * @param firebaseConfig A Base64-encoded JSON string containing the Firebase web configuration.
+ * @param [firebaseConfig] A Base64-encoded JSON string containing the Firebase web configuration.
+ * @param [localStorage] This parameter is not utilized in the JS implementation.
  * If null or invalid, initialization is skipped.
  */
-actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: String?) {
+actual fun initializeFirebase(firebaseConfig: String?, localStorage: LocalStorage?) {
     if (firebaseConfig == null) {
-
         return
     }
     val config = base64ToJson<GoogleServiceWeb>(firebaseConfig)
@@ -44,6 +45,3 @@ actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: Stri
 }
 
 actual val firebaseApiKey: String? = null
-
-actual fun saveAuthUser(user: io.lackstudio.omnifeed.auth.domain.model.User?) {}
-actual fun loadAuthUser(): io.lackstudio.omnifeed.auth.domain.model.User? = null

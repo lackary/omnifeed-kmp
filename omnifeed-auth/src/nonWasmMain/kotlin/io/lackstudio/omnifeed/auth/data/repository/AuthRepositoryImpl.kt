@@ -16,8 +16,6 @@ import io.lackstudio.omnifeed.auth.data.model.response.LookupResponse
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnifeed.auth.platform.firebaseApiKey
-import io.lackstudio.omnifeed.auth.platform.loadAuthUser
-import io.lackstudio.omnifeed.auth.platform.saveAuthUser
 import io.lackstudio.omnifeed.core.CustomServiceConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -28,6 +26,9 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import co.touchlab.kermit.Logger
+import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
+import io.lackstudio.omnifeed.auth.data.storage.getFireBaseAuth
+import io.lackstudio.omnifeed.auth.data.storage.saveFirebaseAuth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +43,7 @@ import kotlinx.serialization.json.Json
 class AuthRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
+    private val firebaseLocalStorage: LocalStorage,
     private val customServices: Map<String, CustomServiceConfig> = emptyMap(),
     private val authManager: AuthManager? = null
 ) : AuthRepository {
@@ -50,9 +52,30 @@ class AuthRepositoryImpl(
     private val manualUser = MutableStateFlow<User?>(null)
 
     init {
-        // Load user from persistent storage (used for platforms like JVM with REST fallback)
-        manualUser.value = loadAuthUser()
-        logger.d { "init: manualUser=${manualUser.value?.id}" }
+        // Load user from persistent storage
+        try {
+            //
+            val user = firebaseLocalStorage.getFireBaseAuth()
+            manualUser.value = user
+            logger.d { "init: manualUser detected from storage: ${user?.id} (Name: ${user?.displayName})" }
+        } catch (e: Exception) {
+            logger.e(e) { "init: Failed to load manualUser from storage" }
+        }
+    }
+
+    // For JVM platform-specific used
+    private fun saveLocalUser(user: User?) {
+        manualUser.value = user
+        firebaseLocalStorage.saveFirebaseAuth(user)
+        
+        // Verification: Read back from KSafe immediately
+        val savedUser =
+            firebaseLocalStorage.getFireBaseAuth()
+        if (user != null) {
+            logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id}, Name=${savedUser?.displayName}" }
+        } else {
+            logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id} (Deleted)" }
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -190,8 +213,8 @@ class AuthRepositoryImpl(
             
             // 4. Update local state and Firestore
             saveUserToFirestore(finalUser)
-            manualUser.value = finalUser
-            saveAuthUser(finalUser)
+            saveLocalUser(finalUser)
+
             if (finalUser.id.isValidUid()) {
                 logger.d { "signInWithCustomService: updating Firestore for user ${finalUser.id}" }
                 firestore.collection("users").document(finalUser.id)
@@ -241,8 +264,7 @@ class AuthRepositoryImpl(
             // Force set as linked and update manual state if exists
             val finalUser = linkedUser.copy(isGoogleLinked = true)
             saveUserToFirestore(finalUser)
-            manualUser.value = finalUser
-            saveAuthUser(finalUser)
+            saveLocalUser(finalUser)
             
             Result.success(finalUser)
         } catch (e: Throwable) {
@@ -287,9 +309,7 @@ class AuthRepositoryImpl(
             }
             val updatedUser = user.copy(customLinkedServices = updatedLinkedServices)
             saveUserToFirestore(updatedUser)
-            manualUser.value = updatedUser
-            saveAuthUser(updatedUser)
-
+            saveLocalUser(updatedUser)
             logger.i { "linkWithCustomService SUCCESS for user ${updatedUser.id}" }
             Result.success(updatedUser)
         } catch (e: Exception) {
@@ -316,8 +336,7 @@ class AuthRepositoryImpl(
                 put(serviceName, false)
             }
             val updatedUser = user.copy(customLinkedServices = updatedLinkedServices)
-            manualUser.value = updatedUser
-            saveAuthUser(updatedUser)
+            saveLocalUser(updatedUser)
             
             Result.success(updatedUser)
         } catch (e: Exception) {
@@ -399,8 +418,7 @@ class AuthRepositoryImpl(
             )
 
             saveUserToFirestore(user)
-            manualUser.value = user
-            saveAuthUser(user)
+            saveLocalUser(user)
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -444,8 +462,7 @@ class AuthRepositoryImpl(
 
             // Update manual user state for platforms with limited SDK (e.g. JVM)
             saveUserToFirestore(user)
-            manualUser.value = user
-            saveAuthUser(user)
+            saveLocalUser(user)
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -501,9 +518,8 @@ class AuthRepositoryImpl(
 
             // Update manual user state
             saveUserToFirestore(user)
-            manualUser.value = user
-            saveAuthUser(user)
-            
+            saveLocalUser(user)
+
             // Still try to let the SDK know so authStateChanged might trigger (best effort)
             try {
                 firebaseAuth.signInWithCustomToken(customToken)
@@ -518,8 +534,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun signOut() {
-        manualUser.value = null
-        saveAuthUser(null)
+        saveLocalUser(null)
         firebaseAuth.signOut()
         authManager?.signOut()
     }
@@ -575,8 +590,7 @@ class AuthRepositoryImpl(
 
             // Clear manual user state for platforms like JVM
             logger.d { "Clearing manualUser and saving null" }
-            manualUser.value = null
-            saveAuthUser(null)
+            saveLocalUser(null)
             
             // Also trigger a sign out to ensure SDK state is cleared and authStateChanged emits null
             try {

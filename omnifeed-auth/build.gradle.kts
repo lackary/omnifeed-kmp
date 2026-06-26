@@ -109,6 +109,7 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.omnifeedCore)
             api(libs.koin.core)
+            api(libs.anifantakis.ksafe)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -123,6 +124,7 @@ kotlin {
             implementation(libs.google.gms.play.service.auth)
             implementation(libs.google.googleid)
             implementation(libs.androidx.core.ktx)
+            implementation(libs.koin.android)
         }
 
         webMain.dependencies {

@@ -6,14 +6,11 @@ import com.google.firebase.FirebasePlatform
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
+import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.utils.GoogleServiceWeb
 import io.lackstudio.omnifeed.core.utils.base64ToJson
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.util.prefs.BackingStoreException
-import java.util.prefs.Preferences
-
 
 @PublishedApi
 internal val logger = Logger.withTag("FirebaseUtils")
@@ -24,49 +21,47 @@ internal val logger = Logger.withTag("FirebaseUtils")
 private var _firebaseApiKey: String? = null
 actual val firebaseApiKey: String? get() = _firebaseApiKey
 
-private var _preferencesPathName: String? = null
+private var _localStorage: LocalStorage? = null
 
 /**
  *  Initializes the Firebase SDK for the JVM platform using the provided configuration.
  *
- * This function sets up the [FirebasePlatform] using the Java Preferences API for persistent storage
+ * This function sets up the [FirebasePlatform] using KSafe for persistent storage
  * and initializes the Firebase SDK with the provided configuration.
  *
- * @param preferencesPathName The path name used for [java.util.prefs.Preferences] to store Firebase data.
- * @param firebaseConfig A Base64 encoded JSON string containing the Firebase configuration (GoogleServiceWeb).
+ * @param [firebaseConfig] A Base64 encoded JSON string containing the Firebase configuration (GoogleServiceWeb).
+ * @param [localStorage] The localsStorage was used for KSafe / the others storage to store Firebase data.
  */
-actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: String?) {
-    _preferencesPathName = preferencesPathName
+actual fun initializeFirebase(firebaseConfig: String?, localStorage: LocalStorage?) {
+    _localStorage = localStorage
     if (firebaseConfig == null) {
         logger.e { "firebaseConfig must have a value" }
         return
     }
-    // Desktop initialization can be added here if needed
+
+    if (localStorage == null) {
+        logger.e { "localStorage must not have a null" }
+        return
+    }
+    
     FirebasePlatform.initializeFirebasePlatform(
         object : FirebasePlatform() {
-            private val prefs = Preferences.userRoot().node(preferencesPathName)
-
             override fun store(key: String, value: String) {
-                prefs.put(key, value)
-                forceSyncToDisk()
+                localStorage.saveStringDirect(key, value)
             }
 
-            override fun retrieve(key: String): String? = prefs.get(key, null)
-
+            override fun retrieve(key: String): String? {
+                return try {
+                    localStorage.getStringDirectOrNull(key)
+                } catch (e: Exception) {
+                    null
+                }
+            }
             override fun clear(key: String) {
-                prefs.remove(key)
-                forceSyncToDisk()
+                localStorage.deleteDirect(key)
             }
 
             override fun log(msg: String) = logger.d { "Firebase JVM: $msg" }
-
-            private fun forceSyncToDisk() {
-                try {
-                    prefs.flush()
-                } catch (e: BackingStoreException) {
-                    logger.e(throwable = e) { "Failed to flush preferences to disk" }
-                }
-            }
         }
     )
 
@@ -86,38 +81,5 @@ actual fun initializeFirebase(preferencesPathName: String?, firebaseConfig: Stri
         logger.i { "Firebase JVM initialized successfully" }
     } else {
         logger.w { "Firebase JVM config not found" }
-    }
-}
-
-private const val AUTH_USER_KEY = "manual_auth_user"
-
-actual fun saveAuthUser(user: User?) {
-    val path = _preferencesPathName ?: return
-    val prefs = Preferences.userRoot().node(path)
-    if (user != null) {
-        try {
-            val json = Json.encodeToString(user)
-            prefs.put(AUTH_USER_KEY, json)
-            prefs.flush()
-        } catch (e: Exception) {
-            logger.e(throwable = e) { "Failed to save auth user" }
-        }
-    } else {
-        prefs.remove(AUTH_USER_KEY)
-        try {
-            prefs.flush()
-        } catch (e: Exception) {}
-    }
-}
-
-actual fun loadAuthUser(): User? {
-    val path = _preferencesPathName ?: return null
-    val prefs = Preferences.userRoot().node(path)
-    val json = prefs.get(AUTH_USER_KEY, null) ?: return null
-    return try {
-        Json.decodeFromString<User>(json)
-    } catch (e: Exception) {
-        logger.e(throwable = e) { "Failed to load auth user" }
-        null
     }
 }
