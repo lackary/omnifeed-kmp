@@ -15,6 +15,7 @@ import io.lackstudio.omnifeed.auth.data.model.response.SignInWithCustomTokenResp
 import io.lackstudio.omnifeed.auth.data.model.response.LookupResponse
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnifeed.auth.platform.firebaseApiKey
 import io.lackstudio.omnifeed.core.CustomServiceConfig
 import io.ktor.client.HttpClient
@@ -537,6 +538,7 @@ class AuthRepositoryImpl(
         saveLocalUser(null)
         firebaseAuth.signOut()
         authManager?.signOut()
+        DeepLinkBuffer.consumeDeepLink()
     }
 
     override suspend fun deleteAccount(): Result<Unit> {
