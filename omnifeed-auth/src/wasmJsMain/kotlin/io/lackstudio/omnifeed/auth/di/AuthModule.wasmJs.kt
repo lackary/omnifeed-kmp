@@ -3,6 +3,8 @@ package io.lackstudio.omnifeed.auth.di
 import eu.anifantakis.lib.ksafe.KSafe
 import eu.anifantakis.lib.ksafe.KSafeConfig
 import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSource
+import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSourceImpl
 import io.lackstudio.omnifeed.auth.data.storage.KSafeLocalStorage
 import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
 import io.lackstudio.omnifeed.auth.domain.model.User
@@ -23,15 +25,35 @@ import io.lackstudio.omnifeed.auth.domain.usecase.UpdatePasswordUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.koin.core.module.Module
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 actual val authLocalModule = module {
-    single<LocalStorage> {
+    // Firebase Storage
+    single<LocalStorage>(named("firebaseStorage")) {
         KSafeLocalStorage(
             KSafe(
                 fileName = FILENAME_OMNIFEED_AUTH_FIREBASE_TOKEN,
                 config = KSafeConfig(appNamespace = CONFIG_MODULE_NAMESPACE_OMNIFEED_AUTH)
             )
+        )
+    }
+
+    // Service Storage
+    single<LocalStorage>(named("serviceStorage")) {
+        KSafeLocalStorage(
+            KSafe(
+                fileName = FILENAME_OMNIFEED_AUTH_SERVICE_TOKEN,
+                config = KSafeConfig(appNamespace = CONFIG_MODULE_NAMESPACE_OMNIFEED_AUTH)
+            )
+        )
+    }
+
+    // AuthLocalDataSource
+    single<AuthLocalDataSource> {
+        AuthLocalDataSourceImpl(
+            firebaseStorage = get(named("firebaseStorage")),
+            serviceStorage = get(named("serviceStorage"))
         )
     }
 }

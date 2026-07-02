@@ -27,9 +27,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import co.touchlab.kermit.Logger
-import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
-import io.lackstudio.omnifeed.auth.data.storage.getFireBaseAuth
-import io.lackstudio.omnifeed.auth.data.storage.saveFirebaseAuth
+import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +42,7 @@ import kotlinx.serialization.json.Json
 class AuthRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val firebaseLocalStorage: LocalStorage,
+    private val localDataSource: AuthLocalDataSource,
     private val customServices: Map<String, CustomServiceConfig> = emptyMap(),
     private val authManager: AuthManager? = null
 ) : AuthRepository {
@@ -56,7 +54,7 @@ class AuthRepositoryImpl(
         // Load user from persistent storage
         try {
             //
-            val user = firebaseLocalStorage.getFireBaseAuth()
+            val user = localDataSource.getUser()
             manualUser.value = user
             logger.d { "init: manualUser detected from storage: ${user?.id} (Name: ${user?.displayName})" }
         } catch (e: Exception) {
@@ -67,11 +65,11 @@ class AuthRepositoryImpl(
     // For JVM platform-specific used
     private fun saveLocalUser(user: User?) {
         manualUser.value = user
-        firebaseLocalStorage.saveFirebaseAuth(user)
+        localDataSource.saveUser(user)
         
         // Verification: Read back from KSafe immediately
         val savedUser =
-            firebaseLocalStorage.getFireBaseAuth()
+            localDataSource.getUser()
         if (user != null) {
             logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id}, Name=${savedUser?.displayName}" }
         } else {
@@ -188,46 +186,66 @@ class AuthRepositoryImpl(
         return try {
             val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
             
-            // 1. Get Firebase Custom Token from your backend, passing the serviceName as provider
+            // 1. Get Firebase Custom Token from your backend
             logger.i { "Fetching custom token from ${config.authEndpoint}" }
             val customToken = fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
             
-            // 2. Sign in to Firebase with the custom token
-            logger.i { "Signing in with custom token..." }
-            val result = firebaseAuth.signInWithCustomToken(customToken)
-            val fbUser = result.user
-            logger.d { "signInWithCustomToken: result user uid = ${fbUser?.uid}" }
-            
-            // Check if SDK failed to provide a UID (common on JVM)
-            if (fbUser == null || !fbUser.uid.isValidUid()) {
-                logger.w { "SDK returned invalid/empty UID (${fbUser?.uid}), falling back to REST sign-in..." }
-                return signInWithCustomTokenRest(customToken, serviceName)
+            // 2. Sign in to Firebase (SDK or REST Fallback)
+            val loginResult = try {
+                val result = firebaseAuth.signInWithCustomToken(customToken)
+                val fbUser = result.user
+                
+                if (fbUser == null || !fbUser.uid.isValidUid()) {
+                    logger.w { "SDK returned invalid UID, falling back to REST..." }
+                    signInWithCustomTokenRest(customToken, serviceName, accessToken)
+                } else {
+                    Result.success(fbUser.toDomain())
+                }
+            } catch (e: Exception) {
+                logger.w { "SDK signIn failed, trying REST fallback: ${e.message}" }
+                signInWithCustomTokenRest(customToken, serviceName, accessToken)
             }
-            
-            val user = fbUser.toDomain()
-            
-            // 3. Update status in local map
-            val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
-                put(serviceName, true)
-            }
-            val finalUser = user.copy(customLinkedServices = updatedLinkedServices)
-            
-            // 4. Update local state and Firestore
-            saveUserToFirestore(finalUser)
-            saveLocalUser(finalUser)
 
-            if (finalUser.id.isValidUid()) {
-                logger.d { "signInWithCustomService: updating Firestore for user ${finalUser.id}" }
-                firestore.collection("users").document(finalUser.id)
-                    .set(mapOf(config.linkedField to true), merge = true)
-            } else {
-                logger.w { "signInWithCustomService: user ID is invalid (${finalUser.id}), skipping Firestore update" }
-            }
-            
-            logger.i { "signInWithCustomService SUCCESS for user ${finalUser.id}" }
-            Result.success(finalUser)
+            // 3. If login successful, update local state and save service token ONCE here
+            loginResult.fold(
+                onSuccess = { user ->
+                    // Update user info and Firestore
+                    val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
+                        put(serviceName, true)
+                    }
+                    val finalUser = user.copy(customLinkedServices = updatedLinkedServices)
+                    
+                    saveUserToFirestore(finalUser)
+                    saveLocalUser(finalUser)
+                    
+                    // Update Firestore sync field
+                    if (finalUser.id.isValidUid()) {
+                        firestore.collection("users").document(finalUser.id)
+                            .set(mapOf(config.linkedField to true), merge = true)
+                    }
+
+                    // Save the service token locally ONCE here
+                    localDataSource.saveServiceToken(finalUser.id, serviceName, accessToken)
+                    
+                    // Verification: Read back to ensure it's saved
+                    val savedToken = localDataSource.getServiceToken(finalUser.id, serviceName)
+                    if (savedToken == accessToken) {
+                        logger.i { "Verification SUCCESS: Service token for $serviceName saved and verified for user ${finalUser.id}." }
+                    } else {
+                        logger.e { "Verification FAILED: Service token for $serviceName mismatch or not found!" }
+                    }
+                    
+                    logger.i { "signInWithCustomService SUCCESS: user ${finalUser.id}" }
+                    
+                    Result.success(finalUser)
+                },
+                onFailure = { e ->
+                    logger.e(e) { "signInWithCustomService FAILED" }
+                    Result.failure(e)
+                }
+            )
         } catch (e: Exception) {
-            logger.e(e) { "signInWithCustomService FAILED" }
+            logger.e(e) { "signInWithCustomService FAILED during token fetch" }
             Result.failure(e)
         }
     }
@@ -290,6 +308,17 @@ class AuthRepositoryImpl(
                 // We call the auth endpoint to verify the token and trigger backend logic/logs
                 fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
                 logger.d { "Backend verification SUCCESS" }
+                
+                // 1.1 Save the service token locally
+                localDataSource.saveServiceToken(user.id, serviceName, accessToken)
+                
+                // Verification: Read back to ensure it's saved
+                val savedToken = localDataSource.getServiceToken(user.id, serviceName)
+                if (savedToken == accessToken) {
+                    logger.d { "Verification SUCCESS: Service token for $serviceName saved for user ${user.id}." }
+                } else {
+                    logger.w { "Verification FAILED: Service token for $serviceName not verified!" }
+                }
             } catch (e: Exception) {
                 logger.e(e) { "Backend verification FAILED" }
                 throw e
@@ -331,6 +360,9 @@ class AuthRepositoryImpl(
             } else {
                 logger.w { "unlinkCustomService: user ID is invalid, skipping Firestore update" }
             }
+
+            // 1.1 Clear local service token
+            localDataSource.clearServiceToken(user.id, serviceName)
             
             // 2. Update local state
             val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
@@ -470,7 +502,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    private suspend fun signInWithCustomTokenRest(customToken: String, serviceName: String): Result<User> {
+    private suspend fun signInWithCustomTokenRest(customToken: String, serviceName: String, accessToken: String): Result<User> {
         return try {
             val apiKey = firebaseApiKey ?: throw Exception("Firebase API Key not found")
             val httpClient = HttpClient {
@@ -517,10 +549,6 @@ class AuthRepositoryImpl(
                 idToken = firebaseIdToken
             )
 
-            // Update manual user state
-            saveUserToFirestore(user)
-            saveLocalUser(user)
-
             // Still try to let the SDK know so authStateChanged might trigger (best effort)
             try {
                 firebaseAuth.signInWithCustomToken(customToken)
@@ -536,6 +564,7 @@ class AuthRepositoryImpl(
 
     override suspend fun signOut() {
         saveLocalUser(null)
+        localDataSource.clearAllServiceTokens()
         firebaseAuth.signOut()
         authManager?.signOut()
         DeepLinkBuffer.consumeDeepLink()
@@ -593,6 +622,7 @@ class AuthRepositoryImpl(
             // Clear manual user state for platforms like JVM
             logger.d { "Clearing manualUser and saving null" }
             saveLocalUser(null)
+            localDataSource.clearAllServiceTokens()
             
             // Also trigger a sign out to ensure SDK state is cleared and authStateChanged emits null
             try {
@@ -638,6 +668,13 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun getServiceToken(serviceName: String): String? {
+        val user = currentUser.first() ?: return null
+        val token = localDataSource.getServiceToken(user.id, serviceName)
+        logger.d { "getServiceToken: service=$serviceName, user=${user.id}, hasToken=${token != null}" }
+        return token
+    }
+
     private suspend fun saveUserToFirestore(user: User) {
         if (user.id.isValidUid()) {
             try {
@@ -678,6 +715,6 @@ class AuthRepositoryImpl(
     }
 
     private fun String?.isValidUid(): Boolean {
-        return this != null && this.isNotBlank() && this.length > 5
+        return !this.isNullOrBlank() && this.length > 5
     }
 }

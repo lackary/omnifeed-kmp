@@ -34,7 +34,7 @@ actual val omnifeedAuthModule: Module = module {
             firebaseAuth = get(),
             firestore = get(),
             customServices = config.customServices,
-            firebaseLocalStorage = get(),
+            localDataSource = get(),
             authManager = get()
         )
     }

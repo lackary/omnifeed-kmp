@@ -17,4 +17,7 @@ interface AuthRepository {
     suspend fun unlinkProvider(providerId: String): Result<User>
     suspend fun signOut()
     suspend fun deleteAccount(): Result<Unit>
+
+    // Get stored OAuth2 token for a specific service
+    suspend fun getServiceToken(serviceName: String): String?
 }

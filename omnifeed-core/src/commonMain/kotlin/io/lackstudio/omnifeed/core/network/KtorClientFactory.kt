@@ -91,11 +91,11 @@ private val DynamicAuth = createClientPlugin(
         request.headers[HttpHeaders.Authorization]?.let { return@onRequest}
 
         val provider = providerLambda()
-        logger.d { "Appending Authorization header: ${provider.getAuthorizationHeader()}" }
+        val authHeader = provider.getAuthorizationHeader()
+        logger.d { "Appending Authorization header: $authHeader" }
         request.headers.append(
             HttpHeaders.Authorization,
-            value = provider.getAuthorizationHeader()
-
+            value = authHeader
         )
     }
 }
