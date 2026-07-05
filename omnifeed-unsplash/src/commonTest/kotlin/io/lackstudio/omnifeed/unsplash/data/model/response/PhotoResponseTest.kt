@@ -8,7 +8,7 @@ import kotlin.test.assertNotNull
 
 class PhotoResponseTest {
     private val json = Json {
-        ignoreUnknownKeys = true // 測試時也建議開啟，模擬實際情況
+        ignoreUnknownKeys = true // Recommended to enable during testing to simulate real scenarios
         isLenient = true
     }
 

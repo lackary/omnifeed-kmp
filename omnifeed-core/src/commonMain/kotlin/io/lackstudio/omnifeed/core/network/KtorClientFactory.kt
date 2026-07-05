@@ -40,6 +40,7 @@ object KtorClientFactory {
                     prettyPrint = true
                     isLenient = true
                     ignoreUnknownKeys = true
+                    encodeDefaults = true
                 })
             }
 

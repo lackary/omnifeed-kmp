@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.auth.data.model.request
+package io.lackstudio.omnifeed.auth.data.remote.model.request
 
 import kotlinx.serialization.Serializable
 

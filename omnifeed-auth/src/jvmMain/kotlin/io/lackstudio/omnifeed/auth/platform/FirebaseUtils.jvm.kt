@@ -7,10 +7,8 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
 import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
-import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.utils.GoogleServiceWeb
 import io.lackstudio.omnifeed.core.utils.base64ToJson
-import kotlinx.serialization.json.Json
 
 @PublishedApi
 internal val logger = Logger.withTag("FirebaseUtils")

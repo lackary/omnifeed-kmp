@@ -65,8 +65,8 @@ subprojects {
         // Configure publishing
         extensions.configure<PublishingExtension> {
             publications.withType<MavenPublication> {
-                // 設定 Artifact ID
-                // 優先使用 gradle.properties 的設定，如果沒有則使用專案名稱 (資料夾名)
+                // Set Artifact ID
+                // Prefer the setting from gradle.properties; if not present, use the project name (folder name)
                 val explicitArtifactId = providers.gradleProperty("POM_ARTIFACT_ID").orNull
                 if (explicitArtifactId != null) {
                     artifactId = explicitArtifactId

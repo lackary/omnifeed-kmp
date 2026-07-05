@@ -90,6 +90,18 @@ kotlin {
             version = "~> 9.0.0"
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
+        pod("FirebaseCore") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseAuth") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseFirestore") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
     }
 
     jvm()
@@ -127,6 +139,11 @@ kotlin {
             implementation(libs.koin.android)
         }
 
+        iosMain.dependencies {
+            implementation(libs.gitlive.firebase.common)
+            implementation(libs.gitlive.firebase.auth)
+        }
+
         webMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
         }
@@ -134,6 +151,7 @@ kotlin {
 
         val nonWasmMain by getting {
             dependencies {
+                api(libs.gitlive.firebase.common)
                 api(libs.gitlive.firebase.auth)
                 api(libs.gitlive.firebase.firestore)
             }
