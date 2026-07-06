@@ -1,16 +1,16 @@
-package io.lackstudio.omnifeed.auth
+package io.lackstudio.omnifeed.auth.utils
 
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import androidx.core.net.toUri
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
-import androidx.core.net.toUri
+import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import co.touchlab.kermit.Logger
 import java.util.UUID
 
 class AndroidAuthManager(private val context: Context) : AuthManager {
@@ -39,7 +39,7 @@ class AndroidAuthManager(private val context: Context) : AuthManager {
 
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
         val activityContext = (context as? Context)?.findActivity() ?: return null
-        
+
         val nonce = UUID.randomUUID().toString()
 
         val googleIdOption = GetGoogleIdOption.Builder()
@@ -60,7 +60,7 @@ class AndroidAuthManager(private val context: Context) : AuthManager {
                 request = request
             )
             val credential = result.credential
-            
+
             try {
                 val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                 logger.i { "Successfully parsed GoogleIdTokenCredential" }

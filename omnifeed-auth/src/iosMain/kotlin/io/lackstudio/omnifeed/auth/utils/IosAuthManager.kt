@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.auth
+package io.lackstudio.omnifeed.auth.utils
 
 import co.touchlab.kermit.Logger
 import cocoapods.GoogleSignIn.GIDSignIn

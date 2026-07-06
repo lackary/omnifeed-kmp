@@ -2,7 +2,7 @@ package io.lackstudio.omnifeed.auth.di
 
 import eu.anifantakis.lib.ksafe.KSafe
 import eu.anifantakis.lib.ksafe.KSafeConfig
-import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnifeed.auth.utils.AuthManager
 import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSource
 import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSourceImpl
 import io.lackstudio.omnifeed.auth.data.storage.KSafeLocalStorage

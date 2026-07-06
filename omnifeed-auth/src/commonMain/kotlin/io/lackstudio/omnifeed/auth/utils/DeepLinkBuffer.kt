@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.auth
+package io.lackstudio.omnifeed.auth.utils
 
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.update
 
 object DeepLinkBuffer {
     private val logger = Logger.withTag("DeepLinkBuffer")
-    
+
     // Buffered URL, waiting to be consumed by the UI layer
     private val _deepLinkUrl = MutableStateFlow<String?>(null)
     val deepLinkUrl = _deepLinkUrl.asStateFlow()

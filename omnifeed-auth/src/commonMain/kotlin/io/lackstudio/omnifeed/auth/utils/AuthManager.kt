@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.auth
+package io.lackstudio.omnifeed.auth.utils
 
 data class GoogleAuthTokens(
     val idToken: String,

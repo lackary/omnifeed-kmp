@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.auth
+package io.lackstudio.omnifeed.auth.utils
 
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CompletableDeferred
@@ -58,7 +58,9 @@ class DesktopAuthManager : AuthManager {
                     logger.d { "Desktop Auth Server listening on port $callbackPort..." }
 
                     // Open the system browser and go to the OAuth2 login page
-                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                            .isSupported(Desktop.Action.BROWSE)
+                    ) {
                         Desktop.getDesktop().browse(URI(authUrl))
                     }
 
@@ -75,18 +77,23 @@ class DesktopAuthManager : AuthManager {
                         socket.use { clientSocket ->
                             // Read Request
                             val reader = clientSocket.getInputStream().bufferedReader()
-                            val requestLine = reader.readLine() // e.g., "GET /callback?code=XYZ... HTTP/1.1"
+                            val requestLine =
+                                reader.readLine() // e.g., "GET /callback?code=XYZ... HTTP/1.1"
 
                             if (requestLine != null) {
                                 if (requestLine.contains("code=")) {
-                                    val code = requestLine.substringAfter("code=").substringBefore("&").substringBefore(" ")
+                                    val code =
+                                        requestLine.substringAfter("code=").substringBefore("&")
+                                            .substringBefore(" ")
                                     logger.i { "Desktop received Auth Code (masked): ${code.take(4)}***" }
 
                                     // Push into DeepLinkBuffer
                                     DeepLinkBuffer.setDeepLink("omnihub://auth/callback?code=$code")
                                     authenticated = true
                                 } else if (requestLine.contains("id_token=")) {
-                                    val idToken = requestLine.substringAfter("id_token=").substringBefore("&").substringBefore(" ")
+                                    val idToken =
+                                        requestLine.substringAfter("id_token=").substringBefore("&")
+                                            .substringBefore(" ")
                                     logger.i { "Desktop received Google ID Token" }
 
                                     val tokens = GoogleAuthTokens(idToken = idToken)
@@ -105,7 +112,10 @@ class DesktopAuthManager : AuthManager {
                             writer.println("\r\n")
 
                             if (authenticated) {
-                                writer.print(_successHtml ?: "<html><body><h1>Login Successful</h1><p>You can close this window now.</p></body></html>")
+                                writer.print(
+                                    _successHtml
+                                        ?: "<html><body><h1>Login Successful</h1><p>You can close this window now.</p></body></html>"
+                                )
                             } else {
                                 writer.print("<html><script>if(window.location.hash){window.location.search=window.location.hash.substring(1);}else{document.body.innerHTML='<h1>Login Failed</h1><p>No authorization code or token found.</p>';}</script><body><p>Processing login...</p></body></html>")
                             }
@@ -116,7 +126,8 @@ class DesktopAuthManager : AuthManager {
 
                 try {
                     if (Taskbar.isTaskbarSupported() &&
-                        Taskbar.getTaskbar().isSupported(Taskbar.Feature.USER_ATTENTION)) {
+                        Taskbar.getTaskbar().isSupported(Taskbar.Feature.USER_ATTENTION)
+                    ) {
                         Taskbar.getTaskbar().requestUserAttention(true, true)
                     }
                 } catch (e: Exception) {
@@ -136,7 +147,7 @@ class DesktopAuthManager : AuthManager {
 
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
         cleanup()
-        
+
         val deferred = CompletableDeferred<GoogleAuthTokens?>()
         resultDeferred = deferred
 

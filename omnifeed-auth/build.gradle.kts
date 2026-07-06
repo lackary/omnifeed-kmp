@@ -120,6 +120,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.omnifeedCore)
+            implementation(libs.ktor.client.core)
             api(libs.koin.core)
             api(libs.anifantakis.ksafe)
         }

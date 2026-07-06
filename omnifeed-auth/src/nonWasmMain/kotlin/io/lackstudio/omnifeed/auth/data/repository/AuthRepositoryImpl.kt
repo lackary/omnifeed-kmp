@@ -4,8 +4,8 @@ import co.touchlab.kermit.Logger
 import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
-import io.lackstudio.omnifeed.auth.AuthManager
-import io.lackstudio.omnifeed.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.utils.AuthManager
+import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
 import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSource
 import io.lackstudio.omnifeed.auth.data.remote.source.AuthRemoteDataSource
 import io.lackstudio.omnifeed.auth.data.remote.model.dto.UserProfileDto

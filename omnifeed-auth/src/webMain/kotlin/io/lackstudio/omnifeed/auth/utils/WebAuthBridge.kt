@@ -1,7 +1,8 @@
-package io.lackstudio.omnifeed.auth
+package io.lackstudio.omnifeed.auth.utils
 
-import web.dom.document
+import io.lackstudio.omnifeed.auth.GoogleAuthBridgeJs
 import web.dom.ElementId
+import web.dom.document
 import web.html.HTMLScriptElement
 
 internal object WebAuthBridge {
