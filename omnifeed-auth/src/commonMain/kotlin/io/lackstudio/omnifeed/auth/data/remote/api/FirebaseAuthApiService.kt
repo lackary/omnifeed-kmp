@@ -3,7 +3,7 @@ package io.lackstudio.omnifeed.auth.data.remote.api
 import io.lackstudio.omnifeed.auth.data.remote.model.request.*
 import io.lackstudio.omnifeed.auth.data.remote.model.response.*
 
-interface FirebaseApiService {
+interface FirebaseAuthApiService {
     suspend fun fetchFirebaseCustomToken(
         endpoint: String,
         customAccessToken: String,

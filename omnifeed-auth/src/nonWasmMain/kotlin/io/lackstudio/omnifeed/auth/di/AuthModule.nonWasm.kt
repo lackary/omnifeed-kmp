@@ -22,7 +22,8 @@ actual val omnifeedAuthModule: Module = module {
         AuthRemoteDataSourceImpl(
             firebaseAuth = get(),
             firestore = get(),
-            apiService = get()
+            authApiService = get(),
+            firestoreApiService = get()
         )
     }
     

@@ -9,6 +9,7 @@ import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
 import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSource
 import io.lackstudio.omnifeed.auth.data.remote.source.AuthRemoteDataSource
 import io.lackstudio.omnifeed.auth.data.remote.model.dto.UserProfileDto
+import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.core.CustomServiceConfig
@@ -71,9 +72,18 @@ class AuthRepositoryImpl(
         
         logger.d { "currentUser flatMapLatest: user identified as $uid, listening to Firestore..." }
         
-        val serviceFields = customServices.values.map { it.linkedField }
+        val serviceFields = customServices.keys.toList()
         
-        remoteDataSource.getUserProfile(uid, serviceFields).map { profileDto ->
+        val profileFlow = if (user is User && user.idToken != null) {
+            logger.d { "currentUser: SDK not logged in, using REST to fetch profile for $uid" }
+            flow {
+                emit(remoteDataSource.getUserProfileRest(uid, user.idToken))
+            }
+        } else {
+            remoteDataSource.getUserProfile(uid, serviceFields)
+        }
+
+        profileFlow.map { profileDto ->
             val domainUser = if (user is FirebaseUser) user.toDomain() else user as User
             
             if (profileDto == null) {
@@ -81,19 +91,15 @@ class AuthRepositoryImpl(
                 return@map domainUser
             }
             
-            val linkedStatus = customServices.mapValues { (_, config) ->
-                profileDto.customFields[config.linkedField] ?: false
-            }
-
             domainUser.copy(
-                customLinkedServices = linkedStatus,
+                linkedServices = profileDto.linkedServices ?: emptyMap(),
+                authProviders = profileDto.authProviders?.takeIf { it.isNotEmpty() } ?: domainUser.authProviders,
                 displayName = domainUser.displayName.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.displayName,
                 email = domainUser.email.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.email,
                 photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() }
-                    ?: profileDto.photoUrl.takeIf { !it.isNullOrBlank() },
-                isGoogleLinked = domainUser.isGoogleLinked || (profileDto.isGoogleLinked == true)
+                    ?: profileDto.photoUrl.takeIf { !it.isNullOrBlank() }
             )
         }
     }
@@ -157,16 +163,14 @@ class AuthRepositoryImpl(
 
             loginResult.fold(
                 onSuccess = { user ->
-                    val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
+                    val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
                         put(serviceName, true)
                     }
-                    val finalUser = user.copy(customLinkedServices = updatedLinkedServices)
+                    val finalUser = user.copy(linkedServices = updatedLinkedServices)
                     saveUserToFirestore(finalUser)
                     saveLocalUser(finalUser)
                     
-                    if (finalUser.id.isValidUid()) {
-                        remoteDataSource.updateCustomField(finalUser.id, config.linkedField, true)
-                    }
+                    updateCustomField(finalUser, serviceName, true)
 
                     localDataSource.saveServiceToken(finalUser.id, serviceName, accessToken)
                     Result.success(finalUser)
@@ -185,7 +189,9 @@ class AuthRepositoryImpl(
             val result = sdkUser.linkWithCredential(credential)
             val linkedUser = result.user?.toDomain() ?: throw Exception("Google linking failed: User is null")
             
-            val finalUser = linkedUser.copy(isGoogleLinked = true)
+            val finalUser = linkedUser.copy(
+                authProviders = linkedUser.authProviders.toMutableMap().apply { put(AuthProvider.GOOGLE.id, true) }
+            )
             saveUserToFirestore(finalUser)
             saveLocalUser(finalUser)
             Result.success(finalUser)
@@ -206,14 +212,12 @@ class AuthRepositoryImpl(
             remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
             localDataSource.saveServiceToken(user.id, serviceName, accessToken)
 
-            if (user.id.isValidUid()) {
-                remoteDataSource.updateCustomField(user.id, config.linkedField, true)
-            }
+            updateCustomField(user, serviceName, true)
             
-            val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
+            val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
                 put(serviceName, true)
             }
-            val updatedUser = user.copy(customLinkedServices = updatedLinkedServices)
+            val updatedUser = user.copy(linkedServices = updatedLinkedServices)
             saveUserToFirestore(updatedUser)
             saveLocalUser(updatedUser)
             Result.success(updatedUser)
@@ -225,17 +229,16 @@ class AuthRepositoryImpl(
     override suspend fun unlinkCustomService(serviceName: String): Result<User> {
         return try {
             val user = currentUser.first() ?: throw Exception("No user logged in")
-            val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
+            if (!customServices.containsKey(serviceName)) throw Exception("Service $serviceName not configured")
             
-            if (user.id.isValidUid()) {
-                remoteDataSource.updateCustomField(user.id, config.linkedField, false)
-            }
+            updateCustomField(user, serviceName, false)
+            
             localDataSource.clearServiceToken(user.id, serviceName)
             
-            val updatedLinkedServices = user.customLinkedServices.toMutableMap().apply {
+            val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
                 put(serviceName, false)
             }
-            val updatedUser = user.copy(customLinkedServices = updatedLinkedServices)
+            val updatedUser = user.copy(linkedServices = updatedLinkedServices)
             saveLocalUser(updatedUser)
             Result.success(updatedUser)
         } catch (e: Exception) {
@@ -312,18 +315,30 @@ class AuthRepositoryImpl(
         return try {
             val sdkUser = remoteDataSource.currentUser
             val manualUserValue = manualUser.value
-            val uid = sdkUser?.uid ?: manualUserValue?.id
+            val uid = manualUserValue?.id ?: sdkUser?.uid
+            val idToken = manualUserValue?.idToken
             
             if (uid.isValidUid()) {
-                remoteDataSource.deleteUserProfile(uid!!)
+                if (idToken != null) {
+                    remoteDataSource.deleteUserProfileRest(uid!!, idToken)
+                } else {
+                    remoteDataSource.deleteUserProfile(uid!!)
+                }
             }
 
+            var sdkDeleted = false
             if (sdkUser != null) {
-                try { sdkUser.delete() } catch (_: Throwable) { /* fallback */ }
+                try {
+                    sdkUser.delete()
+                    sdkDeleted = true
+                } catch (_: Throwable) {
+                    // SDK delete failed or not implemented, will fallback to REST
+                }
             }
 
-            if (manualUserValue?.idToken != null) {
-                remoteDataSource.deleteAccountRest(manualUserValue.idToken)
+            // Only call REST delete if SDK delete was not successful and we have an idToken
+            if (!sdkDeleted && idToken != null) {
+                remoteDataSource.deleteAccountRest(idToken)
             }
 
             saveLocalUser(null)
@@ -340,30 +355,54 @@ class AuthRepositoryImpl(
         return localDataSource.getServiceToken(user.id, serviceName)
     }
 
+    private suspend fun updateCustomField(user: User, serviceName: String, isLinked: Boolean) {
+        if (user.id.isValidUid()) {
+            val idToken = user.idToken
+            if (idToken != null) {
+                logger.d { "Updating custom field (REST) for ${user.id}: $serviceName = $isLinked" }
+                remoteDataSource.updateCustomFieldRest(user.id, idToken, serviceName, isLinked)
+            } else {
+                logger.d { "Updating custom field (SDK) for ${user.id}: $serviceName = $isLinked" }
+                remoteDataSource.updateCustomField(user.id, serviceName, isLinked)
+            }
+        }
+    }
+
     private suspend fun saveUserToFirestore(user: User) {
         if (user.id.isValidUid()) {
             val dto = UserProfileDto(
                 displayName = user.displayName.takeIf { !it.isNullOrBlank() },
                 email = user.email.takeIf { !it.isNullOrBlank() },
                 photoUrl = user.photoUrl.takeIf { !it.isNullOrBlank() },
-                isGoogleLinked = if (user.isGoogleLinked) true else null
+                authProviders = user.authProviders.takeIf { it.isNotEmpty() },
+                linkedServices = user.linkedServices.takeIf { it.isNotEmpty() }
             )
-            logger.d { "Saving user profile to Firestore for ${user.id}: $dto" }
-            remoteDataSource.saveUserProfile(user.id, dto)
+
+            val idToken = user.idToken
+            if (idToken != null) {
+                logger.d { "Saving user profile to Firestore (REST) for ${user.id}: $dto" }
+                remoteDataSource.saveUserProfileRest(user.id, idToken, dto)
+            } else {
+                logger.d { "Saving user profile to Firestore (SDK) for ${user.id}: $dto" }
+                remoteDataSource.saveUserProfile(user.id, dto)
+            }
         }
     }
 
     private fun FirebaseUser.toDomain(): User {
-        val googleLinked = try {
-            providerData.any { it.providerId == "google.com" }
-        } catch (_: Throwable) { false }
+        val providers = try {
+            providerData.associate {
+                val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
+                key to true
+            }
+        } catch (_: Throwable) { emptyMap() }
         
         return User(
             id = uid,
             email = email,
             displayName = displayName,
             photoUrl = photoURL,
-            isGoogleLinked = googleLinked
+            authProviders = providers
         )
     }
 

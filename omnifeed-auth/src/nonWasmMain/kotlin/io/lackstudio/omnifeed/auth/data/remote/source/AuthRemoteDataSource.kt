@@ -26,7 +26,11 @@ interface AuthRemoteDataSource {
 
     // Firestore / User Profile
     fun getUserProfile(uid: String, serviceFields: List<String>): Flow<UserProfileDto?>
+    suspend fun getUserProfileRest(uid: String, idToken: String): UserProfileDto?
     suspend fun saveUserProfile(uid: String, profile: UserProfileDto)
+    suspend fun saveUserProfileRest(uid: String, idToken: String, profile: UserProfileDto)
     suspend fun updateCustomField(uid: String, field: String, value: Boolean)
+    suspend fun updateCustomFieldRest(uid: String, idToken: String, field: String, value: Boolean)
     suspend fun deleteUserProfile(uid: String)
+    suspend fun deleteUserProfileRest(uid: String, idToken: String)
 }

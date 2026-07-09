@@ -14,8 +14,7 @@ data class UnsplashConfig(
  * 2. Configuration for a custom authentication service.
  */
 data class CustomServiceConfig(
-    val authEndpoint: String,
-    val linkedField: String
+    val authEndpoint: String
 )
 
 /**

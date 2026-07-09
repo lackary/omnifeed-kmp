@@ -4,17 +4,30 @@ import dev.gitlive.firebase.auth.AuthCredential
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.firestore.FirebaseFirestore
-import io.lackstudio.omnifeed.auth.data.remote.api.FirebaseApiService
+import io.lackstudio.omnifeed.auth.data.remote.api.*
 import io.lackstudio.omnifeed.auth.data.remote.model.request.*
 import io.lackstudio.omnifeed.auth.data.remote.model.dto.UserProfileDto
+import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
+import io.lackstudio.omnifeed.auth.platform.firebaseProjectId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+/**
+ * Remote Data Structure (Firestore):
+ *
+ * /users/{uid} (Document)
+ *    ├── displayName: String?
+ *    ├── email: String?
+ *    ├── photoUrl: String?
+ *    ├── authProviders: Map<String, Boolean> (e.g., {"google": true, "firebase": true})
+ *    └── linkedServices: Map<String, Boolean> (e.g., {"unsplash": true})
+ */
 class AuthRemoteDataSourceImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val apiService: FirebaseApiService
+    private val authApiService: FirebaseAuthApiService,
+    private val firestoreApiService: FirebaseFirestoreApiService
 ) : AuthRemoteDataSource {
 
     override val authStateChanged: Flow<FirebaseUser?> = firebaseAuth.authStateChanged
@@ -45,12 +58,12 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun fetchFirebaseCustomToken(endpoint: String, customAccessToken: String, provider: String): String {
-        return apiService.fetchFirebaseCustomToken(endpoint, customAccessToken, provider)
+        return authApiService.fetchFirebaseCustomToken(endpoint, customAccessToken, provider)
     }
 
     override suspend fun signInWithGoogleRest(idToken: String): User {
-        val resultData = apiService.signInWithIdp(SignInWithIdpRequest(
-            postBody = "id_token=$idToken&providerId=google.com"
+        val resultData = authApiService.signInWithIdp(SignInWithIdpRequest(
+            postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}"
         ))
 
         return User(
@@ -58,16 +71,16 @@ class AuthRemoteDataSourceImpl(
             email = resultData.email,
             displayName = resultData.displayName,
             photoUrl = resultData.photoUrl,
-            isGoogleLinked = true,
+            authProviders = mapOf(AuthProvider.GOOGLE.id to true),
             idToken = resultData.idToken
         )
     }
 
     override suspend fun signInWithCustomTokenRest(customToken: String, serviceName: String, accessToken: String): User {
-        val resultData = apiService.signInWithCustomToken(SignInWithCustomTokenRequest(token = customToken))
+        val resultData = authApiService.signInWithCustomToken(SignInWithCustomTokenRequest(token = customToken))
         val firebaseIdToken = resultData.idToken ?: throw Exception("REST login failed: idToken is null")
 
-        val lookupData = apiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        val lookupData = authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
         val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST login failed: No user info found")
 
         return User(
@@ -75,15 +88,17 @@ class AuthRemoteDataSourceImpl(
             email = userInfo.email,
             displayName = userInfo.displayName,
             photoUrl = userInfo.photoUrl,
-            isGoogleLinked = userInfo.providerUserInfo.any { it.providerId == "google.com" },
-            customLinkedServices = mapOf(serviceName to true),
+            authProviders = if (userInfo.providerUserInfo.any { it.providerId == AuthProvider.GOOGLE.firebaseId }) {
+                mapOf(AuthProvider.GOOGLE.id to true)
+            } else emptyMap(),
+            linkedServices = mapOf(serviceName to true),
             idToken = firebaseIdToken
         )
     }
 
     override suspend fun linkWithGoogleRest(idToken: String, currentFirebaseIdToken: String): User {
-        val resultData = apiService.signInWithIdp(SignInWithIdpRequest(
-            postBody = "id_token=$idToken&providerId=google.com",
+        val resultData = authApiService.signInWithIdp(SignInWithIdpRequest(
+            postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}",
             idToken = currentFirebaseIdToken,
             requestUri = "http://localhost"
         ))
@@ -93,33 +108,28 @@ class AuthRemoteDataSourceImpl(
             email = resultData.email,
             displayName = resultData.displayName,
             photoUrl = resultData.photoUrl,
-            isGoogleLinked = true,
+            authProviders = mapOf(AuthProvider.GOOGLE.id to true),
             idToken = resultData.idToken
         )
     }
 
     override suspend fun deleteAccountRest(idToken: String) {
-        apiService.deleteAccount(DeleteAccountRequest(idToken = idToken))
+        authApiService.deleteAccount(DeleteAccountRequest(idToken = idToken))
     }
 
     override fun getUserProfile(uid: String, serviceFields: List<String>): Flow<UserProfileDto?> {
         return firestore.collection("users").document(uid).snapshots().map { snapshot ->
             if (snapshot.exists) {
-                // Retrieve fields with known types individually; this is safe in GitLive
-                val customFieldsMap = serviceFields.associateWith { field ->
-                    try {
-                        snapshot.get<Boolean?>(field) ?: false
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
-
                 UserProfileDto(
                     displayName = try { snapshot.get<String?>("displayName") } catch (e: Exception) { null },
                     email = try { snapshot.get<String?>("email") } catch (e: Exception) { null },
                     photoUrl = try { snapshot.get<String?>("photoUrl") } catch (e: Exception) { null },
-                    isGoogleLinked = try { snapshot.get<Boolean?>("isGoogleLinked") ?: false } catch (e: Exception) { false },
-                    customFields = customFieldsMap
+                    authProviders = try {
+                        snapshot.get<Map<String, Boolean>?>("authProviders") ?: emptyMap()
+                    } catch (e: Exception) { emptyMap() },
+                    linkedServices = try {
+                        snapshot.get<Map<String, Boolean>?>("linkedServices") ?: emptyMap()
+                    } catch (e: Exception) { emptyMap() }
                 )
             } else {
                 null
@@ -127,15 +137,75 @@ class AuthRemoteDataSourceImpl(
         }
     }
 
-    override suspend fun saveUserProfile(uid: String, data: UserProfileDto) {
-        firestore.collection("users").document(uid).set(data, merge = true)
+    override suspend fun getUserProfileRest(uid: String, idToken: String): UserProfileDto? {
+        val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
+        val data = firestoreApiService.getFirestoreProfile(projectId, uid, idToken) ?: return null
+        
+        return UserProfileDto(
+            displayName = data["displayName"] as? String,
+            email = data["email"] as? String,
+            photoUrl = data["photoUrl"] as? String,
+            authProviders = (data["authProviders"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
+            linkedServices = (data["linkedServices"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap()
+        )
+    }
+
+    override suspend fun saveUserProfile(uid: String, profile: UserProfileDto) {
+        val updateMap = mutableMapOf<String, Any?>()
+        profile.displayName?.let { updateMap["displayName"] = it }
+        profile.email?.let { updateMap["email"] = it }
+        profile.photoUrl?.let { updateMap["photoUrl"] = it }
+        profile.authProviders?.let { updateMap["authProviders"] = it }
+        profile.linkedServices?.let { updateMap["linkedServices"] = it }
+
+        if (updateMap.isNotEmpty()) {
+            firestore.collection("users").document(uid).set(updateMap, merge = true)
+        }
+    }
+
+    override suspend fun saveUserProfileRest(uid: String, idToken: String, profile: UserProfileDto) {
+        val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
+        val fields = mutableMapOf<String, Any?>()
+        profile.displayName?.let { fields["displayName"] = it }
+        profile.email?.let { fields["email"] = it }
+        profile.photoUrl?.let { fields["photoUrl"] = it }
+        profile.authProviders?.let { fields["authProviders"] = it }
+        profile.linkedServices?.let { fields["linkedServices"] = it }
+
+        if (fields.isNotEmpty()) {
+            firestoreApiService.saveFirestoreProfile(
+                projectId = projectId,
+                uid = uid,
+                idToken = idToken,
+                fields = fields
+            )
+        }
     }
 
     override suspend fun updateCustomField(uid: String, field: String, value: Boolean) {
-        firestore.collection("users").document(uid).update(field to value)
+        firestore.collection("users").document(uid).update("linkedServices.$field" to value)
+    }
+
+    override suspend fun updateCustomFieldRest(uid: String, idToken: String, field: String, value: Boolean) {
+        val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
+        val fields = mapOf(
+            "linkedServices" to mapOf(field to value)
+        )
+        firestoreApiService.saveFirestoreProfile(
+            projectId = projectId,
+            uid = uid,
+            idToken = idToken,
+            fields = fields,
+            fieldPaths = listOf("linkedServices.$field")
+        )
     }
 
     override suspend fun deleteUserProfile(uid: String) {
         firestore.collection("users").document(uid).delete()
+    }
+
+    override suspend fun deleteUserProfileRest(uid: String, idToken: String) {
+        val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
+        firestoreApiService.deleteFirestoreProfile(projectId, uid, idToken)
     }
 }

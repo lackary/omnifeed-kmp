@@ -25,12 +25,11 @@ import io.lackstudio.omnifeed.auth.domain.usecase.UpdatePasswordUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.koin.core.module.Module
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 actual val authLocalModule = module {
-    // Firebase Storage
-    single<LocalStorage>(named("firebaseStorage")) {
+    // Firestore User Storage
+    single<LocalStorage>(namedUserCacheStorage) {
         KSafeLocalStorage(
             KSafe(
                 fileName = FILENAME_OMNIFEED_AUTH_FIREBASE_TOKEN,
@@ -39,8 +38,8 @@ actual val authLocalModule = module {
         )
     }
 
-    // Service Storage
-    single<LocalStorage>(named("serviceStorage")) {
+    // Service Token Storage
+    single<LocalStorage>(namedServiceTokenStorage) {
         KSafeLocalStorage(
             KSafe(
                 fileName = FILENAME_OMNIFEED_AUTH_SERVICE_TOKEN,
@@ -52,8 +51,8 @@ actual val authLocalModule = module {
     // AuthLocalDataSource
     single<AuthLocalDataSource> {
         AuthLocalDataSourceImpl(
-            firebaseStorage = get(named("firebaseStorage")),
-            serviceStorage = get(named("serviceStorage"))
+            userCacheStorage = get(namedUserCacheStorage),
+            serviceTokenStorage = get(namedServiceTokenStorage)
         )
     }
 }
@@ -78,6 +77,9 @@ actual val omnifeedAuthModule: Module = module {
                 authManager?.signOut()
             }
             override suspend fun deleteAccount(): Result<Unit> = Result.failure(Exception("Not implemented on WasmJs"))
+            override suspend fun getServiceToken(serviceName: String): String? {
+                TODO("Not yet implemented")
+            }
         }
     }
     factory { SignInWithEmailUseCase(get()) }

@@ -8,52 +8,65 @@ import io.lackstudio.omnifeed.auth.data.storage.save
 import io.lackstudio.omnifeed.auth.data.storage.saveFirebaseAuth
 import io.lackstudio.omnifeed.auth.domain.model.User
 
+/**
+ * Local Data Structures:
+ *
+ * 1. userCacheStorage (LocalStorage):
+ *    ├── Key: "firebase_auth_user_key"
+ *    └── Value: User object (cached profile for offline access)
+ *
+ * 2. serviceTokenStorage (LocalStorage):
+ *    ├── Key: {userId} (String)
+ *    └── Value: UserServiceTokens object
+ *          ├── userId: String
+ *          └── tokens: Map<String, String> (e.g., {"unsplash": "access_token_abc"})
+ */
 class AuthLocalDataSourceImpl(
-    private val firebaseStorage: LocalStorage,
-    private val serviceStorage: LocalStorage
+    private val userCacheStorage: LocalStorage,
+    private val serviceTokenStorage: LocalStorage
 ) : AuthLocalDataSource {
 
     override fun saveUser(user: User?) {
-        firebaseStorage.saveFirebaseAuth(user)
+        userCacheStorage.saveFirebaseAuth(user)
     }
 
     override fun getUser(): User? {
-        return firebaseStorage.getFireBaseAuth()
+        return userCacheStorage.getFireBaseAuth()
     }
 
     override suspend fun saveServiceToken(userId: String, serviceName: String, token: String) {
         if (userId.isBlank()) return
         
-        val userServiceTokens = serviceStorage.getOrNull<UserServiceTokens>(userId) 
+        val userServiceTokens = serviceTokenStorage.getOrNull<UserServiceTokens>(userId) 
             ?: UserServiceTokens(userId = userId)
             
         val updatedTokens = userServiceTokens.tokens.toMutableMap().apply {
             put(serviceName, token)
         }
         
-        serviceStorage.save(userId, userServiceTokens.copy(tokens = updatedTokens))
+        serviceTokenStorage.save(userId, userServiceTokens.copy(tokens = updatedTokens))
     }
 
     override suspend fun getServiceToken(userId: String, serviceName: String): String? {
         if (userId.isBlank()) return null
         
-        val userServiceTokens = serviceStorage.getOrNull<UserServiceTokens>(userId)
+        val userServiceTokens = serviceTokenStorage.getOrNull<UserServiceTokens>(userId)
         return userServiceTokens?.tokens?.get(serviceName)
     }
 
     override suspend fun clearServiceToken(userId: String, serviceName: String) {
         if (userId.isBlank()) return
         
-        val userServiceTokens = serviceStorage.getOrNull<UserServiceTokens>(userId)
+        val userServiceTokens = serviceTokenStorage.getOrNull<UserServiceTokens>(userId)
         if (userServiceTokens != null) {
             val updatedTokens = userServiceTokens.tokens.toMutableMap().apply {
                 remove(serviceName)
             }
-            serviceStorage.save(userId, userServiceTokens.copy(tokens = updatedTokens))
+            serviceTokenStorage.save(userId, userServiceTokens.copy(tokens = updatedTokens))
         }
     }
 
     override suspend fun clearAllServiceTokens() {
-        serviceStorage.clearAll()
+        serviceTokenStorage.clearAll()
     }
 }

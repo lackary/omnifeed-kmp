@@ -8,12 +8,17 @@ data class User(
     val email: String?,
     val displayName: String?,
     val photoUrl: String?,
-    val isGoogleLinked: Boolean = false,
-    val customLinkedServices: Map<String, Boolean> = emptyMap(),
+    val authProviders: Map<String, Boolean> = emptyMap(),
+    val linkedServices: Map<String, Boolean> = emptyMap(),
     val idToken: String? = null // Firebase ID Token for REST-based flows
 ) {
     /**
      * Checks if a specific custom service is linked.
      */
-    fun isCustomServiceLinked(serviceName: String): Boolean = customLinkedServices[serviceName] ?: false
+    fun isCustomServiceLinked(serviceName: String): Boolean = linkedServices[serviceName] ?: false
+
+    /**
+     * Checks if a specific auth provider is linked.
+     */
+    fun isAuthProviderLinked(provider: String): Boolean = authProviders[provider] ?: false
 }

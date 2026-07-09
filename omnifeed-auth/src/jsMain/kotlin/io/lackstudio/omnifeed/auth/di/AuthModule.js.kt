@@ -6,12 +6,11 @@ import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSource
 import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSourceImpl
 import io.lackstudio.omnifeed.auth.data.storage.KSafeLocalStorage
 import io.lackstudio.omnifeed.auth.data.storage.LocalStorage
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 actual val authLocalModule = module {
-    // Firebase Storage
-    single<LocalStorage>(named("firebaseStorage")) {
+    // Firestore User Storage
+    single<LocalStorage>(namedUserCacheStorage) {
         KSafeLocalStorage(
             kSafe = KSafe(
                 fileName = FILENAME_OMNIFEED_AUTH_FIREBASE_TOKEN,
@@ -20,8 +19,8 @@ actual val authLocalModule = module {
         )
     }
 
-    // Service Storage
-    single<LocalStorage>(named("serviceStorage")) {
+    // Service Token Storage
+    single<LocalStorage>(namedServiceTokenStorage) {
         KSafeLocalStorage(
             kSafe = KSafe(
                 fileName = FILENAME_OMNIFEED_AUTH_SERVICE_TOKEN,
@@ -33,8 +32,8 @@ actual val authLocalModule = module {
     // AuthLocalDataSource
     single<AuthLocalDataSource> {
         AuthLocalDataSourceImpl(
-            firebaseStorage = get(named("firebaseStorage")),
-            serviceStorage = get(named("serviceStorage"))
+            userCacheStorage = get(namedUserCacheStorage),
+            serviceTokenStorage = get(namedServiceTokenStorage)
         )
     }
 }

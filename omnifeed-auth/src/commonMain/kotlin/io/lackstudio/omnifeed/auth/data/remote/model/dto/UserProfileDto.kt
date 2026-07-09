@@ -7,7 +7,6 @@ data class UserProfileDto(
     val displayName: String? = null,
     val email: String? = null,
     val photoUrl: String? = null,
-    val isGoogleLinked: Boolean? = null,
-    // Fields used for reading
-    val customFields: Map<String, Boolean> = emptyMap()
+    val authProviders: Map<String, Boolean>? = null,
+    val linkedServices: Map<String, Boolean>? = null
 )

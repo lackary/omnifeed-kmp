@@ -4,17 +4,17 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_DELETE
+import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_LOOKUP
+import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_SIGN_IN_WITH_CUSTOM_TOKEN
+import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_SIGN_IN_WITH_IDP
+import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.VERSION_V1
 import io.lackstudio.omnifeed.auth.data.remote.model.request.*
 import io.lackstudio.omnifeed.auth.data.remote.model.response.*
-import io.lackstudio.omnifeed.auth.utils.Environment.ENDPOINT_ACCOUNTS_DELETE
-import io.lackstudio.omnifeed.auth.utils.Environment.ENDPOINT_ACCOUNTS_LOOKUP
-import io.lackstudio.omnifeed.auth.utils.Environment.ENDPOINT_ACCOUNTS_SIGN_IN_WITH_CUSTOM_TOKEN
-import io.lackstudio.omnifeed.auth.utils.Environment.ENDPOINT_ACCOUNTS_SIGN_IN_WITH_IDP
-import io.lackstudio.omnifeed.auth.utils.Environment.GOOGLE_CLOUD_API_V1
 
-class FirebaseApiServiceImpl(
+class FirebaseAuthApiServiceImpl(
     private val httpClient: HttpClient,
-) : FirebaseApiService {
+) : FirebaseAuthApiService {
 
     override suspend fun fetchFirebaseCustomToken(
         endpoint: String,
@@ -38,7 +38,7 @@ class FirebaseApiServiceImpl(
 
     override suspend fun signInWithIdp(request: SignInWithIdpRequest): SignInWithIdpResponse {
         val response =
-            httpClient.post("/$GOOGLE_CLOUD_API_V1/$ENDPOINT_ACCOUNTS_SIGN_IN_WITH_IDP") {
+            httpClient.post("/$VERSION_V1/$ENDPOINT_SIGN_IN_WITH_IDP") {
             setBody(request)
         }
 
@@ -51,7 +51,7 @@ class FirebaseApiServiceImpl(
     }
 
     override suspend fun signInWithCustomToken(request: SignInWithCustomTokenRequest): SignInWithCustomTokenResponse {
-        val response = httpClient.post("/$GOOGLE_CLOUD_API_V1/$ENDPOINT_ACCOUNTS_SIGN_IN_WITH_CUSTOM_TOKEN") {
+        val response = httpClient.post("/$VERSION_V1/$ENDPOINT_SIGN_IN_WITH_CUSTOM_TOKEN") {
             setBody(request)
         }
 
@@ -64,7 +64,7 @@ class FirebaseApiServiceImpl(
     }
 
     override suspend fun lookup(request: LookupRequest): LookupResponse {
-        val response = httpClient.post("/$GOOGLE_CLOUD_API_V1/$ENDPOINT_ACCOUNTS_LOOKUP") {
+        val response = httpClient.post("/$VERSION_V1/$ENDPOINT_LOOKUP") {
             setBody(request)
         }
 
@@ -77,7 +77,7 @@ class FirebaseApiServiceImpl(
     }
 
     override suspend fun deleteAccount(request: DeleteAccountRequest) {
-        val response = httpClient.post("/$GOOGLE_CLOUD_API_V1/$ENDPOINT_ACCOUNTS_DELETE") {
+        val response = httpClient.post("/$VERSION_V1/$ENDPOINT_DELETE") {
             setBody(request)
         }
 

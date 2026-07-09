@@ -19,6 +19,9 @@ internal val logger = Logger.withTag("FirebaseUtils")
 private var _firebaseApiKey: String? = null
 actual val firebaseApiKey: String? get() = _firebaseApiKey
 
+private var _firebaseProjectId: String? = null
+actual val firebaseProjectId: String? get() = _firebaseProjectId
+
 private var _localStorage: LocalStorage? = null
 
 /**
@@ -66,6 +69,7 @@ actual fun initializeFirebase(firebaseConfig: String?, localStorage: LocalStorag
     val config = base64ToJson<GoogleServiceWeb>(firebaseConfig)
     if (config != null) {
         _firebaseApiKey = config.apiKey
+        _firebaseProjectId = config.projectId
         Firebase.initialize(
             context = Application(),
             options = FirebaseOptions(
