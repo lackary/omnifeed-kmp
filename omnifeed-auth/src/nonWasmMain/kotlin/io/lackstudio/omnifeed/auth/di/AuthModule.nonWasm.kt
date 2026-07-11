@@ -32,6 +32,7 @@ actual val omnifeedAuthModule: Module = module {
         AuthRepositoryImpl(
             remoteDataSource = get(),
             localDataSource = get(),
+            encryptionSalt = config.encryptionSalt,
             customServices = config.customServices,
             authManager = get()
         )

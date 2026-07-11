@@ -8,5 +8,6 @@ data class UserProfileDto(
     val email: String? = null,
     val photoUrl: String? = null,
     val authProviders: Map<String, Boolean>? = null,
-    val linkedServices: Map<String, Boolean>? = null
+    val linkedServices: Map<String, Boolean>? = null,
+    val encryptedServiceTokens: Map<String, String>? = null
 )

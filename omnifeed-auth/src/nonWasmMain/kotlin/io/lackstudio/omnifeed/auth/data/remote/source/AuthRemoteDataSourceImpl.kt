@@ -66,13 +66,20 @@ class AuthRemoteDataSourceImpl(
             postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}"
         ))
 
+        val firebaseIdToken = resultData.idToken ?: throw Exception("REST login failed: idToken is null")
+        
+        // Consistency Fix: Perform lookup to get the Firebase account's profile name (e.g. "Henry")
+        // instead of the Google IDP provided name ("Yu Chan Huang")
+        val lookupData = authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST login failed: No user info found")
+
         return User(
-            id = resultData.localId ?: throw Exception("Login failed: localId is null"),
-            email = resultData.email,
-            displayName = resultData.displayName,
-            photoUrl = resultData.photoUrl,
+            id = userInfo.localId,
+            email = userInfo.email,
+            displayName = userInfo.displayName ?: resultData.displayName,
+            photoUrl = userInfo.photoUrl ?: resultData.photoUrl,
             authProviders = mapOf(AuthProvider.GOOGLE.id to true),
-            idToken = resultData.idToken
+            idToken = firebaseIdToken
         )
     }
 
@@ -103,13 +110,19 @@ class AuthRemoteDataSourceImpl(
             requestUri = "http://localhost"
         ))
 
+        val firebaseIdToken = resultData.idToken ?: throw Exception("REST linking failed: idToken is null")
+        
+        // Consistency Fix: Get the Firebase account's profile name
+        val lookupData = authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST linking failed: No user info found")
+
         return User(
-            id = resultData.localId ?: throw Exception("Linking failed: localId is null"),
-            email = resultData.email,
-            displayName = resultData.displayName,
-            photoUrl = resultData.photoUrl,
+            id = userInfo.localId,
+            email = userInfo.email,
+            displayName = userInfo.displayName ?: resultData.displayName,
+            photoUrl = userInfo.photoUrl ?: resultData.photoUrl,
             authProviders = mapOf(AuthProvider.GOOGLE.id to true),
-            idToken = resultData.idToken
+            idToken = firebaseIdToken
         )
     }
 
@@ -129,6 +142,9 @@ class AuthRemoteDataSourceImpl(
                     } catch (e: Exception) { emptyMap() },
                     linkedServices = try {
                         snapshot.get<Map<String, Boolean>?>("linkedServices") ?: emptyMap()
+                    } catch (e: Exception) { emptyMap() },
+                    encryptedServiceTokens = try {
+                        snapshot.get<Map<String, String>?>("encryptedServiceTokens") ?: emptyMap()
                     } catch (e: Exception) { emptyMap() }
                 )
             } else {
@@ -146,7 +162,8 @@ class AuthRemoteDataSourceImpl(
             email = data["email"] as? String,
             photoUrl = data["photoUrl"] as? String,
             authProviders = (data["authProviders"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
-            linkedServices = (data["linkedServices"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap()
+            linkedServices = (data["linkedServices"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
+            encryptedServiceTokens = (data["encryptedServiceTokens"] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap() ?: emptyMap()
         )
     }
 
@@ -157,6 +174,7 @@ class AuthRemoteDataSourceImpl(
         profile.photoUrl?.let { updateMap["photoUrl"] = it }
         profile.authProviders?.let { updateMap["authProviders"] = it }
         profile.linkedServices?.let { updateMap["linkedServices"] = it }
+        profile.encryptedServiceTokens?.let { updateMap["encryptedServiceTokens"] = it }
 
         if (updateMap.isNotEmpty()) {
             firestore.collection("users").document(uid).set(updateMap, merge = true)
@@ -166,18 +184,22 @@ class AuthRemoteDataSourceImpl(
     override suspend fun saveUserProfileRest(uid: String, idToken: String, profile: UserProfileDto) {
         val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
         val fields = mutableMapOf<String, Any?>()
-        profile.displayName?.let { fields["displayName"] = it }
-        profile.email?.let { fields["email"] = it }
-        profile.photoUrl?.let { fields["photoUrl"] = it }
-        profile.authProviders?.let { fields["authProviders"] = it }
-        profile.linkedServices?.let { fields["linkedServices"] = it }
+        val updateMask = mutableListOf<String>()
+
+        profile.displayName?.let { fields["displayName"] = it; updateMask.add("displayName") }
+        profile.email?.let { fields["email"] = it; updateMask.add("email") }
+        profile.photoUrl?.let { fields["photoUrl"] = it; updateMask.add("photoUrl") }
+        profile.authProviders?.let { fields["authProviders"] = it; updateMask.add("authProviders") }
+        profile.linkedServices?.let { fields["linkedServices"] = it; updateMask.add("linkedServices") }
+        profile.encryptedServiceTokens?.let { fields["encryptedServiceTokens"] = it; updateMask.add("encryptedServiceTokens") }
 
         if (fields.isNotEmpty()) {
             firestoreApiService.saveFirestoreProfile(
                 projectId = projectId,
                 uid = uid,
                 idToken = idToken,
-                fields = fields
+                fields = fields,
+                fieldPaths = updateMask // Ensure only specified fields are touched
             )
         }
     }

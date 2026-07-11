@@ -23,6 +23,7 @@ data class CustomServiceConfig(
 data class OmniFeedConfig(
     // General settings
     val appLogger: Logger? = null,
+    val encryptionSalt: String = "OmniHub_Default_Salt", // Added for token synchronization
 
     // Module settings
     val unsplash: UnsplashConfig,

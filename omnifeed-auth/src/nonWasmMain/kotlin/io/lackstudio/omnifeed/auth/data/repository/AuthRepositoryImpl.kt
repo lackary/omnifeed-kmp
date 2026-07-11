@@ -15,10 +15,17 @@ import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.core.CustomServiceConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import io.ktor.util.encodeBase64
+import io.ktor.util.decodeBase64Bytes
+import io.ktor.utils.io.core.toByteArray
 
 class AuthRepositoryImpl(
     private val remoteDataSource: AuthRemoteDataSource,
     private val localDataSource: AuthLocalDataSource,
+    private val encryptionSalt: String,
     private val customServices: Map<String, CustomServiceConfig> = emptyMap(),
     private val authManager: AuthManager? = null
 ) : AuthRepository {
@@ -94,8 +101,8 @@ class AuthRepositoryImpl(
             domainUser.copy(
                 linkedServices = profileDto.linkedServices ?: emptyMap(),
                 authProviders = profileDto.authProviders?.takeIf { it.isNotEmpty() } ?: domainUser.authProviders,
-                displayName = domainUser.displayName.takeIf { !it.isNullOrBlank() }
-                    ?: profileDto.displayName,
+                displayName = profileDto.displayName.takeIf { !it.isNullOrBlank() }
+                    ?: domainUser.displayName,
                 email = domainUser.email.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.email,
                 photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() }
@@ -148,17 +155,27 @@ class AuthRepositoryImpl(
     override suspend fun signInWithCustomService(serviceName: String, accessToken: String): Result<User> {
         return try {
             val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
-            val customToken = remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
+            
+            // Extract raw token if it's JSON (for Cloud Function verification)
+            val rawAccessToken = try {
+                if (accessToken.trim().startsWith("{")) {
+                    Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
+                        ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
+                        ?: accessToken
+                } else accessToken
+            } catch (_: Exception) { accessToken }
+
+            val customToken = remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
             
             val loginResult = try {
                 val fbUser = remoteDataSource.signInWithCustomToken(customToken)
                 if (!fbUser.uid.isValidUid()) {
-                    Result.success(remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, accessToken))
+                    Result.success(remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken))
                 } else {
                     Result.success(fbUser.toDomain())
                 }
             } catch (_: Exception) {
-                Result.success(remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, accessToken))
+                Result.success(remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken))
             }
 
             loginResult.fold(
@@ -167,12 +184,15 @@ class AuthRepositoryImpl(
                         put(serviceName, true)
                     }
                     val finalUser = user.copy(linkedServices = updatedLinkedServices)
+                    
+                    // CRITICAL FIX: Save to local storage FIRST, then sync to cloud
+                    localDataSource.saveServiceToken(finalUser.id, serviceName, accessToken)
+                    
                     saveUserToFirestore(finalUser)
                     saveLocalUser(finalUser)
                     
                     updateCustomField(finalUser, serviceName, true)
 
-                    localDataSource.saveServiceToken(finalUser.id, serviceName, accessToken)
                     Result.success(finalUser)
                 },
                 onFailure = { Result.failure(it) }
@@ -209,7 +229,16 @@ class AuthRepositoryImpl(
             val user = currentUser.first() ?: throw Exception("No user logged in to link with")
             val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
             
-            remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, accessToken, serviceName)
+            // Extract raw token if it's JSON (for verification)
+            val rawAccessToken = try {
+                if (accessToken.trim().startsWith("{")) {
+                    Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
+                        ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
+                        ?: accessToken
+                } else accessToken
+            } catch (_: Exception) { accessToken }
+
+            remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
             localDataSource.saveServiceToken(user.id, serviceName, accessToken)
 
             updateCustomField(user, serviceName, true)
@@ -352,7 +381,41 @@ class AuthRepositoryImpl(
 
     override suspend fun getServiceToken(serviceName: String): String? {
         val user = currentUser.first() ?: return null
-        return localDataSource.getServiceToken(user.id, serviceName)
+        
+        // 1. Try local cache first, fallback to Firestore
+        val tokenToUse = localDataSource.getServiceToken(user.id, serviceName)
+            ?: try {
+                val profileDto = if (user.idToken != null && remoteDataSource.currentUser == null) {
+                    // SDK not logged in (e.g. JVM), use REST to fetch profile safely
+                    remoteDataSource.getUserProfileRest(user.id, user.idToken!!)
+                } else {
+                    remoteDataSource.getUserProfile(user.id, listOf("encryptedServiceTokens")).firstOrNull()
+                }
+
+                profileDto?.encryptedServiceTokens?.get(serviceName)
+                    ?.let { encrypted ->
+                        decryptToken(encrypted, user.id).also { decrypted ->
+                            localDataSource.saveServiceToken(user.id, serviceName, decrypted)
+                        }
+                    }
+            } catch (e: Exception) {
+                logger.e(e) { "Failed to fetch service token from Firestore" }
+                null
+            }
+
+        // 2. Smart Parsing: If it's a JSON (starts with {), extract accessToken
+        return try {
+            if (tokenToUse?.trim()?.startsWith("{") == true) {
+                val json = Json.parseToJsonElement(tokenToUse).jsonObject
+                json["access_token"]?.jsonPrimitive?.content 
+                    ?: json["accessToken"]?.jsonPrimitive?.content 
+                    ?: tokenToUse
+            } else {
+                tokenToUse
+            }
+        } catch (_: Exception) {
+            tokenToUse
+        }
     }
 
     private suspend fun updateCustomField(user: User, serviceName: String, isLinked: Boolean) {
@@ -370,12 +433,21 @@ class AuthRepositoryImpl(
 
     private suspend fun saveUserToFirestore(user: User) {
         if (user.id.isValidUid()) {
+            // Collect all service tokens from local storage to sync to cloud
+            val tokensToSync = mutableMapOf<String, String>()
+            user.linkedServices.keys.forEach { service ->
+                localDataSource.getServiceToken(user.id, service)?.let { token ->
+                    tokensToSync[service] = encryptToken(token, user.id)
+                }
+            }
+
             val dto = UserProfileDto(
                 displayName = user.displayName.takeIf { !it.isNullOrBlank() },
                 email = user.email.takeIf { !it.isNullOrBlank() },
                 photoUrl = user.photoUrl.takeIf { !it.isNullOrBlank() },
                 authProviders = user.authProviders.takeIf { it.isNotEmpty() },
-                linkedServices = user.linkedServices.takeIf { it.isNotEmpty() }
+                linkedServices = user.linkedServices.takeIf { it.isNotEmpty() },
+                encryptedServiceTokens = tokensToSync.takeIf { it.isNotEmpty() }
             )
 
             val idToken = user.idToken
@@ -389,12 +461,48 @@ class AuthRepositoryImpl(
         }
     }
 
+    /**
+     * Salted XOR + Base64 obfuscation for cloud sync.
+     * This prevents plain-text tokens from appearing in Firestore and handles special characters safely.
+     * Recommendation: Upgrade to AES-GCM for production if storing high-value tokens.
+     */
+    private fun encryptToken(token: String, uid: String): String {
+        if (token.isBlank()) return ""
+        val key = (uid + encryptionSalt).hashCode()
+        val tokenBytes = token.toByteArray() // Convert to UTF-8 bytes first
+        
+        val xoredBytes = ByteArray(tokenBytes.size) { i ->
+            (tokenBytes[i].toInt() xor (key and 0xFF)).toByte()
+        }
+        
+        return xoredBytes.encodeBase64()
+    }
+
+    private fun decryptToken(encryptedToken: String, uid: String): String {
+        if (encryptedToken.isBlank()) return ""
+        return try {
+            val decodedBytes = encryptedToken.decodeBase64Bytes()
+            val key = (uid + encryptionSalt).hashCode()
+            
+            val xoredBytes = ByteArray(decodedBytes.size) { i ->
+                (decodedBytes[i].toInt() xor (key and 0xFF)).toByte()
+            }
+            
+            xoredBytes.decodeToString() // Convert back from UTF-8 bytes to String
+        } catch (e: Exception) {
+            logger.e(e) { "Failed to decrypt token" }
+            ""
+        }
+    }
+
     private fun FirebaseUser.toDomain(): User {
         val providers = try {
-            providerData.associate {
-                val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
-                key to true
-            }
+            providerData
+                .filter { it.providerId != "firebase" } // Filter out internal Firebase provider ID (common on Android)
+                .associate {
+                    val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
+                    key to true
+                }
         } catch (_: Throwable) { emptyMap() }
         
         return User(
