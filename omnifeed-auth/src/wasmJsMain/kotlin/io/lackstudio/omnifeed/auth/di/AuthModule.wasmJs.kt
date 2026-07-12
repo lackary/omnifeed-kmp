@@ -62,21 +62,21 @@ actual val omnifeedAuthModule: Module = module {
     single<AuthRepository> { 
         object : AuthRepository {
             override val currentUser: Flow<User?> = flowOf(null)
-            override suspend fun signInWithEmail(email: String, password: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun signUpWithEmail(email: String, password: String, displayName: String?): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun signInWithCustomService(serviceName: String, accessToken: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun linkWithGoogle(idToken: String, accessToken: String?): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun linkWithCustomService(serviceName: String, accessToken: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun unlinkCustomService(serviceName: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun linkWithEmail(email: String, password: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun updatePassword(newPassword: String): Result<Unit> = Result.failure(Exception("Not implemented on WasmJs"))
-            override suspend fun unlinkProvider(providerId: String): Result<User> = Result.failure(Exception("Not implemented on WasmJs"))
+            override suspend fun signInWithEmail(email: String, password: String): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun signUpWithEmail(email: String, password: String, displayName: String?): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun signInWithGoogle(idToken: String, accessToken: String?): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun signInWithCustomService(serviceName: String, accessToken: String): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun linkWithGoogle(idToken: String, accessToken: String?): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun linkWithCustomService(serviceName: String, accessToken: String): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun unlinkCustomService(serviceName: String): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun linkWithEmail(email: String, password: String): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun updatePassword(newPassword: String) = throw Exception("Not implemented on WasmJs")
+            override suspend fun unlinkProvider(providerId: String): User = throw Exception("Not implemented on WasmJs")
             override suspend fun signOut() {
                 val authManager = getOrNull<AuthManager>()
                 authManager?.signOut()
             }
-            override suspend fun deleteAccount(): Result<Unit> = Result.failure(Exception("Not implemented on WasmJs"))
+            override suspend fun deleteAccount() = throw Exception("Not implemented on WasmJs")
             override suspend fun getServiceToken(serviceName: String): String? {
                 TODO("Not yet implemented")
             }

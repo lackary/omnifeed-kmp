@@ -37,7 +37,6 @@ val authRemoteModule = module {
             ktorConfig = ktorConfig,
             logger = KtorKermitLogger(authLogger)
         ) {
-            expectSuccess = false
             defaultRequest {
                 header(HEADER_X_GOOGLE_API_KEY, apiKey)
             }
@@ -54,7 +53,6 @@ val authRemoteModule = module {
             ktorConfig = ktorConfig,
             logger = KtorKermitLogger(authLogger)
         ) {
-            expectSuccess = false
             defaultRequest {
                 header(HEADER_X_GOOGLE_API_KEY, apiKey)
             }

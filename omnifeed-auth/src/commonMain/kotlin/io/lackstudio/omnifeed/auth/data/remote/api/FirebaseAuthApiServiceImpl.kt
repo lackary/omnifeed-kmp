@@ -28,62 +28,31 @@ class FirebaseAuthApiServiceImpl(
             ))
         }
 
-        if (response.status.value != 200) {
-            throw Exception("Failed to fetch custom token: ${response.status}")
-        }
-
         val body = response.body<Map<String, String>>()
         return body["custom_token"] ?: throw Exception("No custom token in response")
     }
 
     override suspend fun signInWithIdp(request: SignInWithIdpRequest): SignInWithIdpResponse {
-        val response =
-            httpClient.post("/$VERSION_V1/$ENDPOINT_SIGN_IN_WITH_IDP") {
+        return httpClient.post("/$VERSION_V1/$ENDPOINT_SIGN_IN_WITH_IDP") {
             setBody(request)
-        }
-
-        if (response.status.value != 200) {
-            val errorBody = response.body<String>()
-            throw Exception("Firebase REST signInWithIdp failed (${response.status}): $errorBody")
-        }
-
-        return response.body()
+        }.body()
     }
 
     override suspend fun signInWithCustomToken(request: SignInWithCustomTokenRequest): SignInWithCustomTokenResponse {
-        val response = httpClient.post("/$VERSION_V1/$ENDPOINT_SIGN_IN_WITH_CUSTOM_TOKEN") {
+        return httpClient.post("/$VERSION_V1/$ENDPOINT_SIGN_IN_WITH_CUSTOM_TOKEN") {
             setBody(request)
-        }
-
-        if (response.status.value != 200) {
-            val errorBody = response.body<String>()
-            throw Exception("Firebase REST signInWithCustomToken failed (${response.status}): $errorBody")
-        }
-
-        return response.body()
+        }.body()
     }
 
     override suspend fun lookup(request: LookupRequest): LookupResponse {
-        val response = httpClient.post("/$VERSION_V1/$ENDPOINT_LOOKUP") {
+        return httpClient.post("/$VERSION_V1/$ENDPOINT_LOOKUP") {
             setBody(request)
-        }
-
-        if (response.status.value != 200) {
-            val errorBody = response.body<String>()
-            throw Exception("Firebase REST lookup failed (${response.status}): $errorBody")
-        }
-
-        return response.body()
+        }.body()
     }
 
     override suspend fun deleteAccount(request: DeleteAccountRequest) {
-        val response = httpClient.post("/$VERSION_V1/$ENDPOINT_DELETE") {
+        httpClient.post("/$VERSION_V1/$ENDPOINT_DELETE") {
             setBody(request)
-        }
-
-        if (response.status.value != 200) {
-            val errorBody = response.body<String>()
-            throw Exception("Firebase REST delete failed (${response.status}): $errorBody")
         }
     }
 }

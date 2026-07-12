@@ -10,6 +10,7 @@ import io.lackstudio.omnifeed.auth.data.remote.model.dto.UserProfileDto
 import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.platform.firebaseProjectId
+import io.lackstudio.omnifeed.core.network.error.RemoteException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -58,19 +59,25 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun fetchFirebaseCustomToken(endpoint: String, customAccessToken: String, provider: String): String {
-        return authApiService.fetchFirebaseCustomToken(endpoint, customAccessToken, provider)
+        return handleAuthApi(name = "fetchFirebaseCustomToken") {
+            authApiService.fetchFirebaseCustomToken(endpoint, customAccessToken, provider)
+        }
     }
 
     override suspend fun signInWithGoogleRest(idToken: String): User {
-        val resultData = authApiService.signInWithIdp(SignInWithIdpRequest(
-            postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}"
-        ))
+        val resultData = handleAuthApi(name = "signInWithGoogleRest") {
+            authApiService.signInWithIdp(SignInWithIdpRequest(
+                postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}"
+            ))
+        }
 
         val firebaseIdToken = resultData.idToken ?: throw Exception("REST login failed: idToken is null")
         
         // Consistency Fix: Perform lookup to get the Firebase account's profile name (e.g. "Henry")
         // instead of the Google IDP provided name ("Yu Chan Huang")
-        val lookupData = authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        val lookupData = handleAuthApi(name = "lookup") {
+            authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        }
         val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST login failed: No user info found")
 
         return User(
@@ -84,10 +91,14 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun signInWithCustomTokenRest(customToken: String, serviceName: String, accessToken: String): User {
-        val resultData = authApiService.signInWithCustomToken(SignInWithCustomTokenRequest(token = customToken))
+        val resultData = handleAuthApi(name = "signInWithCustomTokenRest") {
+            authApiService.signInWithCustomToken(SignInWithCustomTokenRequest(token = customToken))
+        }
         val firebaseIdToken = resultData.idToken ?: throw Exception("REST login failed: idToken is null")
 
-        val lookupData = authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        val lookupData = handleAuthApi(name = "lookup") {
+            authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        }
         val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST login failed: No user info found")
 
         return User(
@@ -104,16 +115,20 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun linkWithGoogleRest(idToken: String, currentFirebaseIdToken: String): User {
-        val resultData = authApiService.signInWithIdp(SignInWithIdpRequest(
-            postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}",
-            idToken = currentFirebaseIdToken,
-            requestUri = "http://localhost"
-        ))
+        val resultData = handleAuthApi(name = "linkWithGoogleRest") {
+            authApiService.signInWithIdp(SignInWithIdpRequest(
+                postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}",
+                idToken = currentFirebaseIdToken,
+                requestUri = "http://localhost"
+            ))
+        }
 
         val firebaseIdToken = resultData.idToken ?: throw Exception("REST linking failed: idToken is null")
         
         // Consistency Fix: Get the Firebase account's profile name
-        val lookupData = authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        val lookupData = handleAuthApi(name = "lookup") {
+            authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        }
         val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST linking failed: No user info found")
 
         return User(
@@ -127,7 +142,9 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun deleteAccountRest(idToken: String) {
-        authApiService.deleteAccount(DeleteAccountRequest(idToken = idToken))
+        handleAuthApi(name = "deleteAccountRest") {
+            authApiService.deleteAccount(DeleteAccountRequest(idToken = idToken))
+        }
     }
 
     override fun getUserProfile(uid: String, serviceFields: List<String>): Flow<UserProfileDto?> {
@@ -155,7 +172,14 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun getUserProfileRest(uid: String, idToken: String): UserProfileDto? {
         val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
-        val data = firestoreApiService.getFirestoreProfile(projectId, uid, idToken) ?: return null
+        val data = try {
+            handleAuthApi(name = "getUserProfileRest") {
+                firestoreApiService.getFirestoreProfile(projectId, uid, idToken)
+            }
+        } catch (e: RemoteException.Api) {
+            if (e.code == 404) return null
+            throw e
+        } ?: return null
         
         return UserProfileDto(
             displayName = data["displayName"] as? String,
@@ -194,13 +218,15 @@ class AuthRemoteDataSourceImpl(
         profile.encryptedServiceTokens?.let { fields["encryptedServiceTokens"] = it; updateMask.add("encryptedServiceTokens") }
 
         if (fields.isNotEmpty()) {
-            firestoreApiService.saveFirestoreProfile(
-                projectId = projectId,
-                uid = uid,
-                idToken = idToken,
-                fields = fields,
-                fieldPaths = updateMask // Ensure only specified fields are touched
-            )
+            handleAuthApi(name = "saveUserProfileRest") {
+                firestoreApiService.saveFirestoreProfile(
+                    projectId = projectId,
+                    uid = uid,
+                    idToken = idToken,
+                    fields = fields,
+                    fieldPaths = updateMask // Ensure only specified fields are touched
+                )
+            }
         }
     }
 
@@ -213,13 +239,15 @@ class AuthRemoteDataSourceImpl(
         val fields = mapOf(
             "linkedServices" to mapOf(field to value)
         )
-        firestoreApiService.saveFirestoreProfile(
-            projectId = projectId,
-            uid = uid,
-            idToken = idToken,
-            fields = fields,
-            fieldPaths = listOf("linkedServices.$field")
-        )
+        handleAuthApi(name = "updateCustomFieldRest") {
+            firestoreApiService.saveFirestoreProfile(
+                projectId = projectId,
+                uid = uid,
+                idToken = idToken,
+                fields = fields,
+                fieldPaths = listOf("linkedServices.$field")
+            )
+        }
     }
 
     override suspend fun deleteUserProfile(uid: String) {
@@ -228,6 +256,8 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun deleteUserProfileRest(uid: String, idToken: String) {
         val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
-        firestoreApiService.deleteFirestoreProfile(projectId, uid, idToken)
+        handleAuthApi(name = "deleteUserProfileRest") {
+            firestoreApiService.deleteFirestoreProfile(projectId, uid, idToken)
+        }
     }
 }

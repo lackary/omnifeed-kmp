@@ -111,98 +111,81 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun signInWithEmail(email: String, password: String): Result<User> {
-        return try {
-            val fbUser = remoteDataSource.signInWithEmail(email, password)
-            val user = fbUser.toDomain()
-            saveUserToFirestore(user)
-            Result.success(user)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun signInWithEmail(email: String, password: String): User {
+        val firebaseUser = remoteDataSource.signInWithEmail(email, password)
+        val user = firebaseUser.toDomain()
+        saveUserToFirestore(user)
+        return user
     }
 
-    override suspend fun signUpWithEmail(email: String, password: String, displayName: String?): Result<User> {
-        return try {
-            val fbUser = remoteDataSource.signUpWithEmail(email, password)
-            if (displayName != null) {
-                fbUser.updateProfile(displayName = displayName)
-            }
-            val user = fbUser.toDomain()
-            saveUserToFirestore(user)
-            Result.success(user)
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun signUpWithEmail(email: String, password: String, displayName: String?): User {
+        val firebaseUser = remoteDataSource.signUpWithEmail(email, password)
+        if (displayName != null) {
+            firebaseUser.updateProfile(displayName = displayName)
         }
+        val user = firebaseUser.toDomain()
+        saveUserToFirestore(user)
+        return user
     }
 
-    override suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<User> {
+    override suspend fun signInWithGoogle(idToken: String, accessToken: String?): User {
         return try {
             val credential = GoogleAuthProvider.credential(idToken, accessToken)
-            val fbUser = remoteDataSource.signInWithCredential(credential)
-            val user = fbUser.toDomain()
+            val firebaseUser = remoteDataSource.signInWithCredential(credential)
+            val user = firebaseUser.toDomain()
             saveUserToFirestore(user)
-            Result.success(user)
+            user
         } catch (e: Throwable) {
             if (e is NotImplementedError || e.message?.contains("not implemented") == true) {
                 signInWithGoogleRest(idToken)
             } else {
-                Result.failure(e)
+                throw e
             }
         }
     }
 
-    override suspend fun signInWithCustomService(serviceName: String, accessToken: String): Result<User> {
-        return try {
-            val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
-            
-            // Extract raw token if it's JSON (for Cloud Function verification)
-            val rawAccessToken = try {
-                if (accessToken.trim().startsWith("{")) {
-                    Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
-                        ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
-                        ?: accessToken
-                } else accessToken
-            } catch (_: Exception) { accessToken }
+    override suspend fun signInWithCustomService(serviceName: String, accessToken: String): User {
+        val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
+        
+        // Extract raw token if it's JSON (for Cloud Function verification)
+        val rawAccessToken = try {
+            if (accessToken.trim().startsWith("{")) {
+                Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
+                    ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
+                    ?: accessToken
+            } else accessToken
+        } catch (_: Exception) { accessToken }
 
-            val customToken = remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
-            
-            val loginResult = try {
-                val fbUser = remoteDataSource.signInWithCustomToken(customToken)
-                if (!fbUser.uid.isValidUid()) {
-                    Result.success(remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken))
-                } else {
-                    Result.success(fbUser.toDomain())
-                }
-            } catch (_: Exception) {
-                Result.success(remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken))
+        val customToken = remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
+        
+        val user = try {
+            val firebaseUser = remoteDataSource.signInWithCustomToken(customToken)
+            if (!firebaseUser.uid.isValidUid()) {
+                remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+            } else {
+                firebaseUser.toDomain()
             }
-
-            loginResult.fold(
-                onSuccess = { user ->
-                    val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
-                        put(serviceName, true)
-                    }
-                    val finalUser = user.copy(linkedServices = updatedLinkedServices)
-                    
-                    // CRITICAL FIX: Save to local storage FIRST, then sync to cloud
-                    localDataSource.saveServiceToken(finalUser.id, serviceName, accessToken)
-                    
-                    saveUserToFirestore(finalUser)
-                    saveLocalUser(finalUser)
-                    
-                    updateCustomField(finalUser, serviceName, true)
-
-                    Result.success(finalUser)
-                },
-                onFailure = { Result.failure(it) }
-            )
-        } catch (e: Exception) {
-            Result.failure(e)
+        } catch (_: Exception) {
+            remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
         }
+
+        val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
+            put(serviceName, true)
+        }
+        val finalUser = user.copy(linkedServices = updatedLinkedServices)
+        
+        // CRITICAL FIX: Save to local storage FIRST, then sync to cloud
+        localDataSource.saveServiceToken(finalUser.id, serviceName, accessToken)
+        
+        saveUserToFirestore(finalUser)
+        saveLocalUser(finalUser)
+        
+        updateCustomField(finalUser, serviceName, true)
+
+        return finalUser
     }
 
-    override suspend fun linkWithGoogle(idToken: String, accessToken: String?): Result<User> {
+    override suspend fun linkWithGoogle(idToken: String, accessToken: String?): User {
         return try {
             val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to link with")
             val credential = GoogleAuthProvider.credential(idToken, accessToken)
@@ -214,122 +197,91 @@ class AuthRepositoryImpl(
             )
             saveUserToFirestore(finalUser)
             saveLocalUser(finalUser)
-            Result.success(finalUser)
+            finalUser
         } catch (e: Throwable) {
             if (e is NotImplementedError || e.message?.contains("not implemented") == true) {
                 linkWithGoogleRest(idToken)
             } else {
-                Result.failure(e)
+                throw e
             }
         }
     }
 
-    override suspend fun linkWithCustomService(serviceName: String, accessToken: String): Result<User> {
-        return try {
-            val user = currentUser.first() ?: throw Exception("No user logged in to link with")
-            val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
-            
-            // Extract raw token if it's JSON (for verification)
-            val rawAccessToken = try {
-                if (accessToken.trim().startsWith("{")) {
-                    Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
-                        ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
-                        ?: accessToken
-                } else accessToken
-            } catch (_: Exception) { accessToken }
+    override suspend fun linkWithCustomService(serviceName: String, accessToken: String): User {
+        val user = currentUser.first() ?: throw Exception("No user logged in to link with")
+        val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
+        
+        // Extract raw token if it's JSON (for verification)
+        val rawAccessToken = try {
+            if (accessToken.trim().startsWith("{")) {
+                Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
+                    ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
+                    ?: accessToken
+            } else accessToken
+        } catch (_: Exception) { accessToken }
 
-            remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
-            localDataSource.saveServiceToken(user.id, serviceName, accessToken)
+        remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
+        localDataSource.saveServiceToken(user.id, serviceName, accessToken)
 
-            updateCustomField(user, serviceName, true)
-            
-            val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
-                put(serviceName, true)
-            }
-            val updatedUser = user.copy(linkedServices = updatedLinkedServices)
-            saveUserToFirestore(updatedUser)
-            saveLocalUser(updatedUser)
-            Result.success(updatedUser)
-        } catch (e: Exception) {
-            Result.failure(e)
+        updateCustomField(user, serviceName, true)
+        
+        val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
+            put(serviceName, true)
         }
+        val updatedUser = user.copy(linkedServices = updatedLinkedServices)
+        saveUserToFirestore(updatedUser)
+        saveLocalUser(updatedUser)
+        return updatedUser
     }
 
-    override suspend fun unlinkCustomService(serviceName: String): Result<User> {
-        return try {
-            val user = currentUser.first() ?: throw Exception("No user logged in")
-            if (!customServices.containsKey(serviceName)) throw Exception("Service $serviceName not configured")
-            
-            updateCustomField(user, serviceName, false)
-            
-            localDataSource.clearServiceToken(user.id, serviceName)
-            
-            val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
-                put(serviceName, false)
-            }
-            val updatedUser = user.copy(linkedServices = updatedLinkedServices)
-            saveLocalUser(updatedUser)
-            Result.success(updatedUser)
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun unlinkCustomService(serviceName: String): User {
+        val user = currentUser.first() ?: throw Exception("No user logged in")
+        if (!customServices.containsKey(serviceName)) throw Exception("Service $serviceName not configured")
+        
+        updateCustomField(user, serviceName, false)
+        
+        localDataSource.clearServiceToken(user.id, serviceName)
+        
+        val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
+            put(serviceName, false)
         }
+        val updatedUser = user.copy(linkedServices = updatedLinkedServices)
+        saveLocalUser(updatedUser)
+        return updatedUser
     }
 
-    override suspend fun linkWithEmail(email: String, password: String): Result<User> {
-        return try {
-            val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to link with")
-            val credential = EmailAuthProvider.credential(email, password)
-            val result = sdkUser.linkWithCredential(credential)
-            val linkedUser = result.user?.toDomain() ?: throw Exception("Email linking failed: User is null")
-            Result.success(linkedUser)
-        } catch (e: Throwable) {
-            Result.failure(e)
-        }
+    override suspend fun linkWithEmail(email: String, password: String): User {
+        val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to link with")
+        val credential = EmailAuthProvider.credential(email, password)
+        val result = sdkUser.linkWithCredential(credential)
+        return result.user?.toDomain() ?: throw Exception("Email linking failed: User is null")
     }
 
-    override suspend fun updatePassword(newPassword: String): Result<Unit> {
-        return try {
-            val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to update password")
-            sdkUser.updatePassword(newPassword)
-            Result.success(Unit)
-        } catch (e: Throwable) {
-            Result.failure(e)
-        }
+    override suspend fun updatePassword(newPassword: String) {
+        val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to update password")
+        sdkUser.updatePassword(newPassword)
     }
 
-    override suspend fun unlinkProvider(providerId: String): Result<User> {
-        return try {
-            val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to unlink")
-            val resultUser = sdkUser.unlink(providerId)
-            val unlinkedUser = resultUser?.toDomain() ?: throw Exception("Unlinking failed: User is null")
-            Result.success(unlinkedUser)
-        } catch (e: Throwable) {
-            Result.failure(e)
-        }
+    override suspend fun unlinkProvider(providerId: String): User {
+        val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to unlink")
+        val resultUser = sdkUser.unlink(providerId)
+        return resultUser?.toDomain() ?: throw Exception("Unlinking failed: User is null")
     }
 
-    private suspend fun linkWithGoogleRest(idToken: String): Result<User> {
-        return try {
-            val fbUser = remoteDataSource.currentUser ?: throw Exception("No user logged in")
-            val firebaseIdToken = fbUser.getIdToken(false) ?: throw Exception("Failed to get Firebase ID Token")
-            val user = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken)
-            saveUserToFirestore(user)
-            saveLocalUser(user)
-            Result.success(user)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    private suspend fun linkWithGoogleRest(idToken: String): User {
+        val firebaseUser = remoteDataSource.currentUser ?: throw Exception("No user logged in")
+        val firebaseIdToken = firebaseUser.getIdToken(false) ?: throw Exception("Failed to get Firebase ID Token")
+        val user = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken)
+        saveUserToFirestore(user)
+        saveLocalUser(user)
+        return user
     }
 
-    private suspend fun signInWithGoogleRest(idToken: String): Result<User> {
-        return try {
-            val user = remoteDataSource.signInWithGoogleRest(idToken)
-            saveUserToFirestore(user)
-            saveLocalUser(user)
-            Result.success(user)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    private suspend fun signInWithGoogleRest(idToken: String): User {
+        val user = remoteDataSource.signInWithGoogleRest(idToken)
+        saveUserToFirestore(user)
+        saveLocalUser(user)
+        return user
     }
 
     override suspend fun signOut() {
@@ -340,43 +292,38 @@ class AuthRepositoryImpl(
         DeepLinkBuffer.consumeDeepLink()
     }
 
-    override suspend fun deleteAccount(): Result<Unit> {
-        return try {
-            val sdkUser = remoteDataSource.currentUser
-            val manualUserValue = manualUser.value
-            val uid = manualUserValue?.id ?: sdkUser?.uid
-            val idToken = manualUserValue?.idToken
-            
-            if (uid.isValidUid()) {
-                if (idToken != null) {
-                    remoteDataSource.deleteUserProfileRest(uid!!, idToken)
-                } else {
-                    remoteDataSource.deleteUserProfile(uid!!)
-                }
+    override suspend fun deleteAccount() {
+        val sdkUser = remoteDataSource.currentUser
+        val manualUserValue = manualUser.value
+        val uid = manualUserValue?.id ?: sdkUser?.uid
+        val idToken = manualUserValue?.idToken
+        
+        if (uid.isValidUid()) {
+            if (idToken != null) {
+                remoteDataSource.deleteUserProfileRest(uid!!, idToken)
+            } else {
+                remoteDataSource.deleteUserProfile(uid!!)
             }
-
-            var sdkDeleted = false
-            if (sdkUser != null) {
-                try {
-                    sdkUser.delete()
-                    sdkDeleted = true
-                } catch (_: Throwable) {
-                    // SDK delete failed or not implemented, will fallback to REST
-                }
-            }
-
-            // Only call REST delete if SDK delete was not successful and we have an idToken
-            if (!sdkDeleted && idToken != null) {
-                remoteDataSource.deleteAccountRest(idToken)
-            }
-
-            saveLocalUser(null)
-            localDataSource.clearAllServiceTokens()
-            remoteDataSource.signOut()
-            Result.success(Unit)
-        } catch (e: Throwable) {
-            Result.failure(e)
         }
+
+        var sdkDeleted = false
+        if (sdkUser != null) {
+            try {
+                sdkUser.delete()
+                sdkDeleted = true
+            } catch (_: Throwable) {
+                // SDK delete failed or not implemented, will fallback to REST
+            }
+        }
+
+        // Only call REST delete if SDK delete was not successful and we have an idToken
+        if (!sdkDeleted && idToken != null) {
+            remoteDataSource.deleteAccountRest(idToken)
+        }
+
+        saveLocalUser(null)
+        localDataSource.clearAllServiceTokens()
+        remoteDataSource.signOut()
     }
 
     override suspend fun getServiceToken(serviceName: String): String? {
