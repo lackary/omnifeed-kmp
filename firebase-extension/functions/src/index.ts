@@ -82,7 +82,7 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
 
     // Extract user info
     const email = thirdPartyUser.email || null;
-    const displayName = thirdPartyUser.name || thirdPartyUser.username || thirdPartyUser.login;
+    const username = thirdPartyUser.name || thirdPartyUser.username || thirdPartyUser.login;
     const photoURL = thirdPartyUser.profile_image?.large || thirdPartyUser.avatar_url || null;
 
     let firebaseUid = uid;
@@ -93,7 +93,7 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
       // User exists, update info if needed
       await getAuth().updateUser(uid, {
         email: email || undefined,
-        displayName: displayName || undefined,
+        displayName: username || undefined,
         photoURL: photoURL || undefined
       });
     } catch (error: any) {
@@ -103,7 +103,7 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
           await getAuth().createUser({
             uid: uid,
             email: email || undefined,
-            displayName: displayName || undefined,
+            displayName: username || undefined,
             photoURL: photoURL || undefined
           });
           logger.info(`Created new Firebase user record for ${uid}`);
@@ -112,7 +112,14 @@ export const signInWithCustomService = onRequest({cors: true}, async (req, res) 
             // Email already exists under a different UID (e.g. Google login)
             const existingUser = await getAuth().getUserByEmail(email);
             firebaseUid = existingUser.uid;
-            logger.info(`Email ${email} already exists. Mapping to existing user ${firebaseUid}`);
+
+            // CRITICAL FIX: Also update the existing user's profile with the new info from the third-party service
+            await getAuth().updateUser(firebaseUid, {
+              displayName: username || undefined,
+              photoURL: photoURL || undefined
+            });
+
+            logger.info(`Email ${email} already exists. Updated and mapping to existing user ${firebaseUid}`);
           } else {
             throw createError;
           }

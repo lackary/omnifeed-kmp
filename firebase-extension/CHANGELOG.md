@@ -6,4 +6,4 @@
 - [UI] Documentation: Clean up redundant JSON examples in the configuration description.
 - [Fix] Handle email collision during custom sign-in.
 - [Feature] Account Linking: Automatically map custom provider identities to existing Firebase users if the email address already exists (e.g., merging Unsplash login with existing Google account).
-
+- [Fix] Account Linking: Ensure profile info (display name, photo URL) is synchronized when mapping to an existing Firebase user.
