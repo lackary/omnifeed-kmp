@@ -38,7 +38,7 @@ class AuthRepositoryImpl(
         try {
             val user = localDataSource.getUser()
             manualUser.value = user
-            logger.d { "init: manualUser detected from storage: ${user?.id} (Name: ${user?.displayName})" }
+            logger.d { "init: manualUser detected from storage: ${user?.id} (Name: ${user?.username})" }
         } catch (e: Exception) {
             logger.e(e) { "init: Failed to load manualUser from storage" }
         }
@@ -50,7 +50,7 @@ class AuthRepositoryImpl(
         
         val savedUser = localDataSource.getUser()
         if (user != null) {
-            logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id}, Name=${savedUser?.displayName}" }
+            logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id}, Name=${savedUser?.username}" }
         } else {
             logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id} (Deleted)" }
         }
@@ -84,7 +84,12 @@ class AuthRepositoryImpl(
         val profileFlow = if (user is User && user.idToken != null) {
             logger.d { "currentUser: SDK not logged in, using REST to fetch profile for $uid" }
             flow {
-                emit(remoteDataSource.getUserProfileRest(uid, user.idToken))
+                try {
+                    emit(remoteDataSource.getUserProfileRest(uid, user.idToken))
+                } catch (e: Exception) {
+                    logger.e(e) { "currentUser: Failed to fetch profile via REST for $uid" }
+                    emit(null)
+                }
             }
         } else {
             remoteDataSource.getUserProfile(uid, serviceFields)
@@ -101,8 +106,8 @@ class AuthRepositoryImpl(
             domainUser.copy(
                 linkedServices = profileDto.linkedServices ?: emptyMap(),
                 authProviders = profileDto.authProviders?.takeIf { it.isNotEmpty() } ?: domainUser.authProviders,
-                displayName = profileDto.displayName.takeIf { !it.isNullOrBlank() }
-                    ?: domainUser.displayName,
+                username = profileDto.username.takeIf { !it.isNullOrBlank() }
+                    ?: domainUser.username,
                 email = domainUser.email.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.email,
                 photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() }
@@ -113,17 +118,23 @@ class AuthRepositoryImpl(
 
     override suspend fun signInWithEmail(email: String, password: String): User {
         val firebaseUser = remoteDataSource.signInWithEmail(email, password)
-        val user = firebaseUser.toDomain()
+        val domainUser = firebaseUser.toDomain()
+        val idToken = domainUser.idToken ?: firebaseUser.getIdToken(false) ?: ""
+
+        val user = syncProfile(domainUser, idToken)
         saveUserToFirestore(user)
+        saveLocalUser(user)
         return user
     }
 
-    override suspend fun signUpWithEmail(email: String, password: String, displayName: String?): User {
+    override suspend fun signUpWithEmail(email: String, password: String, username: String?): User {
         val firebaseUser = remoteDataSource.signUpWithEmail(email, password)
-        if (displayName != null) {
-            firebaseUser.updateProfile(displayName = displayName)
+        if (username != null) {
+            firebaseUser.updateProfile(displayName = username)
         }
-        val user = firebaseUser.toDomain()
+        val user = firebaseUser.toDomain().run {
+            if (username != null) copy(username = username) else this
+        }
         saveUserToFirestore(user)
         return user
     }
@@ -132,8 +143,12 @@ class AuthRepositoryImpl(
         return try {
             val credential = GoogleAuthProvider.credential(idToken, accessToken)
             val firebaseUser = remoteDataSource.signInWithCredential(credential)
-            val user = firebaseUser.toDomain()
+            val domainUser = firebaseUser.toDomain()
+            val firebaseIdToken = domainUser.idToken ?: firebaseUser.getIdToken(false) ?: ""
+
+            val user = syncProfile(domainUser, firebaseIdToken)
             saveUserToFirestore(user)
+            saveLocalUser(user)
             user
         } catch (e: Throwable) {
             if (e is NotImplementedError || e.message?.contains("not implemented") == true) {
@@ -187,13 +202,18 @@ class AuthRepositoryImpl(
 
     override suspend fun linkWithGoogle(idToken: String, accessToken: String?): User {
         return try {
+            val currentUserData = currentUser.first() ?: throw Exception("No user logged in to link with")
             val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to link with")
             val credential = GoogleAuthProvider.credential(idToken, accessToken)
             val result = sdkUser.linkWithCredential(credential)
             val linkedUser = result.user?.toDomain() ?: throw Exception("Google linking failed: User is null")
             
             val finalUser = linkedUser.copy(
-                authProviders = linkedUser.authProviders.toMutableMap().apply { put(AuthProvider.GOOGLE.id, true) }
+                authProviders = currentUserData.authProviders.toMutableMap().apply { 
+                    putAll(linkedUser.authProviders)
+                    put(AuthProvider.GOOGLE.id, true) 
+                },
+                linkedServices = currentUserData.linkedServices // Preserve existing linked services
             )
             saveUserToFirestore(finalUser)
             saveLocalUser(finalUser)
@@ -223,12 +243,20 @@ class AuthRepositoryImpl(
         remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
         localDataSource.saveServiceToken(user.id, serviceName, accessToken)
 
-        updateCustomField(user, serviceName, true)
+        // Refresh user profile from Auth to get potential photoUrl/username updates from the service
+        val refreshedUser = try {
+            val idToken = user.idToken ?: remoteDataSource.currentUser?.getIdToken(false)
+            if (idToken != null) {
+                remoteDataSource.refreshUserRest(idToken)
+            } else user
+        } catch (_: Exception) { user }
+
+        updateCustomField(refreshedUser, serviceName, true)
         
-        val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
+        val updatedLinkedServices = refreshedUser.linkedServices.toMutableMap().apply {
             put(serviceName, true)
         }
-        val updatedUser = user.copy(linkedServices = updatedLinkedServices)
+        val updatedUser = refreshedUser.copy(linkedServices = updatedLinkedServices)
         saveUserToFirestore(updatedUser)
         saveLocalUser(updatedUser)
         return updatedUser
@@ -269,19 +297,35 @@ class AuthRepositoryImpl(
     }
 
     private suspend fun linkWithGoogleRest(idToken: String): User {
+        val currentUserData = currentUser.first() ?: throw Exception("No user logged in")
         val firebaseUser = remoteDataSource.currentUser ?: throw Exception("No user logged in")
         val firebaseIdToken = firebaseUser.getIdToken(false) ?: throw Exception("Failed to get Firebase ID Token")
-        val user = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken)
+        val user = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken).copy(
+            linkedServices = currentUserData.linkedServices // Preserve existing linked services
+        )
         saveUserToFirestore(user)
         saveLocalUser(user)
         return user
     }
 
     private suspend fun signInWithGoogleRest(idToken: String): User {
-        val user = remoteDataSource.signInWithGoogleRest(idToken)
+        val domainUser = remoteDataSource.signInWithGoogleRest(idToken)
+        val user = syncProfile(domainUser, domainUser.idToken ?: "")
         saveUserToFirestore(user)
         saveLocalUser(user)
         return user
+    }
+
+    private suspend fun syncProfile(domainUser: User, idToken: String): User {
+        // Fetch current Firestore profile to preserve existing services/fields
+        val profileDto = remoteDataSource.getUserProfileRest(domainUser.id, idToken)
+        return if (profileDto != null) {
+            domainUser.copy(
+                linkedServices = profileDto.linkedServices ?: emptyMap(),
+                username = profileDto.username?.takeIf { it.isNotBlank() } ?: domainUser.username,
+                photoUrl = profileDto.photoUrl?.takeIf { it.isNotBlank() } ?: domainUser.photoUrl
+            )
+        } else domainUser
     }
 
     override suspend fun signOut() {
@@ -336,10 +380,10 @@ class AuthRepositoryImpl(
                     // SDK not logged in (e.g. JVM), use REST to fetch profile safely
                     remoteDataSource.getUserProfileRest(user.id, user.idToken!!)
                 } else {
-                    remoteDataSource.getUserProfile(user.id, listOf("encryptedServiceTokens")).firstOrNull()
+                    remoteDataSource.getUserProfile(user.id, listOf("encryptedServiceAuth")).firstOrNull()
                 }
 
-                profileDto?.encryptedServiceTokens?.get(serviceName)
+                profileDto?.encryptedServiceAuth?.get(serviceName)
                     ?.let { encrypted ->
                         decryptToken(encrypted, user.id).also { decrypted ->
                             localDataSource.saveServiceToken(user.id, serviceName, decrypted)
@@ -389,12 +433,12 @@ class AuthRepositoryImpl(
             }
 
             val dto = UserProfileDto(
-                displayName = user.displayName.takeIf { !it.isNullOrBlank() },
-                email = user.email.takeIf { !it.isNullOrBlank() },
-                photoUrl = user.photoUrl.takeIf { !it.isNullOrBlank() },
-                authProviders = user.authProviders.takeIf { it.isNotEmpty() },
-                linkedServices = user.linkedServices.takeIf { it.isNotEmpty() },
-                encryptedServiceTokens = tokensToSync.takeIf { it.isNotEmpty() }
+                username = user.username?.takeIf { it.isNotBlank() },
+                email = user.email?.takeIf { it.isNotBlank() },
+                photoUrl = user.photoUrl?.takeIf { it.isNotBlank() },
+                authProviders = user.authProviders,
+                linkedServices = user.linkedServices,
+                encryptedServiceAuth = tokensToSync.takeIf { it.isNotEmpty() }
             )
 
             val idToken = user.idToken
@@ -444,19 +488,25 @@ class AuthRepositoryImpl(
 
     private fun FirebaseUser.toDomain(): User {
         val providers = try {
-            providerData
+            val pData = providerData
                 .filter { it.providerId != "firebase" } // Filter out internal Firebase provider ID (common on Android)
                 .associate {
                     val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
                     key to true
                 }
-        } catch (_: Throwable) { emptyMap() }
+            // Fallback for email/password if providerData is empty or not yet populated
+            if (pData.isEmpty() && !email.isNullOrBlank()) {
+                mapOf(AuthProvider.PASSWORD.id to true)
+            } else pData
+        } catch (_: Throwable) {
+            if (!email.isNullOrBlank()) mapOf(AuthProvider.PASSWORD.id to true) else emptyMap()
+        }
         
         return User(
             id = uid,
-            email = email,
-            displayName = displayName,
-            photoUrl = photoURL,
+            email = email?.takeIf { it.isNotBlank() },
+            username = displayName?.takeIf { it.isNotBlank() },
+            photoUrl = photoURL?.takeIf { it.isNotBlank() },
             authProviders = providers
         )
     }

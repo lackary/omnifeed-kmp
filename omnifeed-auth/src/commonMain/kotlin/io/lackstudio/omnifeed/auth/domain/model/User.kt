@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class User(
     val id: String,
     val email: String?,
-    val displayName: String?,
+    val username: String?,
     val photoUrl: String?,
     val authProviders: Map<String, Boolean> = emptyMap(),
     val linkedServices: Map<String, Boolean> = emptyMap(),

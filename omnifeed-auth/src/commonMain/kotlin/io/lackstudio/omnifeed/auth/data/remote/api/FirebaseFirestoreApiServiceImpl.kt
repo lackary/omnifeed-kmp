@@ -74,6 +74,7 @@ class FirebaseFirestoreApiServiceImpl(
     private fun toFirestoreValue(value: Any?): JsonObject {
         return buildJsonObject {
             when (value) {
+                null -> put("nullValue", JsonNull)
                 is String -> put("stringValue", value)
                 is Boolean -> put("booleanValue", value)
                 is Map<*, *> -> {
@@ -85,7 +86,7 @@ class FirebaseFirestoreApiServiceImpl(
                         }
                     }
                 }
-                else -> put("stringValue", value?.toString() ?: "")
+                else -> put("stringValue", value.toString())
             }
         }
     }
@@ -94,6 +95,7 @@ class FirebaseFirestoreApiServiceImpl(
         return fields.mapValues { (_, value) ->
             val obj = value.jsonObject
             when {
+                "nullValue" in obj -> null
                 "stringValue" in obj -> obj["stringValue"]?.jsonPrimitive?.content
                 "booleanValue" in obj -> obj["booleanValue"]?.jsonPrimitive?.booleanOrNull
                 "mapValue" in obj -> {

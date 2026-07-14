@@ -18,11 +18,12 @@ import kotlinx.coroutines.flow.map
  * Remote Data Structure (Firestore):
  *
  * /users/{uid} (Document)
- *    ├── displayName: String?
+ *    ├── username: String?
  *    ├── email: String?
  *    ├── photoUrl: String?
- *    ├── authProviders: Map<String, Boolean> (e.g., {"google": true, "firebase": true})
- *    └── linkedServices: Map<String, Boolean> (e.g., {"unsplash": true})
+ *    ├── authProviders: Map<String, Boolean> (e.g., {"google": true, "password": true})
+ *    ├── linkedServices: Map<String, Boolean> (e.g., {"unsplash": true})
+ *    └── encryptedServiceAuth: Map<String, String> (Decrypted: OAuth2 JSON string)
  */
 class AuthRemoteDataSourceImpl(
     private val firebaseAuth: FirebaseAuth,
@@ -80,12 +81,17 @@ class AuthRemoteDataSourceImpl(
         }
         val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST login failed: No user info found")
 
+        val providers = userInfo.providerUserInfo.associate {
+            val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
+            key to true
+        }
+
         return User(
             id = userInfo.localId,
             email = userInfo.email,
-            displayName = userInfo.displayName ?: resultData.displayName,
+            username = userInfo.displayName ?: resultData.displayName,
             photoUrl = userInfo.photoUrl ?: resultData.photoUrl,
-            authProviders = mapOf(AuthProvider.GOOGLE.id to true),
+            authProviders = providers,
             idToken = firebaseIdToken
         )
     }
@@ -96,21 +102,30 @@ class AuthRemoteDataSourceImpl(
         }
         val firebaseIdToken = resultData.idToken ?: throw Exception("REST login failed: idToken is null")
 
-        val lookupData = handleAuthApi(name = "lookup") {
-            authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
+        return refreshUserRest(firebaseIdToken).copy(
+            linkedServices = mapOf(serviceName to true),
+            idToken = firebaseIdToken
+        )
+    }
+
+    override suspend fun refreshUserRest(idToken: String): User {
+        val lookupData = handleAuthApi(name = "refreshUser") {
+            authApiService.lookup(LookupRequest(idToken = idToken))
         }
-        val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST login failed: No user info found")
+        val userInfo = lookupData.users.firstOrNull() ?: throw Exception("Refresh failed: No user info found")
+
+        val providers = userInfo.providerUserInfo.associate {
+            val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
+            key to true
+        }
 
         return User(
             id = userInfo.localId,
-            email = userInfo.email,
-            displayName = userInfo.displayName,
-            photoUrl = userInfo.photoUrl,
-            authProviders = if (userInfo.providerUserInfo.any { it.providerId == AuthProvider.GOOGLE.firebaseId }) {
-                mapOf(AuthProvider.GOOGLE.id to true)
-            } else emptyMap(),
-            linkedServices = mapOf(serviceName to true),
-            idToken = firebaseIdToken
+            email = userInfo.email?.takeIf { it.isNotBlank() },
+            username = userInfo.displayName?.takeIf { it.isNotBlank() },
+            photoUrl = userInfo.photoUrl?.takeIf { it.isNotBlank() },
+            authProviders = providers,
+            idToken = idToken
         )
     }
 
@@ -131,12 +146,17 @@ class AuthRemoteDataSourceImpl(
         }
         val userInfo = lookupData.users.firstOrNull() ?: throw Exception("REST linking failed: No user info found")
 
+        val providers = userInfo.providerUserInfo.associate {
+            val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
+            key to true
+        }
+
         return User(
             id = userInfo.localId,
             email = userInfo.email,
-            displayName = userInfo.displayName ?: resultData.displayName,
+            username = userInfo.displayName ?: resultData.displayName,
             photoUrl = userInfo.photoUrl ?: resultData.photoUrl,
-            authProviders = mapOf(AuthProvider.GOOGLE.id to true),
+            authProviders = providers,
             idToken = firebaseIdToken
         )
     }
@@ -151,17 +171,17 @@ class AuthRemoteDataSourceImpl(
         return firestore.collection("users").document(uid).snapshots().map { snapshot ->
             if (snapshot.exists) {
                 UserProfileDto(
-                    displayName = try { snapshot.get<String?>("displayName") } catch (e: Exception) { null },
-                    email = try { snapshot.get<String?>("email") } catch (e: Exception) { null },
-                    photoUrl = try { snapshot.get<String?>("photoUrl") } catch (e: Exception) { null },
+                    username = try { snapshot.get<String?>("username")?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
+                    email = try { snapshot.get<String?>("email")?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
+                    photoUrl = try { snapshot.get<String?>("photoUrl")?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
                     authProviders = try {
                         snapshot.get<Map<String, Boolean>?>("authProviders") ?: emptyMap()
                     } catch (e: Exception) { emptyMap() },
                     linkedServices = try {
                         snapshot.get<Map<String, Boolean>?>("linkedServices") ?: emptyMap()
                     } catch (e: Exception) { emptyMap() },
-                    encryptedServiceTokens = try {
-                        snapshot.get<Map<String, String>?>("encryptedServiceTokens") ?: emptyMap()
+                    encryptedServiceAuth = try {
+                        snapshot.get<Map<String, String>?>("encryptedServiceAuth") ?: snapshot.get<Map<String, String>?>("encryptedServiceTokens") ?: emptyMap()
                     } catch (e: Exception) { emptyMap() }
                 )
             } else {
@@ -182,27 +202,29 @@ class AuthRemoteDataSourceImpl(
         } ?: return null
         
         return UserProfileDto(
-            displayName = data["displayName"] as? String,
-            email = data["email"] as? String,
-            photoUrl = data["photoUrl"] as? String,
+            username = (data["username"] as? String ?: data["displayName"] as? String)?.takeIf { it.isNotBlank() },
+            email = (data["email"] as? String)?.takeIf { it.isNotBlank() },
+            photoUrl = (data["photoUrl"] as? String)?.takeIf { it.isNotBlank() },
             authProviders = (data["authProviders"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
             linkedServices = (data["linkedServices"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
-            encryptedServiceTokens = (data["encryptedServiceTokens"] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap() ?: emptyMap()
+            encryptedServiceAuth = (data["encryptedServiceAuth"] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap() 
+                ?: (data["encryptedServiceTokens"] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap() 
+                ?: emptyMap()
         )
     }
 
     override suspend fun saveUserProfile(uid: String, profile: UserProfileDto) {
         val updateMap = mutableMapOf<String, Any?>()
-        profile.displayName?.let { updateMap["displayName"] = it }
-        profile.email?.let { updateMap["email"] = it }
-        profile.photoUrl?.let { updateMap["photoUrl"] = it }
-        profile.authProviders?.let { updateMap["authProviders"] = it }
-        profile.linkedServices?.let { updateMap["linkedServices"] = it }
-        profile.encryptedServiceTokens?.let { updateMap["encryptedServiceTokens"] = it }
+        // Ensure core fields are always present in the update to maintain Firestore schema consistency
+        updateMap["username"] = profile.username
+        updateMap["email"] = profile.email
+        updateMap["photoUrl"] = profile.photoUrl
+        updateMap["authProviders"] = profile.authProviders ?: emptyMap<String, Boolean>()
+        updateMap["linkedServices"] = profile.linkedServices ?: emptyMap<String, Boolean>()
+        
+        profile.encryptedServiceAuth?.let { updateMap["encryptedServiceAuth"] = it }
 
-        if (updateMap.isNotEmpty()) {
-            firestore.collection("users").document(uid).set(updateMap, merge = true)
-        }
+        firestore.collection("users").document(uid).set(updateMap, merge = true)
     }
 
     override suspend fun saveUserProfileRest(uid: String, idToken: String, profile: UserProfileDto) {
@@ -210,12 +232,26 @@ class AuthRemoteDataSourceImpl(
         val fields = mutableMapOf<String, Any?>()
         val updateMask = mutableListOf<String>()
 
-        profile.displayName?.let { fields["displayName"] = it; updateMask.add("displayName") }
-        profile.email?.let { fields["email"] = it; updateMask.add("email") }
-        profile.photoUrl?.let { fields["photoUrl"] = it; updateMask.add("photoUrl") }
-        profile.authProviders?.let { fields["authProviders"] = it; updateMask.add("authProviders") }
-        profile.linkedServices?.let { fields["linkedServices"] = it; updateMask.add("linkedServices") }
-        profile.encryptedServiceTokens?.let { fields["encryptedServiceTokens"] = it; updateMask.add("encryptedServiceTokens") }
+        // Core fields: Always include in updateMask to ensure they exist in Firestore
+        fields["username"] = profile.username
+        updateMask.add("username")
+
+        fields["email"] = profile.email
+        updateMask.add("email")
+
+        fields["photoUrl"] = profile.photoUrl
+        updateMask.add("photoUrl")
+
+        fields["authProviders"] = profile.authProviders ?: emptyMap<String, Boolean>()
+        updateMask.add("authProviders")
+
+        fields["linkedServices"] = profile.linkedServices ?: emptyMap<String, Boolean>()
+        updateMask.add("linkedServices")
+
+        profile.encryptedServiceAuth?.let { 
+            fields["encryptedServiceAuth"] = it
+            updateMask.add("encryptedServiceAuth")
+        }
 
         if (fields.isNotEmpty()) {
             handleAuthApi(name = "saveUserProfileRest") {
@@ -224,7 +260,7 @@ class AuthRemoteDataSourceImpl(
                     uid = uid,
                     idToken = idToken,
                     fields = fields,
-                    fieldPaths = updateMask // Ensure only specified fields are touched
+                    fieldPaths = updateMask // Ensure specified fields are touched even if null
                 )
             }
         }

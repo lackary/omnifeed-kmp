@@ -6,9 +6,9 @@ import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
 import io.lackstudio.omnifeed.core.domain.usecase.toUseCaseResult
 
 class SignUpWithEmailUseCase(private val repository: AuthRepository) {
-    suspend operator fun invoke(email: String, password: String, displayName: String? = null): UseCaseResult<User> {
+    suspend operator fun invoke(email: String, password: String, username: String? = null): UseCaseResult<User> {
         return toUseCaseResult(name = "SignUpWithEmailUseCase") {
-            repository.signUpWithEmail(email, password, displayName)
+            repository.signUpWithEmail(email, password, username)
         }
     }
 }

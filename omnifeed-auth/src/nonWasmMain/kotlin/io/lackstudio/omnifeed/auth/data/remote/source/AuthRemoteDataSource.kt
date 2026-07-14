@@ -23,6 +23,7 @@ interface AuthRemoteDataSource {
     suspend fun signInWithCustomTokenRest(customToken: String, serviceName: String, accessToken: String): User
     suspend fun linkWithGoogleRest(idToken: String, currentFirebaseIdToken: String): User
     suspend fun deleteAccountRest(idToken: String)
+    suspend fun refreshUserRest(idToken: String): User
 
     // Firestore / User Profile
     fun getUserProfile(uid: String, serviceFields: List<String>): Flow<UserProfileDto?>
