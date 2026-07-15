@@ -47,6 +47,7 @@ actual val omnifeedAuthModule: Module = module {
     factory { UnlinkCustomServiceUseCase(get()) }
     factory { LinkWithEmailUseCase(get()) }
     factory { UpdatePasswordUseCase(get()) }
+    factory { UpdateUsernameUseCase(get()) }
     factory { UnlinkProviderUseCase(get()) }
     factory { ObserveUserUseCase(get()) }
     factory { SignOutUseCase(get()) }

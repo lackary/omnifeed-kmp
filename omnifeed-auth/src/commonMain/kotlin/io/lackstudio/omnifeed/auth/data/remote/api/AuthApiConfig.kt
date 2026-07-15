@@ -17,6 +17,7 @@ object AuthApiConfig {
     const val ENDPOINT_SIGN_IN_WITH_IDP = "$RESOURCE_ACCOUNTS:signInWithIdp"
     const val ENDPOINT_SIGN_IN_WITH_CUSTOM_TOKEN = "$RESOURCE_ACCOUNTS:signInWithCustomToken"
     const val ENDPOINT_LOOKUP = "$RESOURCE_ACCOUNTS:lookup"
+    const val ENDPOINT_UPDATE = "$RESOURCE_ACCOUNTS:update"
     const val ENDPOINT_DELETE = "$RESOURCE_ACCOUNTS:delete"
 
     // --- Firestore Paths ---

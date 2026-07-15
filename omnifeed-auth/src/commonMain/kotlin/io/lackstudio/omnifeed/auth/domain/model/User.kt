@@ -10,7 +10,8 @@ data class User(
     val photoUrl: String?,
     val authProviders: Map<String, Boolean> = emptyMap(),
     val linkedServices: Map<String, Boolean> = emptyMap(),
-    val idToken: String? = null // Firebase ID Token for REST-based flows
+    val idToken: String? = null, // Firebase ID Token for REST-based flows
+    val refreshToken: String? = null // Firebase Refresh Token to get new idTokens
 ) {
     /**
      * Checks if a specific custom service is linked.

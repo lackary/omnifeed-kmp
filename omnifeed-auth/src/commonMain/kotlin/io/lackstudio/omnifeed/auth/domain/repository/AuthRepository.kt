@@ -13,7 +13,8 @@ interface AuthRepository {
     suspend fun linkWithCustomService(serviceName: String, accessToken: String): User
     suspend fun unlinkCustomService(serviceName: String): User
     suspend fun linkWithEmail(email: String, password: String): User
-    suspend fun updatePassword(newPassword: String)
+    suspend fun updatePassword(newPassword: String, oldPassword: String? = null)
+    suspend fun updateUsername(username: String): User
     suspend fun unlinkProvider(providerId: String): User
     suspend fun signOut()
     suspend fun deleteAccount()

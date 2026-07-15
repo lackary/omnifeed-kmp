@@ -22,6 +22,10 @@ interface FirebaseAuthApiService {
         request: LookupRequest
     ): LookupResponse
 
+    suspend fun updateAccount(
+        request: UpdateAccountRequest
+    ): SignInWithCustomTokenResponse
+
     suspend fun deleteAccount(
         request: DeleteAccountRequest
     )

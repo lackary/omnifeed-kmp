@@ -13,8 +13,12 @@ import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.core.CustomServiceConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -111,7 +115,9 @@ class AuthRepositoryImpl(
                 email = domainUser.email.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.email,
                 photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() }
-                    ?: profileDto.photoUrl.takeIf { !it.isNullOrBlank() }
+                    ?: profileDto.photoUrl.takeIf { !it.isNullOrBlank() },
+                // CRITICAL FIX: Explicitly preserve idToken from domainUser
+                idToken = domainUser.idToken ?: manualUser.value?.idToken
             )
         }
     }
@@ -120,8 +126,9 @@ class AuthRepositoryImpl(
         val firebaseUser = remoteDataSource.signInWithEmail(email, password)
         val domainUser = firebaseUser.toDomain()
         val idToken = domainUser.idToken ?: firebaseUser.getIdToken(false) ?: ""
+        val userWithToken = domainUser.copy(idToken = idToken)
 
-        val user = syncProfile(domainUser, idToken)
+        val user = syncProfile(userWithToken, idToken)
         saveUserToFirestore(user)
         saveLocalUser(user)
         return user
@@ -135,7 +142,11 @@ class AuthRepositoryImpl(
         val user = firebaseUser.toDomain().run {
             if (username != null) copy(username = username) else this
         }
-        saveUserToFirestore(user)
+        val idToken = user.idToken ?: firebaseUser.getIdToken(false) ?: ""
+        val userWithToken = user.copy(idToken = idToken)
+        
+        saveUserToFirestore(userWithToken)
+        saveLocalUser(userWithToken)
         return user
     }
 
@@ -145,8 +156,9 @@ class AuthRepositoryImpl(
             val firebaseUser = remoteDataSource.signInWithCredential(credential)
             val domainUser = firebaseUser.toDomain()
             val firebaseIdToken = domainUser.idToken ?: firebaseUser.getIdToken(false) ?: ""
+            val userWithToken = domainUser.copy(idToken = firebaseIdToken)
 
-            val user = syncProfile(domainUser, firebaseIdToken)
+            val user = syncProfile(userWithToken, firebaseIdToken)
             saveUserToFirestore(user)
             saveLocalUser(user)
             user
@@ -178,7 +190,9 @@ class AuthRepositoryImpl(
             if (!firebaseUser.uid.isValidUid()) {
                 remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
             } else {
-                firebaseUser.toDomain()
+                val domainUser = firebaseUser.toDomain()
+                val idToken = firebaseUser.getIdToken(false) ?: ""
+                domainUser.copy(idToken = idToken)
             }
         } catch (_: Exception) {
             remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
@@ -240,16 +254,32 @@ class AuthRepositoryImpl(
             } else accessToken
         } catch (_: Exception) { accessToken }
 
-        remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
+        val customToken = remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
         localDataSource.saveServiceToken(user.id, serviceName, accessToken)
 
-        // Refresh user profile from Auth to get potential photoUrl/username updates from the service
-        val refreshedUser = try {
-            val idToken = user.idToken ?: remoteDataSource.currentUser?.getIdToken(false)
-            if (idToken != null) {
-                remoteDataSource.refreshUserRest(idToken)
-            } else user
-        } catch (_: Exception) { user }
+        // CRITICAL FIX: If we are already logged in as this custom service user,
+        // we MUST re-sign in to refresh the 'auth_time' for sensitive operations like updatePassword.
+        val refreshedUser = if (user.id.startsWith("custom:$serviceName")) {
+            logger.i { "Refreshing Firebase session for custom service user: ${user.id}" }
+            try {
+                val firebaseUser = remoteDataSource.signInWithCustomToken(customToken)
+                if (!firebaseUser.uid.isValidUid()) {
+                    remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+                } else {
+                    firebaseUser.toDomain()
+                }
+            } catch (_: Exception) {
+                remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+            }
+        } else {
+            // Standard linking flow: just refresh profile from REST
+            try {
+                val idToken = user.idToken ?: remoteDataSource.currentUser?.getIdToken(false)
+                if (idToken != null) {
+                    remoteDataSource.refreshUserRest(idToken)
+                } else user
+            } catch (_: Exception) { user }
+        }
 
         updateCustomField(refreshedUser, serviceName, true)
         
@@ -285,9 +315,95 @@ class AuthRepositoryImpl(
         return result.user?.toDomain() ?: throw Exception("Email linking failed: User is null")
     }
 
-    override suspend fun updatePassword(newPassword: String) {
-        val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to update password")
-        sdkUser.updatePassword(newPassword)
+    override suspend fun updatePassword(newPassword: String, oldPassword: String?) {
+        val sdkUser = remoteDataSource.currentUser
+        val idToken = manualUser.value?.idToken ?: sdkUser?.getIdToken(false)
+        
+        // RE-AUTH LOGIC: If it's an email user, and they provided an old password, re-verify first.
+        // This makes the Token "fresh" and satisfies Firebase's security requirement.
+        if (sdkUser != null && !oldPassword.isNullOrBlank() && !sdkUser.email.isNullOrBlank()) {
+            try {
+                logger.i { "Attempting re-auth with old password for ${sdkUser.email}" }
+                val credential = EmailAuthProvider.credential(sdkUser.email!!, oldPassword)
+                sdkUser.reauthenticate(credential)
+                logger.i { "Re-auth successful" }
+            } catch (e: Throwable) {
+                // Catch NotImplementedError or "not implemented" message on Desktop/JVM
+                if (e is NotImplementedError || e.message?.contains("not implemented") == true) {
+                    logger.w { "SDK re-authentication not supported, falling back to sign-in verification..." }
+                    // FALLBACK: Use regular sign-in to verify the old password
+                    // If this fails (wrong password), it will throw and stop the flow correctly.
+                    remoteDataSource.signInWithEmail(sdkUser.email!!, oldPassword)
+                } else {
+                    logger.e(e) { "Re-auth failed with old password" }
+                    throw e 
+                }
+            }
+        }
+
+        logger.d { "updatePassword: using idToken prefix = ${idToken?.take(10)}..." }
+
+        try {
+            // Priority 1: Use SDK if available
+            if (sdkUser != null) {
+                sdkUser.updatePassword(newPassword)
+                
+                // BUG FIX: Immediately sync to Firestore after SDK password update
+                // This ensures "password: true" is reflected in the database right away.
+                val domainUser = sdkUser.toDomain()
+                val syncedUser = syncProfile(domainUser, idToken ?: "")
+                // Force include password provider in case SDK hasn't refreshed providerData yet
+                val finalUser = syncedUser.copy(
+                    authProviders = syncedUser.authProviders + (AuthProvider.PASSWORD.id to true)
+                )
+                saveUserToFirestore(finalUser)
+                saveLocalUser(finalUser)
+            } else if (idToken != null) {
+                // Priority 2: Use REST
+                performRestPasswordUpdate(idToken, newPassword)
+            } else {
+                throw Exception("No valid session or Token available to update password")
+            }
+        } catch (e: Throwable) {
+            // Fallback for JVM where sdkUser might exist but updatePassword is not implemented
+            if (e is NotImplementedError || e.message?.contains("not implemented") == true) {
+                if (idToken != null) {
+                    performRestPasswordUpdate(idToken, newPassword)
+                } else {
+                    throw Exception("SDK does not support password update and no Token available")
+                }
+            } else {
+                throw e
+            }
+        }
+    }
+
+    private suspend fun performRestPasswordUpdate(idToken: String, newPassword: String) {
+        val updatedUser = remoteDataSource.updatePasswordRest(idToken, newPassword)
+        // Re-sync after update to ensure all providers (google + password) are preserved
+        val syncedUser = syncProfile(updatedUser, updatedUser.idToken ?: idToken)
+        saveUserToFirestore(syncedUser)
+        saveLocalUser(syncedUser)
+    }
+
+    override suspend fun updateUsername(username: String): User {
+        val sdkUser = remoteDataSource.currentUser
+        val currentUserData = manualUser.value ?: currentUser.first() ?: throw Exception("No user logged in")
+        val idToken = currentUserData.idToken ?: sdkUser?.getIdToken(false)
+        
+        val updatedUser = if (sdkUser != null && !(idToken?.contains(".") == true)) {
+            sdkUser.updateProfile(displayName = username)
+            currentUserData.copy(username = username)
+        } else if (idToken != null) {
+            remoteDataSource.updateUsernameRest(idToken, username)
+        } else {
+            currentUserData.copy(username = username)
+        }
+        
+        val syncedUser = syncProfile(updatedUser, updatedUser.idToken ?: idToken ?: "")
+        saveUserToFirestore(syncedUser)
+        saveLocalUser(syncedUser)
+        return syncedUser
     }
 
     override suspend fun unlinkProvider(providerId: String): User {
@@ -322,6 +438,8 @@ class AuthRepositoryImpl(
         return if (profileDto != null) {
             domainUser.copy(
                 linkedServices = profileDto.linkedServices ?: emptyMap(),
+                // FIX: Merge authProviders to avoid losing "google" when logging in via email
+                authProviders = (profileDto.authProviders ?: emptyMap()) + domainUser.authProviders,
                 username = profileDto.username?.takeIf { it.isNotBlank() } ?: domainUser.username,
                 photoUrl = profileDto.photoUrl?.takeIf { it.isNotBlank() } ?: domainUser.photoUrl
             )
@@ -488,26 +606,26 @@ class AuthRepositoryImpl(
 
     private fun FirebaseUser.toDomain(): User {
         val providers = try {
-            val pData = providerData
-                .filter { it.providerId != "firebase" } // Filter out internal Firebase provider ID (common on Android)
+            providerData
+                .filter { it.providerId != "firebase" }
                 .associate {
                     val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
                     key to true
                 }
-            // Fallback for email/password if providerData is empty or not yet populated
-            if (pData.isEmpty() && !email.isNullOrBlank()) {
-                mapOf(AuthProvider.PASSWORD.id to true)
-            } else pData
         } catch (_: Throwable) {
-            if (!email.isNullOrBlank()) mapOf(AuthProvider.PASSWORD.id to true) else emptyMap()
+            emptyMap()
         }
+        
+        // Use manualUser's token as fallback if this FirebaseUser doesn't have it (common on JVM)
+        val token = manualUser.value?.idToken
         
         return User(
             id = uid,
             email = email?.takeIf { it.isNotBlank() },
             username = displayName?.takeIf { it.isNotBlank() },
             photoUrl = photoURL?.takeIf { it.isNotBlank() },
-            authProviders = providers
+            authProviders = providers,
+            idToken = token
         )
     }
 

@@ -8,6 +8,7 @@ import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_DELETE
 import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_LOOKUP
 import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_SIGN_IN_WITH_CUSTOM_TOKEN
 import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_SIGN_IN_WITH_IDP
+import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.ENDPOINT_UPDATE
 import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig.VERSION_V1
 import io.lackstudio.omnifeed.auth.data.remote.model.request.*
 import io.lackstudio.omnifeed.auth.data.remote.model.response.*
@@ -46,6 +47,12 @@ class FirebaseAuthApiServiceImpl(
 
     override suspend fun lookup(request: LookupRequest): LookupResponse {
         return httpClient.post("/$VERSION_V1/$ENDPOINT_LOOKUP") {
+            setBody(request)
+        }.body()
+    }
+
+    override suspend fun updateAccount(request: UpdateAccountRequest): SignInWithCustomTokenResponse {
+        return httpClient.post("/$VERSION_V1/$ENDPOINT_UPDATE") {
             setBody(request)
         }.body()
     }

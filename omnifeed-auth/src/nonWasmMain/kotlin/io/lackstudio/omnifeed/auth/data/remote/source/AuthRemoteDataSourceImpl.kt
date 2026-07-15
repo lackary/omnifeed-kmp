@@ -4,6 +4,7 @@ import dev.gitlive.firebase.auth.AuthCredential
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import io.lackstudio.omnifeed.auth.data.error.AuthApiException
 import io.lackstudio.omnifeed.auth.data.remote.api.*
 import io.lackstudio.omnifeed.auth.data.remote.model.request.*
 import io.lackstudio.omnifeed.auth.data.remote.model.dto.UserProfileDto
@@ -14,17 +15,6 @@ import io.lackstudio.omnifeed.core.network.error.RemoteException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/**
- * Remote Data Structure (Firestore):
- *
- * /users/{uid} (Document)
- *    ├── username: String?
- *    ├── email: String?
- *    ├── photoUrl: String?
- *    ├── authProviders: Map<String, Boolean> (e.g., {"google": true, "password": true})
- *    ├── linkedServices: Map<String, Boolean> (e.g., {"unsplash": true})
- *    └── encryptedServiceAuth: Map<String, String> (Decrypted: OAuth2 JSON string)
- */
 class AuthRemoteDataSourceImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
@@ -74,8 +64,6 @@ class AuthRemoteDataSourceImpl(
 
         val firebaseIdToken = resultData.idToken ?: throw Exception("REST login failed: idToken is null")
         
-        // Consistency Fix: Perform lookup to get the Firebase account's profile name (e.g. "Henry")
-        // instead of the Google IDP provided name ("Yu Chan Huang")
         val lookupData = handleAuthApi(name = "lookup") {
             authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
         }
@@ -140,7 +128,6 @@ class AuthRemoteDataSourceImpl(
 
         val firebaseIdToken = resultData.idToken ?: throw Exception("REST linking failed: idToken is null")
         
-        // Consistency Fix: Get the Firebase account's profile name
         val lookupData = handleAuthApi(name = "lookup") {
             authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
         }
@@ -165,6 +152,22 @@ class AuthRemoteDataSourceImpl(
         handleAuthApi(name = "deleteAccountRest") {
             authApiService.deleteAccount(DeleteAccountRequest(idToken = idToken))
         }
+    }
+
+    override suspend fun updatePasswordRest(idToken: String, newPassword: String): User {
+        val result = handleAuthApi(name = "updatePasswordRest") {
+            authApiService.updateAccount(UpdateAccountRequest(idToken = idToken, password = newPassword))
+        }
+        val newToken = result.idToken ?: idToken
+        return refreshUserRest(newToken)
+    }
+
+    override suspend fun updateUsernameRest(idToken: String, username: String): User {
+        val result = handleAuthApi(name = "updateUsernameRest") {
+            authApiService.updateAccount(UpdateAccountRequest(idToken = idToken, displayName = username))
+        }
+        val newToken = result.idToken ?: idToken
+        return refreshUserRest(newToken)
     }
 
     override fun getUserProfile(uid: String, serviceFields: List<String>): Flow<UserProfileDto?> {
@@ -196,6 +199,9 @@ class AuthRemoteDataSourceImpl(
             handleAuthApi(name = "getUserProfileRest") {
                 firestoreApiService.getFirestoreProfile(projectId, uid, idToken)
             }
+        } catch (e: AuthApiException) {
+            if (e.originalApiException.code == 404) return null
+            throw e
         } catch (e: RemoteException.Api) {
             if (e.code == 404) return null
             throw e
@@ -215,15 +221,12 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun saveUserProfile(uid: String, profile: UserProfileDto) {
         val updateMap = mutableMapOf<String, Any?>()
-        // Ensure core fields are always present in the update to maintain Firestore schema consistency
         updateMap["username"] = profile.username
         updateMap["email"] = profile.email
         updateMap["photoUrl"] = profile.photoUrl
         updateMap["authProviders"] = profile.authProviders ?: emptyMap<String, Boolean>()
         updateMap["linkedServices"] = profile.linkedServices ?: emptyMap<String, Boolean>()
-        
         profile.encryptedServiceAuth?.let { updateMap["encryptedServiceAuth"] = it }
-
         firestore.collection("users").document(uid).set(updateMap, merge = true)
     }
 
@@ -232,22 +235,16 @@ class AuthRemoteDataSourceImpl(
         val fields = mutableMapOf<String, Any?>()
         val updateMask = mutableListOf<String>()
 
-        // Core fields: Always include in updateMask to ensure they exist in Firestore
         fields["username"] = profile.username
         updateMask.add("username")
-
         fields["email"] = profile.email
         updateMask.add("email")
-
         fields["photoUrl"] = profile.photoUrl
         updateMask.add("photoUrl")
-
         fields["authProviders"] = profile.authProviders ?: emptyMap<String, Boolean>()
         updateMask.add("authProviders")
-
         fields["linkedServices"] = profile.linkedServices ?: emptyMap<String, Boolean>()
         updateMask.add("linkedServices")
-
         profile.encryptedServiceAuth?.let { 
             fields["encryptedServiceAuth"] = it
             updateMask.add("encryptedServiceAuth")
@@ -260,7 +257,7 @@ class AuthRemoteDataSourceImpl(
                     uid = uid,
                     idToken = idToken,
                     fields = fields,
-                    fieldPaths = updateMask // Ensure specified fields are touched even if null
+                    fieldPaths = updateMask
                 )
             }
         }
@@ -272,17 +269,9 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun updateCustomFieldRest(uid: String, idToken: String, field: String, value: Boolean) {
         val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
-        val fields = mapOf(
-            "linkedServices" to mapOf(field to value)
-        )
+        val fields = mapOf("linkedServices" to mapOf(field to value))
         handleAuthApi(name = "updateCustomFieldRest") {
-            firestoreApiService.saveFirestoreProfile(
-                projectId = projectId,
-                uid = uid,
-                idToken = idToken,
-                fields = fields,
-                fieldPaths = listOf("linkedServices.$field")
-            )
+            firestoreApiService.saveFirestoreProfile(projectId, uid, idToken, fields, listOf("linkedServices.$field"))
         }
     }
 
@@ -292,8 +281,14 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun deleteUserProfileRest(uid: String, idToken: String) {
         val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
-        handleAuthApi(name = "deleteUserProfileRest") {
-            firestoreApiService.deleteFirestoreProfile(projectId, uid, idToken)
+        try {
+            handleAuthApi(name = "deleteUserProfileRest") {
+                firestoreApiService.deleteFirestoreProfile(projectId, uid, idToken)
+            }
+        } catch (e: AuthApiException) {
+            if (e.originalApiException.code != 404) throw e
+        } catch (e: RemoteException.Api) {
+            if (e.code != 404) throw e
         }
     }
 }

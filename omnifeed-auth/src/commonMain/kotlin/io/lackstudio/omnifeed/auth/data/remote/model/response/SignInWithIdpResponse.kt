@@ -8,5 +8,6 @@ data class SignInWithIdpResponse(
     val email: String? = null,
     val localId: String? = null,
     val displayName: String? = null,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val refreshToken: String? = null
 )

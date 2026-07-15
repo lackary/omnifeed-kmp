@@ -5,9 +5,9 @@ import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
 import io.lackstudio.omnifeed.core.domain.usecase.toUseCaseResult
 
 class UpdatePasswordUseCase(private val repository: AuthRepository) {
-    suspend operator fun invoke(newPassword: String): UseCaseResult<Unit> {
+    suspend operator fun invoke(newPassword: String, oldPassword: String? = null): UseCaseResult<Unit> {
         return toUseCaseResult(name = "UpdatePasswordUseCase") {
-            repository.updatePassword(newPassword)
+            repository.updatePassword(newPassword, oldPassword)
         }
     }
 }

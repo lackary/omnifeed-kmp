@@ -18,7 +18,7 @@ import org.koin.dsl.module
 
 const val FILENAME_OMNIFEED_AUTH_FIREBASE_TOKEN = "omnifeed_auth_firebase_token"
 const val FILENAME_OMNIFEED_AUTH_SERVICE_TOKEN = "omnifeed_auth_service_token"
-const val CONFIG_MODULE_NAMESPACE_OMNIFEED_AUTH = "io.omnifeed.auth"
+const val CONFIG_MODULE_NAMESPACE_OMNIFEED_AUTH = "io.lackstudio.omnifeed.auth"
 
 const val TAG_AUTH_KTOR = "AuthKtor"
 private val namedAuthHttpClient = named("AuthHttpClient")
