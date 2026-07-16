@@ -70,16 +70,15 @@ actual val omnifeedAuthModule: Module = module {
             override suspend fun linkWithCustomService(serviceName: String, accessToken: String): User = throw Exception("Not implemented on WasmJs")
             override suspend fun unlinkCustomService(serviceName: String): User = throw Exception("Not implemented on WasmJs")
             override suspend fun linkWithEmail(email: String, password: String): User = throw Exception("Not implemented on WasmJs")
-            override suspend fun updatePassword(newPassword: String) = throw Exception("Not implemented on WasmJs")
+            override suspend fun updateUsername(username: String): User = throw Exception("Not implemented on WasmJs")
+            override suspend fun updatePassword(newPassword: String, oldPassword: String?) = throw Exception("Not implemented on WasmJs")
             override suspend fun unlinkProvider(providerId: String): User = throw Exception("Not implemented on WasmJs")
             override suspend fun signOut() {
                 val authManager = getOrNull<AuthManager>()
                 authManager?.signOut()
             }
             override suspend fun deleteAccount() = throw Exception("Not implemented on WasmJs")
-            override suspend fun getServiceToken(serviceName: String): String? {
-                TODO("Not yet implemented")
-            }
+            override suspend fun getServiceToken(serviceName: String): String? = throw Exception("Not implemented on WasmJs")
         }
     }
     factory { SignInWithEmailUseCase(get()) }
