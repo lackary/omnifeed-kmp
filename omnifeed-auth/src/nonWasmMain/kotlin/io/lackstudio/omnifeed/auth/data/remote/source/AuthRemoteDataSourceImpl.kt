@@ -3,6 +3,7 @@ package io.lackstudio.omnifeed.auth.data.remote.source
 import dev.gitlive.firebase.auth.AuthCredential
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
+import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.lackstudio.omnifeed.auth.data.error.AuthApiException
 import io.lackstudio.omnifeed.auth.data.remote.api.*
@@ -264,14 +265,31 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun updateCustomField(uid: String, field: String, value: Boolean) {
-        firestore.collection("users").document(uid).update("linkedServices.$field" to value)
+        if (value) {
+            firestore.collection("users").document(uid).update("linkedServices.$field" to true)
+        } else {
+            firestore.collection("users").document(uid).update(
+                "linkedServices.$field" to false,
+                "encryptedServiceAuth.$field" to FieldValue.delete,
+                "encryptedServiceTokens.$field" to FieldValue.delete
+            )
+        }
     }
 
     override suspend fun updateCustomFieldRest(uid: String, idToken: String, field: String, value: Boolean) {
         val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
         val fields = mapOf("linkedServices" to mapOf(field to value))
+        val updateMask = mutableListOf("linkedServices.$field")
+        
+        if (!value) {
+            // When unlinking, we also want to remove the tokens.
+            // In Firestore REST API, adding a field to updateMask but NOT to the fields object will delete it.
+            updateMask.add("encryptedServiceAuth.$field")
+            updateMask.add("encryptedServiceTokens.$field")
+        }
+
         handleAuthApi(name = "updateCustomFieldRest") {
-            firestoreApiService.saveFirestoreProfile(projectId, uid, idToken, fields, listOf("linkedServices.$field"))
+            firestoreApiService.saveFirestoreProfile(projectId, uid, idToken, fields, updateMask)
         }
     }
 
