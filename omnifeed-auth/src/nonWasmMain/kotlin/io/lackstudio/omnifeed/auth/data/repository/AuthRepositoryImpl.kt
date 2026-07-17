@@ -309,10 +309,25 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun linkWithEmail(email: String, password: String): User {
+        val currentUserData = currentUser.first() ?: throw Exception("No user logged in to link with")
         val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to link with")
         val credential = EmailAuthProvider.credential(email, password)
         val result = sdkUser.linkWithCredential(credential)
-        return result.user?.toDomain() ?: throw Exception("Email linking failed: User is null")
+        val linkedUser = result.user?.toDomain() ?: throw Exception("Email linking failed: User is null")
+
+        val idToken = result.user?.getIdToken(false) ?: linkedUser.idToken
+
+        val finalUser = linkedUser.copy(
+            idToken = idToken,
+            authProviders = currentUserData.authProviders.toMutableMap().apply {
+                putAll(linkedUser.authProviders)
+                put(AuthProvider.PASSWORD.id, true)
+            },
+            linkedServices = currentUserData.linkedServices // Preserve existing linked services
+        )
+        saveUserToFirestore(finalUser)
+        saveLocalUser(finalUser)
+        return finalUser
     }
 
     override suspend fun updatePassword(newPassword: String, oldPassword: String?) {
@@ -407,9 +422,26 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun unlinkProvider(providerId: String): User {
+        val currentUserData = currentUser.first() ?: throw Exception("No user logged in to unlink")
         val sdkUser = remoteDataSource.currentUser ?: throw Exception("No user logged in to unlink")
         val resultUser = sdkUser.unlink(providerId)
-        return resultUser?.toDomain() ?: throw Exception("Unlinking failed: User is null")
+        val unlinkedUser = resultUser?.toDomain() ?: throw Exception("Unlinking failed: User is null")
+
+        val idToken = resultUser.getIdToken(false) ?: unlinkedUser.idToken
+
+        val finalUser = unlinkedUser.copy(
+            idToken = idToken,
+            authProviders = currentUserData.authProviders.toMutableMap().apply {
+                // Firebase SDK's providerData might not update immediately after unlink in some environments
+                // So we explicitly mark the unlinked provider as false if it's missing or still present
+                val domainProviderId = AuthProvider.fromFirebaseId(providerId)?.id ?: providerId
+                remove(domainProviderId)
+            },
+            linkedServices = currentUserData.linkedServices // Preserve existing linked services
+        )
+        saveUserToFirestore(finalUser)
+        saveLocalUser(finalUser)
+        return finalUser
     }
 
     private suspend fun linkWithGoogleRest(idToken: String): User {
