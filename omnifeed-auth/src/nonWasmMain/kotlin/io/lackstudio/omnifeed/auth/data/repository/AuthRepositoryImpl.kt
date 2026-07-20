@@ -13,12 +13,8 @@ import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.core.CustomServiceConfig
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -26,7 +22,6 @@ import kotlinx.serialization.json.contentOrNull
 import io.ktor.util.encodeBase64
 import io.ktor.util.decodeBase64Bytes
 import io.ktor.utils.io.core.toByteArray
-import io.lackstudio.omnifeed.core.utils.base64ToJson
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -732,9 +727,9 @@ class AuthRepositoryImpl(
                 .associate {
                     val key = AuthProvider.fromFirebaseId(it.providerId)?.id ?: it.providerId
                     key to true
-                }
+                }.toMutableMap()
         } catch (_: Throwable) {
-            emptyMap()
+            mutableMapOf<String, Boolean>()
         }
         
         // Priority: Passed token > Current manual User token (only if ID matches)
@@ -744,6 +739,16 @@ class AuthRepositoryImpl(
         logger.d { "toDomain: uid=$uid, tokenSource=${if (forceToken != null) "FORCE" else "CACHE"}, tokenPrefix=${token?.take(10)}..." }
         
         val lastProvider = extractProviderFromToken(token)
+
+        // CRITICAL: If the token tells us the provider, but the SDK's providerData lags (common on JVM),
+        // manually inject it into the map. This fixes "Set Password" vs "Update Password" UI issues.
+        if (lastProvider != null) {
+            val domainProviderId = AuthProvider.fromFirebaseId(lastProvider)?.id ?: lastProvider
+            if (!providers.containsKey(domainProviderId)) {
+                logger.i { "toDomain: Manually injecting missing provider from token: $domainProviderId" }
+                providers[domainProviderId] = true
+            }
+        }
         
         return User(
             id = uid,
