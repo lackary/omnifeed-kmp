@@ -7,3 +7,5 @@ expect fun initializeFirebase(firebaseConfig: String? = null, localStorage: Loca
 
 expect val firebaseApiKey: String?
 expect val firebaseProjectId: String?
+
+expect val isJvm: Boolean

@@ -49,3 +49,5 @@ actual fun initializeFirebase(firebaseConfig: String?, localStorage: LocalStorag
 
 actual val firebaseApiKey: String? get() = _firebaseApiKey
 actual val firebaseProjectId: String? get() = _firebaseProjectId
+
+actual val isJvm: Boolean = false

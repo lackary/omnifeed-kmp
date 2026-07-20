@@ -22,9 +22,13 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import io.ktor.util.encodeBase64
 import io.ktor.util.decodeBase64Bytes
 import io.ktor.utils.io.core.toByteArray
+import io.lackstudio.omnifeed.core.utils.base64ToJson
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 class AuthRepositoryImpl(
     private val remoteDataSource: AuthRemoteDataSource,
@@ -83,6 +87,16 @@ class AuthRepositoryImpl(
         
         logger.d { "currentUser flatMapLatest: user identified as $uid, listening to Firestore..." }
         
+        // CRITICAL: Fetch the latest ID Token from the SDK inside flatMapLatest.
+        // On Desktop, this ensures that after a re-authentication, the Flow emits the NEW token.
+        val latestToken = if (user is FirebaseUser) {
+            try {
+                // We use getIdToken(false) to get the current valid token without a network roundtrip if possible.
+                // However, the important part is that we capture it HERE during the flow transition.
+                user.getIdToken(false)
+            } catch (_: Exception) { null }
+        } else (user as? User)?.idToken ?: manualUser.value?.idToken
+
         val serviceFields = customServices.keys.toList()
         
         val profileFlow = if (user is User && user.idToken != null) {
@@ -100,7 +114,8 @@ class AuthRepositoryImpl(
         }
 
         profileFlow.map { profileDto ->
-            val domainUser = if (user is FirebaseUser) user.toDomain() else user as User
+            // Use the latestToken we just fetched.
+            val domainUser = if (user is FirebaseUser) user.toDomain(forceToken = latestToken) else user as User
             
             if (profileDto == null) {
                 logger.d { "currentUser: Firestore profile is null, returning basic domain user" }
@@ -116,19 +131,22 @@ class AuthRepositoryImpl(
                     ?: profileDto.email,
                 photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.photoUrl.takeIf { !it.isNullOrBlank() },
-                // CRITICAL FIX: Explicitly preserve idToken from domainUser
-                idToken = domainUser.idToken ?: manualUser.value?.idToken
+                // Use the latest token, preserving manual cache only if SDK has none.
+                idToken = latestToken ?: domainUser.idToken ?: manualUser.value?.idToken
             )
         }
     }
 
     override suspend fun signInWithEmail(email: String, password: String): User {
         val firebaseUser = remoteDataSource.signInWithEmail(email, password)
-        val domainUser = firebaseUser.toDomain()
-        val idToken = domainUser.idToken ?: firebaseUser.getIdToken(false) ?: ""
-        val userWithToken = domainUser.copy(idToken = idToken)
+        // CRITICAL: Force get a fresh token from the SDK immediately after sign-in
+        val freshToken = try { firebaseUser.getIdToken(true) } catch(_: Exception) { null }
+        logger.d { "signInWithEmail: Got fresh token prefix = ${freshToken?.take(10)}..." }
+        
+        val domainUser = firebaseUser.toDomain(forceToken = freshToken)
+        val idToken = freshToken ?: ""
 
-        val user = syncProfile(userWithToken, idToken)
+        val user = syncProfile(domainUser, idToken)
         saveUserToFirestore(user)
         saveLocalUser(user)
         return user
@@ -139,10 +157,12 @@ class AuthRepositoryImpl(
         if (username != null) {
             firebaseUser.updateProfile(displayName = username)
         }
-        val user = firebaseUser.toDomain().run {
+        
+        val freshToken = try { firebaseUser.getIdToken(true) } catch(_: Exception) { null }
+        val user = firebaseUser.toDomain(forceToken = freshToken).run {
             if (username != null) copy(username = username) else this
         }
-        val idToken = user.idToken ?: firebaseUser.getIdToken(false) ?: ""
+        val idToken = freshToken ?: ""
         val userWithToken = user.copy(idToken = idToken)
         
         saveUserToFirestore(userWithToken)
@@ -154,8 +174,12 @@ class AuthRepositoryImpl(
         return try {
             val credential = GoogleAuthProvider.credential(idToken, accessToken)
             val firebaseUser = remoteDataSource.signInWithCredential(credential)
-            val domainUser = firebaseUser.toDomain()
-            val firebaseIdToken = domainUser.idToken ?: firebaseUser.getIdToken(false) ?: ""
+            
+            val freshToken = try { firebaseUser.getIdToken(true) } catch(_: Exception) { null }
+            logger.d { "signInWithGoogle: Got fresh token prefix = ${freshToken?.take(10)}..." }
+            
+            val domainUser = firebaseUser.toDomain(forceToken = freshToken)
+            val firebaseIdToken = freshToken ?: ""
             val userWithToken = domainUser.copy(idToken = firebaseIdToken)
 
             val user = syncProfile(userWithToken, firebaseIdToken)
@@ -520,6 +544,71 @@ class AuthRepositoryImpl(
         remoteDataSource.signOut()
     }
 
+    override suspend fun reauthenticateWithEmail(password: String) {
+        val sdkUser = remoteDataSource.currentUser
+        val email = sdkUser?.email ?: manualUser.value?.email
+        
+        if (email.isNullOrBlank()) throw Exception("No user email available for re-authentication")
+
+        try {
+            // Priority: Only on Desktop/JVM, we force fallback to signInWithEmail
+            // On Android/iOS, the SDK reauthenticate works perfectly and is safer.
+            val shouldForceFallback = io.lackstudio.omnifeed.auth.platform.isJvm
+
+            if (sdkUser != null && !shouldForceFallback) {
+                val credential = EmailAuthProvider.credential(email, password)
+                sdkUser.reauthenticate(credential)
+                logger.i { "SDK Re-auth successful for $email, forcing token refresh..." }
+                
+                val freshToken = sdkUser.getIdToken(true)
+                saveLocalUser(sdkUser.toDomain(forceToken = freshToken))
+            } else {
+                logger.i { "Performing sign-in based re-authentication for $email (ForceFallback=$shouldForceFallback)" }
+                signInWithEmail(email, password)
+            }
+        } catch (e: Throwable) {
+            if (e is NotImplementedError || e.message?.contains("not implemented") == true) {
+                logger.i { "SDK re-auth not supported, falling back to signInWithEmail" }
+                signInWithEmail(email, password)
+            } else {
+                throw e
+            }
+        }
+    }
+
+    override suspend fun reauthenticateWithGoogle(idToken: String, accessToken: String?) {
+        val sdkUser = remoteDataSource.currentUser
+        try {
+            // Priority: For Google, we ALWAYS use signInWithGoogle if we are on Desktop
+            // to ensure a fresh session and auth_time claim.
+            if (sdkUser != null && !io.lackstudio.omnifeed.auth.platform.isJvm) {
+                val credential = GoogleAuthProvider.credential(idToken, accessToken)
+                sdkUser.reauthenticate(credential)
+                logger.i { "SDK Re-auth successful for Google, forcing token refresh..." }
+
+                val freshToken = sdkUser.getIdToken(true)
+                saveLocalUser(sdkUser.toDomain(forceToken = freshToken))
+            } else {
+                logger.i { "Performing sign-in based Google re-authentication" }
+                // Use signInWithGoogle instead of linkWithGoogle for re-auth.
+                // This ensures we get a fresh session token even if already linked.
+                signInWithGoogle(idToken, accessToken)
+            }
+        } catch (e: Throwable) {
+            if (e is NotImplementedError || e.message?.contains("not implemented") == true) {
+                logger.i { "SDK re-auth not supported, falling back to signInWithGoogle" }
+                signInWithGoogle(idToken, accessToken)
+            } else {
+                throw e
+            }
+        }
+    }
+
+    override suspend fun reauthenticateWithCustomService(serviceName: String, accessToken: String) {
+        // linkWithCustomService logic already handles re-signing in if the user ID matches the custom service
+        linkWithCustomService(serviceName, accessToken)
+    }
+
     override suspend fun getServiceToken(serviceName: String): String? {
         val user = currentUser.first() ?: return null
         
@@ -636,7 +725,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    private fun FirebaseUser.toDomain(): User {
+    private fun FirebaseUser.toDomain(forceToken: String? = null): User {
         val providers = try {
             providerData
                 .filter { it.providerId != "firebase" }
@@ -648,8 +737,13 @@ class AuthRepositoryImpl(
             emptyMap()
         }
         
-        // Use manualUser's token as fallback if this FirebaseUser doesn't have it (common on JVM)
-        val token = manualUser.value?.idToken
+        // Priority: Passed token > Current manual User token (only if ID matches)
+        val cachedToken = manualUser.value?.takeIf { it.id == uid }?.idToken
+        val token = forceToken ?: cachedToken
+        
+        logger.d { "toDomain: uid=$uid, tokenSource=${if (forceToken != null) "FORCE" else "CACHE"}, tokenPrefix=${token?.take(10)}..." }
+        
+        val lastProvider = extractProviderFromToken(token)
         
         return User(
             id = uid,
@@ -657,8 +751,37 @@ class AuthRepositoryImpl(
             username = displayName?.takeIf { it.isNotBlank() },
             photoUrl = photoURL?.takeIf { it.isNotBlank() },
             authProviders = providers,
+            lastSignInProvider = lastProvider,
             idToken = token
         )
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun extractProviderFromToken(token: String?): String? {
+        if (token == null || !token.contains(".")) {
+            logger.w { "extractProviderFromToken: Invalid token format" }
+            return null
+        }
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return null
+            
+            // The payload is the second part
+            val payloadBase64 = parts[1]
+            val decodedBytes = Base64.UrlSafe.withPadding(Base64.PaddingOption.PRESENT_OPTIONAL).decode(payloadBase64)
+            val payloadString = decodedBytes.decodeToString()
+            
+            val json = Json { ignoreUnknownKeys = true }
+            val payloadJson = json.parseToJsonElement(payloadString).jsonObject
+            val firebaseObj = payloadJson["firebase"]?.jsonObject
+            val provider = firebaseObj?.get("sign_in_provider")?.jsonPrimitive?.contentOrNull
+            
+            logger.d { "extractProviderFromToken: Parsed provider = $provider" }
+            provider
+        } catch (e: Exception) {
+            logger.w { "Failed to extract provider from token: ${e.message}" }
+            null
+        }
     }
 
     private fun String?.isValidUid(): Boolean = !this.isNullOrBlank() && this.length > 5

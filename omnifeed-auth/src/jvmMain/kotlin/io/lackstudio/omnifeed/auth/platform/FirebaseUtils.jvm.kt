@@ -22,6 +22,8 @@ actual val firebaseApiKey: String? get() = _firebaseApiKey
 private var _firebaseProjectId: String? = null
 actual val firebaseProjectId: String? get() = _firebaseProjectId
 
+actual val isJvm: Boolean = true
+
 private var _localStorage: LocalStorage? = null
 
 /**

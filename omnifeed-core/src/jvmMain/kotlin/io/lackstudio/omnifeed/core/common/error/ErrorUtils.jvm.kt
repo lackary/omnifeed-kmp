@@ -1,13 +1,14 @@
 package io.lackstudio.omnifeed.core.common.error
 
+import io.lackstudio.omnifeed.core.network.error.RemoteException
 import io.lackstudio.omnifeed.core.network.error.StructuredApiException
 
 actual fun Throwable.getFriendlyMessage(): String {
     // If it's our structured API exception, use its message first
-    val msg = if (this is StructuredApiException) {
-        this.structuredMessage ?: this.message ?: ""
-    } else {
-        message ?: ""
+    val msg = when (this) {
+        is StructuredApiException -> structuredMessage ?: originalApiException.errorBody ?: message ?: ""
+        is RemoteException.Api -> errorBody ?: message ?: ""
+        else -> message ?: ""
     }
 
     return when {

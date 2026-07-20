@@ -31,3 +31,5 @@ actual val firebaseProjectId: String?
     } catch (e: Exception) {
         null
     }
+
+actual val isJvm: Boolean = false

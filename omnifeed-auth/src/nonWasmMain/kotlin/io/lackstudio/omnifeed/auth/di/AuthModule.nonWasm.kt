@@ -52,4 +52,7 @@ actual val omnifeedAuthModule: Module = module {
     factory { ObserveUserUseCase(get()) }
     factory { SignOutUseCase(get()) }
     factory { DeleteAccountUseCase(get()) }
+    factory { ReauthenticateWithEmailUseCase(get()) }
+    factory { ReauthenticateWithGoogleUseCase(get()) }
+    factory { ReauthenticateWithCustomServiceUseCase(get()) }
 }

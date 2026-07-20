@@ -78,6 +78,18 @@ actual val omnifeedAuthModule: Module = module {
                 authManager?.signOut()
             }
             override suspend fun deleteAccount() = throw Exception("Not implemented on WasmJs")
+            override suspend fun reauthenticateWithEmail(password: String) = throw Exception("Not implemented on WasmJs")
+
+            override suspend fun reauthenticateWithGoogle(
+                idToken: String,
+                accessToken: String?
+            ) = throw Exception("Not implemented on WasmJs")
+
+            override suspend fun reauthenticateWithCustomService(
+                serviceName: String,
+                accessToken: String
+            ) = throw Exception("Not implemented on WasmJs")
+
             override suspend fun getServiceToken(serviceName: String): String? = throw Exception("Not implemented on WasmJs")
         }
     }

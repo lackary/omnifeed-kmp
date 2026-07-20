@@ -19,6 +19,11 @@ interface AuthRepository {
     suspend fun signOut()
     suspend fun deleteAccount()
 
+    // Re-authentication methods
+    suspend fun reauthenticateWithEmail(password: String)
+    suspend fun reauthenticateWithGoogle(idToken: String, accessToken: String? = null)
+    suspend fun reauthenticateWithCustomService(serviceName: String, accessToken: String)
+
     // Get stored OAuth2 token for a specific service
     suspend fun getServiceToken(serviceName: String): String?
 }

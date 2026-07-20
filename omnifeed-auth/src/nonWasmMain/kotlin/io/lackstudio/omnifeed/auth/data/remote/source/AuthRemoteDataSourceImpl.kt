@@ -15,6 +15,12 @@ import io.lackstudio.omnifeed.auth.platform.firebaseProjectId
 import io.lackstudio.omnifeed.core.network.error.RemoteException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 class AuthRemoteDataSourceImpl(
     private val firebaseAuth: FirebaseAuth,
@@ -81,6 +87,7 @@ class AuthRemoteDataSourceImpl(
             username = userInfo.displayName ?: resultData.displayName,
             photoUrl = userInfo.photoUrl ?: resultData.photoUrl,
             authProviders = providers,
+            lastSignInProvider = extractProviderFromToken(firebaseIdToken),
             idToken = firebaseIdToken
         )
     }
@@ -93,6 +100,7 @@ class AuthRemoteDataSourceImpl(
 
         return refreshUserRest(firebaseIdToken).copy(
             linkedServices = mapOf(serviceName to true),
+            lastSignInProvider = extractProviderFromToken(firebaseIdToken),
             idToken = firebaseIdToken
         )
     }
@@ -114,6 +122,7 @@ class AuthRemoteDataSourceImpl(
             username = userInfo.displayName?.takeIf { it.isNotBlank() },
             photoUrl = userInfo.photoUrl?.takeIf { it.isNotBlank() },
             authProviders = providers,
+            lastSignInProvider = extractProviderFromToken(idToken),
             idToken = idToken
         )
     }
@@ -145,8 +154,30 @@ class AuthRemoteDataSourceImpl(
             username = userInfo.displayName ?: resultData.displayName,
             photoUrl = userInfo.photoUrl ?: resultData.photoUrl,
             authProviders = providers,
+            lastSignInProvider = extractProviderFromToken(firebaseIdToken),
             idToken = firebaseIdToken
         )
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun extractProviderFromToken(token: String?): String? {
+        if (token == null || !token.contains(".")) return null
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return null
+            
+            // The payload is the second part
+            val payloadBase64 = parts[1]
+            val decodedBytes = Base64.UrlSafe.withPadding(Base64.PaddingOption.PRESENT_OPTIONAL).decode(payloadBase64)
+            val payloadString = decodedBytes.decodeToString()
+            
+            val json = Json { ignoreUnknownKeys = true }
+            val payloadJson = json.parseToJsonElement(payloadString).jsonObject
+            val firebaseObj = payloadJson["firebase"]?.jsonObject
+            firebaseObj?.get("sign_in_provider")?.jsonPrimitive?.contentOrNull
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override suspend fun deleteAccountRest(idToken: String) {
