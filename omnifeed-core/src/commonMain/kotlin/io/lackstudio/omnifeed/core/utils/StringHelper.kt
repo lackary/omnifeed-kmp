@@ -7,6 +7,12 @@ import kotlin.io.encoding.Base64
 @PublishedApi
 internal val logger = Logger.withTag("StringHelper")
 
+fun String?.maskId(): String {
+    if (this == null) return "null"
+    if (length <= 20) return this
+    return "${take(10)}...${takeLast(10)}"
+}
+
 inline fun <reified T> base64ToJson(base64String: String): T? {
     val json = Json { ignoreUnknownKeys = true }
     return try {

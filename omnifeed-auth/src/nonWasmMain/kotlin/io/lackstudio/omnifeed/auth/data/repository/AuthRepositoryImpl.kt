@@ -13,6 +13,7 @@ import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.domain.repository.AuthRepository
 import io.lackstudio.omnifeed.core.CustomServiceConfig
+import io.lackstudio.omnifeed.core.utils.maskId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
@@ -53,7 +54,7 @@ class AuthRepositoryImpl(
         val newToken = user?.idToken
         
         if (oldToken != newToken) {
-            logger.i { "Token Replacement: old=${oldToken.idDebug()}, new=${newToken.idDebug()}" }
+            logger.i { "Token Replacement: old=${oldToken.maskId()}, new=${newToken.maskId()}" }
         }
 
         // STICKY IDENTITY ENFORCEMENT:
@@ -88,12 +89,6 @@ class AuthRepositoryImpl(
         } else {
             logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id} (Deleted)" }
         }
-    }
-
-    private fun String?.idDebug(): String {
-        if (this == null) return "null"
-        if (length <= 20) return this
-        return "${take(10)}...${takeLast(10)}"
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -825,7 +820,7 @@ class AuthRepositoryImpl(
         val cachedToken = manualUser.value?.takeIf { it.id == uid }?.idToken
         val token = forceToken ?: cachedToken
         
-        logger.d { "toDomain: uid=$uid, tokenSource=${if (forceToken != null) "FORCE" else "CACHE"}, tokenPrefix=${token.idDebug()}" }
+        logger.d { "toDomain: uid=$uid, tokenSource=${if (forceToken != null) "FORCE" else "CACHE"}, tokenPrefix=${token.maskId()}" }
         
         val tokenProvider = extractProviderFromToken(token)
         

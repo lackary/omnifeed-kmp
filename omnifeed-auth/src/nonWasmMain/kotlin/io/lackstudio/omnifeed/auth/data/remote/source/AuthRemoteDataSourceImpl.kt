@@ -13,6 +13,7 @@ import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnifeed.auth.platform.firebaseProjectId
 import io.lackstudio.omnifeed.core.network.error.RemoteException
+import io.lackstudio.omnifeed.core.utils.maskId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
@@ -125,7 +126,7 @@ class AuthRemoteDataSourceImpl(
             lastSignInProvider = extractProviderFromToken(idToken),
             idToken = idToken
         )
-        logger.i { "refreshUserRest SUCCESS. Returning User with Token: ${idToken.idDebug()}" }
+        logger.i { "refreshUserRest SUCCESS. Returning User with Token: ${idToken.maskId()}" }
         return finalUser
     }
 
@@ -198,7 +199,7 @@ class AuthRemoteDataSourceImpl(
             ))
         }
         val newToken = result.idToken ?: throw Exception("Password update failed: No new token returned from REST API")
-        logger.i { "updatePasswordRest SUCCESS. New Token: ${newToken.idDebug()}" }
+        logger.i { "updatePasswordRest SUCCESS. New Token: ${newToken.maskId()}" }
         return refreshUserRest(newToken)
     }
 
@@ -348,11 +349,5 @@ class AuthRemoteDataSourceImpl(
             if (e.code != 404) throw e
         }
 
-    }
-
-    private fun String?.idDebug(): String {
-        if (this == null) return "null"
-        if (this.length <= 20) return this
-        return "${take(10)}...${takeLast(10)}"
     }
 }
