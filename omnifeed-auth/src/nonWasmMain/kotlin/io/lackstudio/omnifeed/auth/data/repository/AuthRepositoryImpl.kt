@@ -48,15 +48,52 @@ class AuthRepositoryImpl(
     }
 
     private fun saveLocalUser(user: User?) {
-        manualUser.value = user
-        localDataSource.saveUser(user)
+        val currentManual = manualUser.value
+        val oldToken = currentManual?.idToken
+        val newToken = user?.idToken
+        
+        if (oldToken != newToken) {
+            logger.i { "Token Replacement: old=${oldToken.idDebug()}, new=${newToken.idDebug()}" }
+        }
+
+        // STICKY IDENTITY ENFORCEMENT:
+        // If the current session has a non-password provider (like google.com),
+        // and the incoming user update tries to drift it to "password", we FORCIBLY PRESERVE the original.
+        val finalUser = if (user != null && currentManual != null && user.id == currentManual.id) {
+            if (user.lastSignInProvider == "password" && currentManual.lastSignInProvider != "password" && currentManual.lastSignInProvider != null) {
+                logger.i { "[STICKY] Identity drift prevented: Preserving ${currentManual.lastSignInProvider} instead of allowing drift to password" }
+                user.copy(lastSignInProvider = currentManual.lastSignInProvider)
+            } else {
+                user
+            }
+        } else {
+            user
+        }
+        
+        if (finalUser?.id == currentManual?.id && 
+                   finalUser?.idToken == currentManual?.idToken &&
+                   finalUser?.lastSignInProvider == currentManual?.lastSignInProvider &&
+                   finalUser?.authProviders == currentManual?.authProviders && 
+                   finalUser?.linkedServices == currentManual?.linkedServices) {
+            // Avoid redundant updates if nothing meaningful changed
+            return
+        }
+        
+        manualUser.value = finalUser
+        localDataSource.saveUser(finalUser)
         
         val savedUser = localDataSource.getUser()
-        if (user != null) {
-            logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id}, Name=${savedUser?.username}" }
+        if (finalUser != null) {
+            logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id}, Name=${savedUser?.username}, Provider=${savedUser?.lastSignInProvider}" }
         } else {
             logger.d { "Verification: Saved user in KSafe: ID=${savedUser?.id} (Deleted)" }
         }
+    }
+
+    private fun String?.idDebug(): String {
+        if (this == null) return "null"
+        if (length <= 20) return this
+        return "${take(10)}...${takeLast(10)}"
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -117,7 +154,7 @@ class AuthRepositoryImpl(
                 return@map domainUser
             }
             
-            domainUser.copy(
+            val updatedUser = domainUser.copy(
                 linkedServices = profileDto.linkedServices ?: emptyMap(),
                 authProviders = profileDto.authProviders?.takeIf { it.isNotEmpty() } ?: domainUser.authProviders,
                 username = profileDto.username.takeIf { !it.isNullOrBlank() }
@@ -127,8 +164,23 @@ class AuthRepositoryImpl(
                 photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.photoUrl.takeIf { !it.isNullOrBlank() },
                 // Use the latest token, preserving manual cache only if SDK has none.
-                idToken = latestToken ?: domainUser.idToken ?: manualUser.value?.idToken
+                idToken = latestToken ?: domainUser.idToken ?: manualUser.value?.idToken,
+                // CRITICAL STICKY IDENTITY FIX: 
+                // Ensure lastSignInProvider is preserved during Firestore sync.
+                // We trust the domainUser's provider (which is already stickied in toDomain) 
+                // but we also check the manualUser as a secondary safety.
+                lastSignInProvider = if (domainUser.lastSignInProvider != "password" && domainUser.lastSignInProvider != null) {
+                    domainUser.lastSignInProvider
+                } else {
+                    manualUser.value?.takeIf { it.id == domainUser.id }?.lastSignInProvider ?: domainUser.lastSignInProvider
+                }
             )
+            
+            if (updatedUser.lastSignInProvider != domainUser.lastSignInProvider) {
+                logger.i { "[STICKY] Identity restoration in flow: keeping ${updatedUser.lastSignInProvider} for user $uid" }
+            }
+            
+            updatedUser
         }
     }
 
@@ -209,9 +261,8 @@ class AuthRepositoryImpl(
             if (!firebaseUser.uid.isValidUid()) {
                 remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
             } else {
-                val domainUser = firebaseUser.toDomain()
-                val idToken = firebaseUser.getIdToken(false) ?: ""
-                domainUser.copy(idToken = idToken)
+                val freshToken = try { firebaseUser.getIdToken(true) } catch(_: Exception) { null }
+                firebaseUser.toDomain(forceToken = freshToken)
             }
         } catch (_: Exception) {
             remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
@@ -222,15 +273,16 @@ class AuthRepositoryImpl(
         }
         val finalUser = user.copy(linkedServices = updatedLinkedServices)
         
-        // CRITICAL FIX: Save to local storage FIRST, then sync to cloud
-        localDataSource.saveServiceToken(finalUser.id, serviceName, accessToken)
+        // CRITICAL: Ensure Token is preserved
+        val userToSave = if (finalUser.idToken == null) finalUser.copy(idToken = manualUser.value?.idToken) else finalUser
         
-        saveUserToFirestore(finalUser)
-        saveLocalUser(finalUser)
+        localDataSource.saveServiceToken(userToSave.id, serviceName, accessToken)
+        saveUserToFirestore(userToSave)
+        saveLocalUser(userToSave)
         
-        updateCustomField(finalUser, serviceName, true)
+        updateCustomField(userToSave, serviceName, true)
 
-        return finalUser
+        return userToSave
     }
 
     override suspend fun linkWithGoogle(idToken: String, accessToken: String?): User {
@@ -263,6 +315,7 @@ class AuthRepositoryImpl(
     override suspend fun linkWithCustomService(serviceName: String, accessToken: String): User {
         val user = currentUser.first() ?: throw Exception("No user logged in to link with")
         val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
+        val currentToken = user.idToken ?: manualUser.value?.idToken
         
         // Extract raw token if it's JSON (for verification)
         val rawAccessToken = try {
@@ -285,19 +338,22 @@ class AuthRepositoryImpl(
                 if (!firebaseUser.uid.isValidUid()) {
                     remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
                 } else {
-                    firebaseUser.toDomain()
+                    val freshToken = try { firebaseUser.getIdToken(true) } catch(_: Exception) { null }
+                    firebaseUser.toDomain(forceToken = freshToken)
                 }
-            } catch (_: Exception) {
-                remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+            } catch (e: Exception) {
+                logger.e(e) { "Failed to refresh custom service session" }
+                throw e // Propagate error for re-auth detection
             }
         } else {
-            // Standard linking flow: just refresh profile from REST
-            try {
-                val idToken = user.idToken ?: remoteDataSource.currentUser?.getIdToken(false)
-                if (idToken != null) {
-                    remoteDataSource.refreshUserRest(idToken)
-                } else user
-            } catch (_: Exception) { user }
+            // Standard linking flow: refresh profile from REST
+            // Do NOT catch and return old user if token is expired!
+            val idToken = currentToken ?: remoteDataSource.currentUser?.getIdToken(false)
+            if (idToken != null) {
+                remoteDataSource.refreshUserRest(idToken)
+            } else {
+                user
+            }
         }
 
         updateCustomField(refreshedUser, serviceName, true)
@@ -305,7 +361,14 @@ class AuthRepositoryImpl(
         val updatedLinkedServices = refreshedUser.linkedServices.toMutableMap().apply {
             put(serviceName, true)
         }
-        val updatedUser = refreshedUser.copy(linkedServices = updatedLinkedServices)
+        
+        // CRITICAL: Carry over the current idToken if the refreshedUser has none (very common on REST sync)
+        // AND Preserve Sticky Identity (lastSignInProvider)
+        val updatedUser = refreshedUser.copy(
+            linkedServices = updatedLinkedServices,
+            idToken = refreshedUser.idToken ?: currentToken,
+            lastSignInProvider = refreshedUser.lastSignInProvider ?: user.lastSignInProvider
+        )
         saveUserToFirestore(updatedUser)
         saveLocalUser(updatedUser)
         return updatedUser
@@ -381,14 +444,20 @@ class AuthRepositoryImpl(
             // Priority 1: Use SDK if available
             if (sdkUser != null) {
                 sdkUser.updatePassword(newPassword)
+                logger.i { "updatePassword: SDK update successful, fetching NEW fresh token..." }
+                
+                // CRITICAL: After password update, the old token is REVOKED by Firebase.
+                // We MUST force refresh to get a valid one for further operations.
+                val freshToken = try { sdkUser.getIdToken(true) } catch(_: Exception) { null }
                 
                 // BUG FIX: Immediately sync to Firestore after SDK password update
                 // This ensures "password: true" is reflected in the database right away.
-                val domainUser = sdkUser.toDomain()
-                val syncedUser = syncProfile(domainUser, idToken ?: "")
+                val domainUser = sdkUser.toDomain(forceToken = freshToken)
+                val syncedUser = syncProfile(domainUser, freshToken ?: idToken ?: "")
                 // Force include password provider in case SDK hasn't refreshed providerData yet
                 val finalUser = syncedUser.copy(
-                    authProviders = syncedUser.authProviders + (AuthProvider.PASSWORD.id to true)
+                    authProviders = syncedUser.authProviders + (AuthProvider.PASSWORD.id to true),
+                    idToken = freshToken ?: syncedUser.idToken
                 )
                 saveUserToFirestore(finalUser)
                 saveLocalUser(finalUser)
@@ -413,11 +482,23 @@ class AuthRepositoryImpl(
     }
 
     private suspend fun performRestPasswordUpdate(idToken: String, newPassword: String) {
+        val originalUser = manualUser.value
         val updatedUser = remoteDataSource.updatePasswordRest(idToken, newPassword)
+        // After password update via REST, a new token is usually returned in the User object
+        val freshToken = updatedUser.idToken ?: idToken
+        
         // Re-sync after update to ensure all providers (google + password) are preserved
-        val syncedUser = syncProfile(updatedUser, updatedUser.idToken ?: idToken)
-        saveUserToFirestore(syncedUser)
-        saveLocalUser(syncedUser)
+        val syncedUser = syncProfile(updatedUser, freshToken)
+        
+        // CRITICAL: Preserve the original lastSignInProvider (Sticky Identity)
+        // because REST updatePassword often forces the next token to claim "password" provider.
+        val finalUser = syncedUser.copy(
+            authProviders = syncedUser.authProviders + (AuthProvider.PASSWORD.id to true),
+            idToken = freshToken,
+            lastSignInProvider = syncedUser.lastSignInProvider ?: originalUser?.lastSignInProvider
+        )
+        saveUserToFirestore(finalUser)
+        saveLocalUser(finalUser)
     }
 
     override suspend fun updateUsername(username: String): User {
@@ -467,12 +548,17 @@ class AuthRepositoryImpl(
         val currentUserData = currentUser.first() ?: throw Exception("No user logged in")
         val firebaseUser = remoteDataSource.currentUser ?: throw Exception("No user logged in")
         val firebaseIdToken = firebaseUser.getIdToken(false) ?: throw Exception("Failed to get Firebase ID Token")
-        val user = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken).copy(
-            linkedServices = currentUserData.linkedServices // Preserve existing linked services
+        
+        val linkedUser = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken)
+        
+        // CRITICAL: Preserve Sticky Identity (lastSignInProvider) and linked services
+        val finalUser = linkedUser.copy(
+            linkedServices = currentUserData.linkedServices,
+            lastSignInProvider = currentUserData.lastSignInProvider ?: linkedUser.lastSignInProvider
         )
-        saveUserToFirestore(user)
-        saveLocalUser(user)
-        return user
+        saveUserToFirestore(finalUser)
+        saveLocalUser(finalUser)
+        return finalUser
     }
 
     private suspend fun signInWithGoogleRest(idToken: String): User {
@@ -492,9 +578,12 @@ class AuthRepositoryImpl(
                 // FIX: Merge authProviders to avoid losing "google" when logging in via email
                 authProviders = (profileDto.authProviders ?: emptyMap()) + domainUser.authProviders,
                 username = profileDto.username?.takeIf { it.isNotBlank() } ?: domainUser.username,
-                photoUrl = profileDto.photoUrl?.takeIf { it.isNotBlank() } ?: domainUser.photoUrl
+                photoUrl = profileDto.photoUrl?.takeIf { it.isNotBlank() } ?: domainUser.photoUrl,
+                // CRITICAL: Force use the idToken that was passed in! 
+                // Never let a profile sync downgrade the current session token.
+                idToken = idToken
             )
-        } else domainUser
+        } else domainUser.copy(idToken = idToken)
     }
 
     override suspend fun signOut() {
@@ -736,14 +825,32 @@ class AuthRepositoryImpl(
         val cachedToken = manualUser.value?.takeIf { it.id == uid }?.idToken
         val token = forceToken ?: cachedToken
         
-        logger.d { "toDomain: uid=$uid, tokenSource=${if (forceToken != null) "FORCE" else "CACHE"}, tokenPrefix=${token?.take(10)}..." }
+        logger.d { "toDomain: uid=$uid, tokenSource=${if (forceToken != null) "FORCE" else "CACHE"}, tokenPrefix=${token.idDebug()}" }
         
-        val lastProvider = extractProviderFromToken(token)
+        val tokenProvider = extractProviderFromToken(token)
+        
+        // STICKY PROVIDER LOGIC:
+        // We stick to the provider used at the start of the session.
+        // If the UID matches our current manualUser, it means we are in the same session
+        // (e.g. updating password or linking). In this case, we PRESERVE the original provider
+        // to avoid drift (especially common after password updates where it drifts to "password").
+        val cachedUser = manualUser.value?.takeIf { it.id == uid }
+        val currentStickyProvider = cachedUser?.lastSignInProvider
+        
+        val finalProvider = if (currentStickyProvider != null && tokenProvider != currentStickyProvider) {
+            // Special Case: If the session was started with Google/Email, and the token now says something else
+            // (like "password" after an update), we STICK to the original.
+            logger.i { "Sticky Provider preserved: keeping $currentStickyProvider instead of new $tokenProvider for user $uid" }
+            currentStickyProvider
+        } else {
+            // New session or same provider: use what's in the token
+            tokenProvider
+        }
 
         // CRITICAL: If the token tells us the provider, but the SDK's providerData lags (common on JVM),
         // manually inject it into the map. This fixes "Set Password" vs "Update Password" UI issues.
-        if (lastProvider != null) {
-            val domainProviderId = AuthProvider.fromFirebaseId(lastProvider)?.id ?: lastProvider
+        if (tokenProvider != null) {
+            val domainProviderId = AuthProvider.fromFirebaseId(tokenProvider)?.id ?: tokenProvider
             if (!providers.containsKey(domainProviderId)) {
                 logger.i { "toDomain: Manually injecting missing provider from token: $domainProviderId" }
                 providers[domainProviderId] = true
@@ -756,7 +863,7 @@ class AuthRepositoryImpl(
             username = displayName?.takeIf { it.isNotBlank() },
             photoUrl = photoURL?.takeIf { it.isNotBlank() },
             authProviders = providers,
-            lastSignInProvider = lastProvider,
+            lastSignInProvider = finalProvider,
             idToken = token
         )
     }

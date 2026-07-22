@@ -116,7 +116,7 @@ class AuthRemoteDataSourceImpl(
             key to true
         }
 
-        return User(
+        val finalUser = User(
             id = userInfo.localId,
             email = userInfo.email?.takeIf { it.isNotBlank() },
             username = userInfo.displayName?.takeIf { it.isNotBlank() },
@@ -125,6 +125,8 @@ class AuthRemoteDataSourceImpl(
             lastSignInProvider = extractProviderFromToken(idToken),
             idToken = idToken
         )
+        logger.i { "refreshUserRest SUCCESS. Returning User with Token: ${idToken.idDebug()}" }
+        return finalUser
     }
 
     override suspend fun linkWithGoogleRest(idToken: String, currentFirebaseIdToken: String): User {
@@ -132,11 +134,12 @@ class AuthRemoteDataSourceImpl(
             authApiService.signInWithIdp(SignInWithIdpRequest(
                 postBody = "id_token=$idToken&providerId=${AuthProvider.GOOGLE.firebaseId}",
                 idToken = currentFirebaseIdToken,
-                requestUri = "http://localhost"
+                requestUri = "http://localhost",
+                returnSecureToken = true
             ))
         }
 
-        val firebaseIdToken = resultData.idToken ?: throw Exception("REST linking failed: idToken is null")
+        val firebaseIdToken = resultData.idToken ?: throw Exception("REST linking failed: No new idToken returned. Ensure returnSecureToken is true.")
         
         val lookupData = handleAuthApi(name = "lookup") {
             authApiService.lookup(LookupRequest(idToken = firebaseIdToken))
@@ -188,9 +191,14 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun updatePasswordRest(idToken: String, newPassword: String): User {
         val result = handleAuthApi(name = "updatePasswordRest") {
-            authApiService.updateAccount(UpdateAccountRequest(idToken = idToken, password = newPassword))
+            authApiService.updateAccount(UpdateAccountRequest(
+                idToken = idToken, 
+                password = newPassword,
+                returnSecureToken = true
+            ))
         }
-        val newToken = result.idToken ?: idToken
+        val newToken = result.idToken ?: throw Exception("Password update failed: No new token returned from REST API")
+        logger.i { "updatePasswordRest SUCCESS. New Token: ${newToken.idDebug()}" }
         return refreshUserRest(newToken)
     }
 
@@ -339,5 +347,12 @@ class AuthRemoteDataSourceImpl(
         } catch (e: RemoteException.Api) {
             if (e.code != 404) throw e
         }
+
+    }
+
+    private fun String?.idDebug(): String {
+        if (this == null) return "null"
+        if (this.length <= 20) return this
+        return "${take(10)}...${takeLast(10)}"
     }
 }
