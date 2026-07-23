@@ -13,5 +13,6 @@ interface AuthManager {
     fun getRedirectUrl(): String
     fun startLogin(authUrl: String)
     suspend fun signInWithGoogle(context: Any? = null): GoogleAuthTokens?
+    suspend fun signInWithOAuthPopup(authUrl: String): String?
     suspend fun signOut()
 }

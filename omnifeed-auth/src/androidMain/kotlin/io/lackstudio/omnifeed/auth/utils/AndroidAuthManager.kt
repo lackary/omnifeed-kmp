@@ -37,6 +37,10 @@ class AndroidAuthManager(private val context: Context) : AuthManager {
         context.startActivity(intent)
     }
 
+    override suspend fun signInWithOAuthPopup(authUrl: String): String? {
+        throw UnsupportedOperationException("OAuth popup is only supported on Web")
+    }
+
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
         val activityContext = (context as? Context)?.findActivity() ?: return null
 

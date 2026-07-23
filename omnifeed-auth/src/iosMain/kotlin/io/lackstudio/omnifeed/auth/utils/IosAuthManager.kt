@@ -38,6 +38,10 @@ class IosAuthManager : AuthManager {
         }
     }
 
+    override suspend fun signInWithOAuthPopup(authUrl: String): String? {
+        throw UnsupportedOperationException("OAuth popup is only supported on Web")
+    }
+
     @OptIn(ExperimentalForeignApi::class)
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? =
         suspendCancellableCoroutine { continuation ->

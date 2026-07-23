@@ -145,6 +145,10 @@ class DesktopAuthManager : AuthManager {
         }
     }
 
+    override suspend fun signInWithOAuthPopup(authUrl: String): String? {
+        throw UnsupportedOperationException("OAuth popup is only supported on Web")
+    }
+
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
         cleanup()
 

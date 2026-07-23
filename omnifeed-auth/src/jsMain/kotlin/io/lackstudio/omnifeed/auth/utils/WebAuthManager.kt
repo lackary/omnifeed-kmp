@@ -33,6 +33,73 @@ class WebAuthManager : AuthManager {
         window.location.href = authUrl
     }
 
+    override suspend fun signInWithOAuthPopup(authUrl: String): String? {
+        logger.d { "Starting OAuth popup for: $authUrl" }
+
+        return suspendCancellableCoroutine { continuation ->
+            val popupWidth = 600
+            val popupHeight = 700
+            val left = (window.screen.width - popupWidth) / 2
+            val top = (window.screen.height - popupHeight) / 2
+
+            val popupOptions = "width=$popupWidth,height=$popupHeight,top=$top,left=$left,status=no,resizable=yes,scrollbars=yes"
+            val popup = window.open(authUrl, "oauth-popup", popupOptions)
+
+            if (popup == null) {
+                logger.e { "Popup blocked or failed to open" }
+                continuation.resume(null)
+                return@suspendCancellableCoroutine
+            }
+
+            var intervalId: Int = -1
+            var listenerReference: ((dynamic) -> Unit)? = null
+
+            val cleanup = {
+                if (intervalId != -1) window.clearInterval(intervalId)
+                listenerReference?.let { window.removeEventListener("message", it) }
+            }
+
+            val messageListener: (dynamic) -> Unit = { event ->
+                val data = event.data
+                if (data != null) {
+                    logger.d { "Received message from popup. Origin: ${event.origin}, Data type: ${js("typeof data")}" }
+
+                    // Check for our specific auth_success message
+                    // We use js() check here to be absolutely safe with dynamic types across JS/Wasm
+                    val isAuthSuccess = js("data && data.type === 'auth_success'") as Boolean
+
+                    if (isAuthSuccess) {
+                        val code = data.code as? String
+                        if (continuation.isActive) {
+                            logger.d { "Received code from popup: $code" }
+                            cleanup()
+                            popup.close()
+                            continuation.resume(code)
+                        }
+                    }
+                }
+            }
+            listenerReference = messageListener
+
+            window.addEventListener("message", messageListener)
+
+            intervalId = window.setInterval({
+                if (popup.closed == true) {
+                    cleanup()
+                    if (continuation.isActive) {
+                        logger.d { "Popup closed by user" }
+                        continuation.resume(null)
+                    }
+                }
+            }, 500)
+
+            continuation.invokeOnCancellation {
+                cleanup()
+                if (popup.closed != true) popup.close()
+            }
+        }
+    }
+
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
         // Inject the JS bridge if it's not already there
         WebAuthBridge.injectIfNeeded()
