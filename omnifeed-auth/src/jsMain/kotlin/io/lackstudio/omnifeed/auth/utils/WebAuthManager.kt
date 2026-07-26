@@ -95,7 +95,7 @@ class WebAuthManager : AuthManager {
 
             continuation.invokeOnCancellation {
                 cleanup()
-                if (popup.closed != true) popup.close()
+                if (!popup.closed) popup.close()
             }
         }
     }

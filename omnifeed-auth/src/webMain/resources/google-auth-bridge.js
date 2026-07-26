@@ -19,15 +19,18 @@ window.initAndPromptGoogleSignIn = function(clientId, callback) {
         }
     });
     google.accounts.id.prompt((notification) => {
+        const momentType = notification.getMomentType();
+        console.log("JS Bridge: Prompt notification - " + momentType);
+
         if (notification.isNotDisplayed()) {
-            console.warn("JS Bridge: Prompt not displayed:", notification.getNotDisplayedReason());
+            console.warn("JS Bridge: Prompt not displayed. Reason: " + notification.getNotDisplayedReason());
             callback(null);
         } else if (notification.isSkippedMoment()) {
-            console.warn("JS Bridge: Prompt skipped:", notification.getSkippedReason());
+            console.warn("JS Bridge: Prompt skipped. Reason: " + notification.getSkippedReason());
             callback(null);
         } else if (notification.isDismissedMoment()) {
-            console.warn("JS Bridge: Prompt dismissed:", notification.getDismissedReason());
-            callback(null); // Notify Kotlin to end the process when the user dismisses the prompt
+            console.warn("JS Bridge: Prompt dismissed. Reason: " + notification.getDismissedReason());
+            callback(null);
         }
     });
 };
