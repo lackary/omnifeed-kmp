@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.auth.di
 
+import co.touchlab.kermit.Logger
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.firestore
@@ -23,7 +24,8 @@ actual val omnifeedAuthModule: Module = module {
             firebaseAuth = get(),
             firestore = get(),
             authApiService = get(),
-            firestoreApiService = get()
+            firestoreApiService = get(),
+            logger = get<Logger>().withTag(TAG_AUTH_REMOTE_SOURCE)
         )
     }
     
@@ -34,7 +36,8 @@ actual val omnifeedAuthModule: Module = module {
             localDataSource = get(),
             encryptionSalt = config.encryptionSalt,
             customServices = config.customServices,
-            authManager = get()
+            authManager = get(),
+            logger = get<Logger>().withTag(TAG_AUTH_REPOSITORY)
         )
     }
 

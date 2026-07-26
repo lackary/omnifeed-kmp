@@ -21,6 +21,9 @@ const val FILENAME_OMNIFEED_AUTH_SERVICE_TOKEN = "omnifeed_auth_service_token"
 const val CONFIG_MODULE_NAMESPACE_OMNIFEED_AUTH = "io.lackstudio.omnifeed.auth"
 
 const val TAG_AUTH_KTOR = "AuthKtor"
+const val TAG_FIRESTORE_KTOR = "FirestoreKtor"
+const val TAG_AUTH_REPOSITORY = "AuthRepository"
+const val TAG_AUTH_REMOTE_SOURCE = "AuthRemoteDataSource"
 private val namedAuthHttpClient = named("AuthHttpClient")
 private val namedFirestoreHttpClient = named("FirestoreHttpClient")
 internal val namedUserCacheStorage = named("UserCacheStorage")
@@ -45,7 +48,7 @@ val authRemoteModule = module {
 
     single(namedFirestoreHttpClient) {
         val ktorConfig = KtorConfig(baseUrl = FIRESTORE_BASE_URL)
-        val authLogger = get<Logger>().withTag("FirestoreKtor")
+        val authLogger = get<Logger>().withTag(TAG_FIRESTORE_KTOR)
         val apiKey = firebaseApiKey ?: throw Exception("Firebase API Key not found")
 
         KtorClientFactory.createHttpClient(

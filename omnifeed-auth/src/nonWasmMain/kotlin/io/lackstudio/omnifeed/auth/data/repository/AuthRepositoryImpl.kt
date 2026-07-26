@@ -31,10 +31,10 @@ class AuthRepositoryImpl(
     private val localDataSource: AuthLocalDataSource,
     private val encryptionSalt: String,
     private val customServices: Map<String, CustomServiceConfig> = emptyMap(),
-    private val authManager: AuthManager? = null
+    private val authManager: AuthManager? = null,
+    private val logger: Logger
 ) : AuthRepository {
 
-    private val logger = Logger.withTag("AuthRepositoryImpl")
     private val manualUser = MutableStateFlow<User?>(null)
 
     init {

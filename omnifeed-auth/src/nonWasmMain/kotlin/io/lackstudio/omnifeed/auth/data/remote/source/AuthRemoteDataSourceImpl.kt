@@ -1,5 +1,6 @@
 package io.lackstudio.omnifeed.auth.data.remote.source
 
+import co.touchlab.kermit.Logger
 import dev.gitlive.firebase.auth.AuthCredential
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
@@ -27,7 +28,8 @@ class AuthRemoteDataSourceImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
     private val authApiService: FirebaseAuthApiService,
-    private val firestoreApiService: FirebaseFirestoreApiService
+    private val firestoreApiService: FirebaseFirestoreApiService,
+    private val logger: Logger
 ) : AuthRemoteDataSource {
 
     override val authStateChanged: Flow<FirebaseUser?> = firebaseAuth.authStateChanged
