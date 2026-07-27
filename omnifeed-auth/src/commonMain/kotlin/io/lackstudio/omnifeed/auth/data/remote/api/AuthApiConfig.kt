@@ -26,4 +26,15 @@ object AuthApiConfig {
     const val DATABASE_DEFAULT = "(default)"
     const val PATH_DOCUMENTS = "documents"
     const val COLLECTION_USERS = "users"
+
+    object UserFields {
+        const val USERNAME = "username"
+        const val DISPLAY_NAME = "displayName"
+        const val EMAIL = "email"
+        const val PHOTO_URL = "photoUrl"
+        const val AUTH_PROVIDERS = "authProviders"
+        const val LINKED_SERVICES = "linkedServices"
+        const val ENCRYPTED_SERVICE_AUTH = "encryptedServiceAuth"
+        const val ENCRYPTED_SERVICE_TOKENS = "encryptedServiceTokens"
+    }
 }

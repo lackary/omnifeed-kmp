@@ -8,6 +8,7 @@ import io.lackstudio.omnifeed.auth.utils.AuthManager
 import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
 import io.lackstudio.omnifeed.auth.data.local.source.AuthLocalDataSource
 import io.lackstudio.omnifeed.auth.data.remote.source.AuthRemoteDataSource
+import io.lackstudio.omnifeed.auth.data.remote.api.AuthApiConfig
 import io.lackstudio.omnifeed.auth.data.remote.model.dto.UserProfileDto
 import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.domain.model.User
@@ -698,7 +699,7 @@ class AuthRepositoryImpl(
                     // SDK not logged in (e.g. JVM), use REST to fetch profile safely
                     remoteDataSource.getUserProfileRest(user.id, user.idToken!!)
                 } else {
-                    remoteDataSource.getUserProfile(user.id, listOf("encryptedServiceAuth")).firstOrNull()
+                    remoteDataSource.getUserProfile(user.id, listOf(AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH)).firstOrNull()
                 }
 
                 profileDto?.encryptedServiceAuth?.get(serviceName)

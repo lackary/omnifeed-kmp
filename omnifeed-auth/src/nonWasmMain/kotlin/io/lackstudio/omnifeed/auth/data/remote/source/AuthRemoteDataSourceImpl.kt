@@ -214,20 +214,20 @@ class AuthRemoteDataSourceImpl(
     }
 
     override fun getUserProfile(uid: String, serviceFields: List<String>): Flow<UserProfileDto?> {
-        return firestore.collection("users").document(uid).snapshots().map { snapshot ->
+        return firestore.collection(AuthApiConfig.COLLECTION_USERS).document(uid).snapshots().map { snapshot ->
             if (snapshot.exists) {
                 UserProfileDto(
-                    username = try { snapshot.get<String?>("username")?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
-                    email = try { snapshot.get<String?>("email")?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
-                    photoUrl = try { snapshot.get<String?>("photoUrl")?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
+                    username = try { snapshot.get<String?>(AuthApiConfig.UserFields.USERNAME)?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
+                    email = try { snapshot.get<String?>(AuthApiConfig.UserFields.EMAIL)?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
+                    photoUrl = try { snapshot.get<String?>(AuthApiConfig.UserFields.PHOTO_URL)?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
                     authProviders = try {
-                        snapshot.get<Map<String, Boolean>?>("authProviders") ?: emptyMap()
+                        snapshot.get<Map<String, Boolean>?>(AuthApiConfig.UserFields.AUTH_PROVIDERS) ?: emptyMap()
                     } catch (e: Exception) { emptyMap() },
                     linkedServices = try {
-                        snapshot.get<Map<String, Boolean>?>("linkedServices") ?: emptyMap()
+                        snapshot.get<Map<String, Boolean>?>(AuthApiConfig.UserFields.LINKED_SERVICES) ?: emptyMap()
                     } catch (e: Exception) { emptyMap() },
                     encryptedServiceAuth = try {
-                        snapshot.get<Map<String, String>?>("encryptedServiceAuth") ?: snapshot.get<Map<String, String>?>("encryptedServiceTokens") ?: emptyMap()
+                        snapshot.get<Map<String, String>?>(AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH) ?: snapshot.get<Map<String, String>?>(AuthApiConfig.UserFields.ENCRYPTED_SERVICE_TOKENS) ?: emptyMap()
                     } catch (e: Exception) { emptyMap() }
                 )
             } else {
@@ -251,26 +251,26 @@ class AuthRemoteDataSourceImpl(
         } ?: return null
         
         return UserProfileDto(
-            username = (data["username"] as? String ?: data["displayName"] as? String)?.takeIf { it.isNotBlank() },
-            email = (data["email"] as? String)?.takeIf { it.isNotBlank() },
-            photoUrl = (data["photoUrl"] as? String)?.takeIf { it.isNotBlank() },
-            authProviders = (data["authProviders"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
-            linkedServices = (data["linkedServices"] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
-            encryptedServiceAuth = (data["encryptedServiceAuth"] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap() 
-                ?: (data["encryptedServiceTokens"] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap() 
+            username = (data[AuthApiConfig.UserFields.USERNAME] as? String ?: data[AuthApiConfig.UserFields.DISPLAY_NAME] as? String)?.takeIf { it.isNotBlank() },
+            email = (data[AuthApiConfig.UserFields.EMAIL] as? String)?.takeIf { it.isNotBlank() },
+            photoUrl = (data[AuthApiConfig.UserFields.PHOTO_URL] as? String)?.takeIf { it.isNotBlank() },
+            authProviders = (data[AuthApiConfig.UserFields.AUTH_PROVIDERS] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
+            linkedServices = (data[AuthApiConfig.UserFields.LINKED_SERVICES] as? Map<*, *>)?.map { it.key.toString() to (it.value as? Boolean ?: false) }?.toMap() ?: emptyMap(),
+            encryptedServiceAuth = (data[AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap()
+                ?: (data[AuthApiConfig.UserFields.ENCRYPTED_SERVICE_TOKENS] as? Map<*, *>)?.map { it.key.toString() to it.value.toString() }?.toMap()
                 ?: emptyMap()
         )
     }
 
     override suspend fun saveUserProfile(uid: String, profile: UserProfileDto) {
         val updateMap = mutableMapOf<String, Any?>()
-        updateMap["username"] = profile.username
-        updateMap["email"] = profile.email
-        updateMap["photoUrl"] = profile.photoUrl
-        updateMap["authProviders"] = profile.authProviders ?: emptyMap<String, Boolean>()
-        updateMap["linkedServices"] = profile.linkedServices ?: emptyMap<String, Boolean>()
-        profile.encryptedServiceAuth?.let { updateMap["encryptedServiceAuth"] = it }
-        firestore.collection("users").document(uid).set(updateMap, merge = true)
+        updateMap[AuthApiConfig.UserFields.USERNAME] = profile.username
+        updateMap[AuthApiConfig.UserFields.EMAIL] = profile.email
+        updateMap[AuthApiConfig.UserFields.PHOTO_URL] = profile.photoUrl
+        updateMap[AuthApiConfig.UserFields.AUTH_PROVIDERS] = profile.authProviders ?: emptyMap<String, Boolean>()
+        updateMap[AuthApiConfig.UserFields.LINKED_SERVICES] = profile.linkedServices ?: emptyMap<String, Boolean>()
+        profile.encryptedServiceAuth?.let { updateMap[AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH] = it }
+        firestore.collection(AuthApiConfig.COLLECTION_USERS).document(uid).set(updateMap, merge = true)
     }
 
     override suspend fun saveUserProfileRest(uid: String, idToken: String, profile: UserProfileDto) {
@@ -278,19 +278,19 @@ class AuthRemoteDataSourceImpl(
         val fields = mutableMapOf<String, Any?>()
         val updateMask = mutableListOf<String>()
 
-        fields["username"] = profile.username
-        updateMask.add("username")
-        fields["email"] = profile.email
-        updateMask.add("email")
-        fields["photoUrl"] = profile.photoUrl
-        updateMask.add("photoUrl")
-        fields["authProviders"] = profile.authProviders ?: emptyMap<String, Boolean>()
-        updateMask.add("authProviders")
-        fields["linkedServices"] = profile.linkedServices ?: emptyMap<String, Boolean>()
-        updateMask.add("linkedServices")
+        fields[AuthApiConfig.UserFields.USERNAME] = profile.username
+        updateMask.add(AuthApiConfig.UserFields.USERNAME)
+        fields[AuthApiConfig.UserFields.EMAIL] = profile.email
+        updateMask.add(AuthApiConfig.UserFields.EMAIL)
+        fields[AuthApiConfig.UserFields.PHOTO_URL] = profile.photoUrl
+        updateMask.add(AuthApiConfig.UserFields.PHOTO_URL)
+        fields[AuthApiConfig.UserFields.AUTH_PROVIDERS] = profile.authProviders ?: emptyMap<String, Boolean>()
+        updateMask.add(AuthApiConfig.UserFields.AUTH_PROVIDERS)
+        fields[AuthApiConfig.UserFields.LINKED_SERVICES] = profile.linkedServices ?: emptyMap<String, Boolean>()
+        updateMask.add(AuthApiConfig.UserFields.LINKED_SERVICES)
         profile.encryptedServiceAuth?.let { 
-            fields["encryptedServiceAuth"] = it
-            updateMask.add("encryptedServiceAuth")
+            fields[AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH] = it
+            updateMask.add(AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH)
         }
 
         if (fields.isNotEmpty()) {
@@ -308,26 +308,26 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun updateCustomField(uid: String, field: String, value: Boolean) {
         if (value) {
-            firestore.collection("users").document(uid).update("linkedServices.$field" to true)
+            firestore.collection(AuthApiConfig.COLLECTION_USERS).document(uid).update("${AuthApiConfig.UserFields.LINKED_SERVICES}.$field" to true)
         } else {
-            firestore.collection("users").document(uid).update(
-                "linkedServices.$field" to false,
-                "encryptedServiceAuth.$field" to FieldValue.delete,
-                "encryptedServiceTokens.$field" to FieldValue.delete
+            firestore.collection(AuthApiConfig.COLLECTION_USERS).document(uid).update(
+                "${AuthApiConfig.UserFields.LINKED_SERVICES}.$field" to false,
+                "${AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH}.$field" to FieldValue.delete,
+                "${AuthApiConfig.UserFields.ENCRYPTED_SERVICE_TOKENS}.$field" to FieldValue.delete
             )
         }
     }
 
     override suspend fun updateCustomFieldRest(uid: String, idToken: String, field: String, value: Boolean) {
         val projectId = firebaseProjectId ?: throw Exception("Firebase Project ID not found")
-        val fields = mapOf("linkedServices" to mapOf(field to value))
-        val updateMask = mutableListOf("linkedServices.$field")
+        val fields = mapOf(AuthApiConfig.UserFields.LINKED_SERVICES to mapOf(field to value))
+        val updateMask = mutableListOf("${AuthApiConfig.UserFields.LINKED_SERVICES}.$field")
         
         if (!value) {
             // When unlinking, we also want to remove the tokens.
             // In Firestore REST API, adding a field to updateMask but NOT to the fields object will delete it.
-            updateMask.add("encryptedServiceAuth.$field")
-            updateMask.add("encryptedServiceTokens.$field")
+            updateMask.add("${AuthApiConfig.UserFields.ENCRYPTED_SERVICE_AUTH}.$field")
+            updateMask.add("${AuthApiConfig.UserFields.ENCRYPTED_SERVICE_TOKENS}.$field")
         }
 
         handleAuthApi(name = "updateCustomFieldRest") {
@@ -336,7 +336,7 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun deleteUserProfile(uid: String) {
-        firestore.collection("users").document(uid).delete()
+        firestore.collection(AuthApiConfig.COLLECTION_USERS).document(uid).delete()
     }
 
     override suspend fun deleteUserProfileRest(uid: String, idToken: String) {
