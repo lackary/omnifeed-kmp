@@ -36,21 +36,8 @@ class AuthRepositoryImpl(
     private val logger: Logger
 ) : AuthRepository {
 
-    private val manualUser = MutableStateFlow<User?>(null)
-
-    init {
-        // Load user from persistent storage
-        try {
-            val user = localDataSource.getUser()
-            manualUser.value = user
-            logger.d { "init: manualUser detected from storage: ${user?.id} (Name: ${user?.username})" }
-        } catch (e: Exception) {
-            logger.e(e) { "init: Failed to load manualUser from storage" }
-        }
-    }
-
     private fun saveLocalUser(user: User?) {
-        val currentManual = manualUser.value
+        val currentManual = localDataSource.getUser()
         val oldToken = currentManual?.idToken
         val newToken = user?.idToken
         
@@ -81,7 +68,6 @@ class AuthRepositoryImpl(
             return
         }
         
-        manualUser.value = finalUser
         localDataSource.saveUser(finalUser)
         
         val savedUser = localDataSource.getUser()
@@ -95,11 +81,11 @@ class AuthRepositoryImpl(
     @OptIn(ExperimentalCoroutinesApi::class)
     override val currentUser: Flow<User?> = combine(
         remoteDataSource.authStateChanged,
-        manualUser
-    ) { sdkUser, manualUser ->
-        logger.d { "currentUser combine: sdkUser=${sdkUser?.uid}, manualUser=${manualUser?.id}" }
+        localDataSource.user
+    ) { sdkUser, localUser ->
+        logger.d { "currentUser combine: sdkUser=${sdkUser?.uid}, localUser=${localUser?.id}" }
         val validSdkUser = if (sdkUser != null && sdkUser.uid.isValidUid()) sdkUser else null
-        validSdkUser ?: manualUser
+        validSdkUser ?: localUser
     }.flatMapLatest { user ->
         if (user == null) {
             logger.d { "currentUser flatMapLatest: user is null" }
@@ -123,7 +109,7 @@ class AuthRepositoryImpl(
                 // However, the important part is that we capture it HERE during the flow transition.
                 user.getIdToken(false)
             } catch (_: Exception) { null }
-        } else (user as? User)?.idToken ?: manualUser.value?.idToken
+        } else (user as? User)?.idToken ?: localDataSource.getUser()?.idToken
 
         val serviceFields = customServices.keys.toList()
         
@@ -160,15 +146,15 @@ class AuthRepositoryImpl(
                 photoUrl = domainUser.photoUrl.takeIf { !it.isNullOrBlank() }
                     ?: profileDto.photoUrl.takeIf { !it.isNullOrBlank() },
                 // Use the latest token, preserving manual cache only if SDK has none.
-                idToken = latestToken ?: domainUser.idToken ?: manualUser.value?.idToken,
+                idToken = latestToken ?: domainUser.idToken ?: localDataSource.getUser()?.idToken,
                 // CRITICAL STICKY IDENTITY FIX: 
                 // Ensure lastSignInProvider is preserved during Firestore sync.
                 // We trust the domainUser's provider (which is already stickied in toDomain) 
-                // but we also check the manualUser as a secondary safety.
+                // but we also check the local cache as a secondary safety.
                 lastSignInProvider = if (domainUser.lastSignInProvider != "password" && domainUser.lastSignInProvider != null) {
                     domainUser.lastSignInProvider
                 } else {
-                    manualUser.value?.takeIf { it.id == domainUser.id }?.lastSignInProvider ?: domainUser.lastSignInProvider
+                    localDataSource.getUser()?.takeIf { it.id == domainUser.id }?.lastSignInProvider ?: domainUser.lastSignInProvider
                 }
             )
             
@@ -270,7 +256,7 @@ class AuthRepositoryImpl(
         val finalUser = user.copy(linkedServices = updatedLinkedServices)
         
         // CRITICAL: Ensure Token is preserved
-        val userToSave = if (finalUser.idToken == null) finalUser.copy(idToken = manualUser.value?.idToken) else finalUser
+        val userToSave = if (finalUser.idToken == null) finalUser.copy(idToken = localDataSource.getUser()?.idToken) else finalUser
         
         localDataSource.saveServiceToken(userToSave.id, serviceName, accessToken)
         saveUserToFirestore(userToSave)
@@ -311,7 +297,7 @@ class AuthRepositoryImpl(
     override suspend fun linkWithCustomService(serviceName: String, accessToken: String): User {
         val user = currentUser.first() ?: throw Exception("No user logged in to link with")
         val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
-        val currentToken = user.idToken ?: manualUser.value?.idToken
+        val currentToken = user.idToken ?: localDataSource.getUser()?.idToken
         
         // Extract raw token if it's JSON (for verification)
         val rawAccessToken = try {
@@ -410,7 +396,7 @@ class AuthRepositoryImpl(
 
     override suspend fun updatePassword(newPassword: String, oldPassword: String?) {
         val sdkUser = remoteDataSource.currentUser
-        val idToken = manualUser.value?.idToken ?: sdkUser?.getIdToken(false)
+        val idToken = localDataSource.getUser()?.idToken ?: sdkUser?.getIdToken(false)
         
         // RE-AUTH LOGIC: If it's an email user, and they provided an old password, re-verify first.
         // This makes the Token "fresh" and satisfies Firebase's security requirement.
@@ -478,7 +464,7 @@ class AuthRepositoryImpl(
     }
 
     private suspend fun performRestPasswordUpdate(idToken: String, newPassword: String) {
-        val originalUser = manualUser.value
+        val originalUser = localDataSource.getUser()
         val updatedUser = remoteDataSource.updatePasswordRest(idToken, newPassword)
         // After password update via REST, a new token is usually returned in the User object
         val freshToken = updatedUser.idToken ?: idToken
@@ -499,7 +485,7 @@ class AuthRepositoryImpl(
 
     override suspend fun updateUsername(username: String): User {
         val sdkUser = remoteDataSource.currentUser
-        val currentUserData = manualUser.value ?: currentUser.first() ?: throw Exception("No user logged in")
+        val currentUserData = localDataSource.getUser() ?: currentUser.first() ?: throw Exception("No user logged in")
         val idToken = currentUserData.idToken ?: sdkUser?.getIdToken(false)
         
         val updatedUser = if (sdkUser != null && !(idToken?.contains(".") == true)) {
@@ -592,9 +578,9 @@ class AuthRepositoryImpl(
 
     override suspend fun deleteAccount() {
         val sdkUser = remoteDataSource.currentUser
-        val manualUserValue = manualUser.value
-        val uid = manualUserValue?.id ?: sdkUser?.uid
-        val idToken = manualUserValue?.idToken
+        val localUserValue = localDataSource.getUser()
+        val uid = localUserValue?.id ?: sdkUser?.uid
+        val idToken = localUserValue?.idToken
         
         if (uid.isValidUid()) {
             if (idToken != null) {
@@ -626,7 +612,7 @@ class AuthRepositoryImpl(
 
     override suspend fun reauthenticateWithEmail(password: String) {
         val sdkUser = remoteDataSource.currentUser
-        val email = sdkUser?.email ?: manualUser.value?.email
+        val email = sdkUser?.email ?: localDataSource.getUser()?.email
         
         if (email.isNullOrBlank()) throw Exception("No user email available for re-authentication")
 
@@ -818,7 +804,7 @@ class AuthRepositoryImpl(
         }
         
         // Priority: Passed token > Current manual User token (only if ID matches)
-        val cachedToken = manualUser.value?.takeIf { it.id == uid }?.idToken
+        val cachedToken = localDataSource.getUser()?.takeIf { it.id == uid }?.idToken
         val token = forceToken ?: cachedToken
         
         logger.d { "toDomain: uid=$uid, tokenSource=${if (forceToken != null) "FORCE" else "CACHE"}, tokenPrefix=${token.maskId()}" }
@@ -827,10 +813,10 @@ class AuthRepositoryImpl(
         
         // STICKY PROVIDER LOGIC:
         // We stick to the provider used at the start of the session.
-        // If the UID matches our current manualUser, it means we are in the same session
+        // If the UID matches our current local user cache, it means we are in the same session
         // (e.g. updating password or linking). In this case, we PRESERVE the original provider
         // to avoid drift (especially common after password updates where it drifts to "password").
-        val cachedUser = manualUser.value?.takeIf { it.id == uid }
+        val cachedUser = localDataSource.getUser()?.takeIf { it.id == uid }
         val currentStickyProvider = cachedUser?.lastSignInProvider
         
         val finalProvider = if (currentStickyProvider != null && tokenProvider != currentStickyProvider) {

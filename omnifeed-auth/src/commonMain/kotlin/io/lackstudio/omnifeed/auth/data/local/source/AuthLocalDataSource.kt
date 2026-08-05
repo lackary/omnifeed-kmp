@@ -1,9 +1,11 @@
 package io.lackstudio.omnifeed.auth.data.local.source
 
 import io.lackstudio.omnifeed.auth.domain.model.User
+import kotlinx.coroutines.flow.Flow
 
 interface AuthLocalDataSource {
     // Firebase related
+    val user: Flow<User?>
     fun saveUser(user: User?)
     fun getUser(): User?
     

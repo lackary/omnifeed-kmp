@@ -7,6 +7,9 @@ import io.lackstudio.omnifeed.auth.data.storage.getOrNull
 import io.lackstudio.omnifeed.auth.data.storage.save
 import io.lackstudio.omnifeed.auth.data.storage.saveFirebaseAuth
 import io.lackstudio.omnifeed.auth.domain.model.User
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Local Data Structures:
@@ -26,12 +29,16 @@ class AuthLocalDataSourceImpl(
     private val serviceTokenStorage: LocalStorage
 ) : AuthLocalDataSource {
 
+    private val _user = MutableStateFlow<User?>(userCacheStorage.getFireBaseAuth())
+    override val user: Flow<User?> = _user.asStateFlow()
+
     override fun saveUser(user: User?) {
         userCacheStorage.saveFirebaseAuth(user)
+        _user.value = user
     }
 
     override fun getUser(): User? {
-        return userCacheStorage.getFireBaseAuth()
+        return _user.value
     }
 
     override suspend fun saveServiceToken(userId: String, serviceName: String, token: String) {
