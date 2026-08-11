@@ -63,6 +63,11 @@ npm-debug.log*
 firebase-debug.log*
 .firebase/
 
+# Firebase configuration files
+**/google-services.json
+**/GoogleService-Info.plist
+**/google_services_web.json
+
 # CI need
 .secrets
 
