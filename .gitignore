@@ -70,6 +70,7 @@ firebase-debug.log*
 
 # CI need
 .secrets
+.firebase_paths
 
 # Common
 *.log
