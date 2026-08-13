@@ -22,12 +22,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "OmniFeed Sample App Dev")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            resValue("string", "app_name", "OmniFeed Sample App")
         }
     }
     compileOptions {
@@ -36,6 +41,7 @@ android {
     }
     buildFeatures {
         compose = true
+        resValues = true
     }
 }
 
