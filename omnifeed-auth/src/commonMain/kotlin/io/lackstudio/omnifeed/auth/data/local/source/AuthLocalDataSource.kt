@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AuthLocalDataSource {
     // Firebase related
-    val user: Flow<User?>
+    val userFlow: Flow<User?>
     fun saveUser(user: User?)
     fun getUser(): User?
     

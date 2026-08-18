@@ -1,20 +1,49 @@
 import com.android.build.api.withAndroid
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+import java.util.Properties
 
 val modulePackageName = "io.lackstudio.omnifeed.auth"
+
+fun getFromPropertiesFile(fileName: String, key: String, project: Project): String? {
+    val file = project.rootProject.file(fileName)
+    if (!file.exists()) return null
+
+    val properties = Properties()
+    file.inputStream().use { properties.load(it) }
+    return properties.getProperty(key)
+}
+
+fun resolveConfigValue(key: String, project: Project): String? {
+    // Priority: .secrets -> local.properties -> Environment variables
+    return getFromPropertiesFile(".secrets", key, project)
+        ?: getFromPropertiesFile("local.properties", key, project)
+        ?: System.getenv(key)
+}
 
 plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.native.cocoapods)
+    alias(libs.plugins.buildkonfig)
     id("maven-publish")
 }
 
 base {
     archivesName.set("omnifeed-auth")
+}
+
+buildkonfig {
+    packageName = "$modulePackageName.config"
+
+    val firebaseWebBase64 = resolveConfigValue("FIREBASE_WEB_BASE64", project) ?: ""
+
+    defaultConfigs {
+        buildConfigField(STRING, "FIREBASE_WEB_BASE64", firebaseWebBase64)
+    }
 }
 
 val generateJsResources by tasks.registering {
@@ -126,6 +155,9 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.turbine.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.koin.test)
         }
         
         androidMain.dependencies {
@@ -138,6 +170,17 @@ kotlin {
             implementation(libs.google.googleid)
             implementation(libs.androidx.core.ktx)
             implementation(libs.koin.android)
+        }
+
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.mockk)
+            }
+        }
+
+        jvmTest.dependencies {
+            implementation(libs.mockk)
+            implementation(libs.koin.test.junit4)
         }
 
         iosMain.dependencies {

@@ -81,7 +81,7 @@ class AuthRepositoryImpl(
     @OptIn(ExperimentalCoroutinesApi::class)
     override val currentUser: Flow<User?> = combine(
         remoteDataSource.authStateChanged,
-        localDataSource.user
+        localDataSource.userFlow
     ) { sdkUser, localUser ->
         logger.d { "currentUser combine: sdkUser=${sdkUser?.uid}, localUser=${localUser?.id}" }
         val validSdkUser = if (sdkUser != null && sdkUser.uid.isValidUid()) sdkUser else null

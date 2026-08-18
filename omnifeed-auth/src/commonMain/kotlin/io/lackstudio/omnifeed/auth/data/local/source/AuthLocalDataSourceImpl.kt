@@ -30,7 +30,7 @@ class AuthLocalDataSourceImpl(
 ) : AuthLocalDataSource {
 
     private val _user = MutableStateFlow<User?>(userCacheStorage.getFireBaseAuth())
-    override val user: Flow<User?> = _user.asStateFlow()
+    override val userFlow: Flow<User?> = _user.asStateFlow()
 
     override fun saveUser(user: User?) {
         userCacheStorage.saveFirebaseAuth(user)
