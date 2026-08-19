@@ -158,6 +158,9 @@ kotlin {
             implementation(libs.turbine.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.koin.test)
+            implementation(libs.ktor.client.mock)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
         }
         
         androidMain.dependencies {
