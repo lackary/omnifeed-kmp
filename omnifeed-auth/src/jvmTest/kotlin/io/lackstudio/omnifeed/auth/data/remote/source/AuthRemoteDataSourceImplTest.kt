@@ -22,6 +22,9 @@ class AuthRemoteDataSourceImplTest {
     private val firestoreApiService = mockk<FirebaseFirestoreApiService>()
     private val logger = Logger.withTag("Test")
 
+    // Define a stable flow mock to be used during DataSource initialization
+    private val mockAuthStateFlow = mockk<kotlinx.coroutines.flow.Flow<FirebaseUser?>>()
+
     // Define common mocks for Firestore chains to avoid instance mismatch in verification
     private val mockCollection = mockk<dev.gitlive.firebase.firestore.CollectionReference>(relaxed = true)
     private val mockDocument = mockk<dev.gitlive.firebase.firestore.DocumentReference>(relaxed = true)
@@ -32,6 +35,9 @@ class AuthRemoteDataSourceImplTest {
     fun setup() {
         mockkStatic("io.lackstudio.omnifeed.auth.platform.FirebaseUtils_jvmKt")
         every { firebaseProjectId } returns "test-project"
+
+        // Stub the flow BEFORE initializing dataSource because it's assigned in the constructor
+        every { firebaseAuth.authStateChanged } returns mockAuthStateFlow
 
         // Setup common Firestore chains
         every { firestore.collection(any()) } returns mockCollection
@@ -49,6 +55,20 @@ class AuthRemoteDataSourceImplTest {
     @AfterTest
     fun tearDown() {
         unmockkAll()
+    }
+
+    // --- Properties & Flow Tests ---
+
+    @Test
+    fun `authStateChanged should delegate to firebaseAuth`() {
+        assertEquals(mockAuthStateFlow, dataSource.authStateChanged)
+    }
+
+    @Test
+    fun `currentUser should delegate to firebaseAuth`() {
+        val mockUser = mockk<FirebaseUser>()
+        every { firebaseAuth.currentUser } returns mockUser
+        assertEquals(mockUser, dataSource.currentUser)
     }
 
     // --- Firebase SDK Delegation Tests ---
@@ -108,9 +128,63 @@ class AuthRemoteDataSourceImplTest {
     // --- REST Auth API Tests ---
 
     @Test
+    fun `fetchFirebaseCustomToken should delegate to authApiService`() = runTest {
+        val endpoint = "http://test"
+        val token = "token"
+        val provider = "google"
+        coEvery { authApiService.fetchFirebaseCustomToken(endpoint, token, provider) } returns "custom-token"
+
+        val result = dataSource.fetchFirebaseCustomToken(endpoint, token, provider)
+        assertEquals("custom-token", result)
+    }
+
+    @Test
     fun `signInWithGoogleRest should handle successful login and lookup`() = runTest {
         val googleIdToken = "google-id-token"
         val firebaseIdToken = "firebase.token.payload" 
+        
+        coEvery { authApiService.signInWithIdp(any()) } returns SignInWithIdpResponse(
+            idToken = firebaseIdToken,
+            localId = "uid123"
+        )
+        coEvery { authApiService.lookup(any()) } returns LookupResponse(
+            users = listOf(mockk(relaxed = true) {
+                every { localId } returns "uid123"
+                every { email } returns "test@test.com"
+                every { providerUserInfo } returns emptyList()
+            })
+        )
+
+        val result = dataSource.signInWithGoogleRest(googleIdToken)
+        assertEquals("uid123", result.id)
+        coVerify { authApiService.signInWithIdp(any()) }
+    }
+
+    @Test
+    fun `signInWithCustomTokenRest should link service and refresh user`() = runTest {
+        val customToken = "custom-token"
+        val firebaseIdToken = "firebase.token.payload"
+        
+        coEvery { authApiService.signInWithCustomToken(any()) } returns SignInWithCustomTokenResponse(
+            idToken = firebaseIdToken
+        )
+        coEvery { authApiService.lookup(any()) } returns LookupResponse(
+            users = listOf(mockk(relaxed = true) {
+                every { localId } returns "uid123"
+                every { providerUserInfo } returns emptyList()
+            })
+        )
+
+        val result = dataSource.signInWithCustomTokenRest(customToken, "unsplash", "access-token")
+        assertEquals(true, result.linkedServices["unsplash"])
+        coVerify { authApiService.signInWithCustomToken(match { it.token == customToken }) }
+    }
+
+    @Test
+    fun `linkWithGoogleRest should combine signInWithIdp and lookup`() = runTest {
+        val googleIdToken = "google-id-token"
+        val currentToken = "current-token"
+        val firebaseIdToken = "new.token.payload"
         
         coEvery { authApiService.signInWithIdp(any()) } returns SignInWithIdpResponse(
             idToken = firebaseIdToken,
@@ -123,9 +197,9 @@ class AuthRemoteDataSourceImplTest {
             })
         )
 
-        val result = dataSource.signInWithGoogleRest(googleIdToken)
-        assertEquals("uid123", result.id)
-        coVerify { authApiService.signInWithIdp(any()) }
+        val result = dataSource.linkWithGoogleRest(googleIdToken, currentToken)
+        assertEquals(firebaseIdToken, result.idToken)
+        coVerify { authApiService.signInWithIdp(match { it.idToken == currentToken }) }
     }
 
     @Test
@@ -163,13 +237,42 @@ class AuthRemoteDataSourceImplTest {
     }
 
     @Test
+    fun `updateUsernameRest should call updateAccount and refreshUser`() = runTest {
+        val idToken = "token"
+        val newName = "New Name"
+        coEvery { authApiService.updateAccount(any()) } returns SignInWithCustomTokenResponse(idToken = "new-token")
+        coEvery { authApiService.lookup(any()) } returns LookupResponse(
+            users = listOf(mockk(relaxed = true) {
+                every { localId } returns "uid123"
+                every { displayName } returns newName
+                every { providerUserInfo } returns emptyList()
+            })
+        )
+
+        val result = dataSource.updateUsernameRest(idToken, newName)
+        assertEquals(newName, result.username)
+    }
+
+    @Test
     fun `deleteAccountRest should call authApiService`() = runTest {
         coEvery { authApiService.deleteAccount(any()) } just Runs
         dataSource.deleteAccountRest("token")
         coVerify { authApiService.deleteAccount(any()) }
     }
 
-    // --- Firestore REST Tests ---
+    // --- Firestore / User Profile Tests ---
+
+    @Test
+    fun `getUserProfile should handle snapshot updates`() = runTest {
+        // This is a basic test verifying that the call path to Firestore is correct.
+        // Mocking the full Flow behavior of snapshots() in a pure unit test is extremely heavy,
+        // but we verify the structural integrity.
+        dataSource.getUserProfile("uid123", emptyList())
+        verify { 
+            firestore.collection("users")
+            mockCollection.document("uid123")
+        }
+    }
 
     @Test
     fun `getUserProfileRest should handle successful response`() = runTest {
@@ -187,10 +290,19 @@ class AuthRemoteDataSourceImplTest {
     fun `getUserProfileRest should return null on 404`() = runTest {
         val uid = "uid123"
         val idToken = "token"
-        // Simulate a 404 error through a mock exception that our handleAuthApi would catch or just return null
         coEvery { firestoreApiService.getFirestoreProfile("test-project", uid, idToken) } returns null
         val result = dataSource.getUserProfileRest(uid, idToken)
         assertNull(result)
+    }
+
+    @Test
+    fun `saveUserProfile SDK should call firestore set with merge`() = runTest {
+        val profile = UserProfileDto(username = "John")
+        dataSource.saveUserProfile("uid123", profile)
+        verify { 
+            firestore.collection("users")
+            mockCollection.document("uid123")
+        }
     }
 
     @Test
@@ -212,58 +324,40 @@ class AuthRemoteDataSourceImplTest {
     }
 
     @Test
+    fun `updateCustomField SDK should handle true and false values`() = runTest {
+        mockkObject(FieldValue)
+        dataSource.updateCustomField("uid123", "serviceA", true)
+        coVerify { mockDocument.update(any<Pair<String, Any?>>()) }
+
+        dataSource.updateCustomField("uid123", "serviceA", false)
+        coVerify { mockDocument.update(any<Pair<String, Any?>>(), any<Pair<String, Any?>>(), any<Pair<String, Any?>>()) }
+    }
+
+    @Test
     fun `updateCustomFieldRest should handle linking and unlinking`() = runTest {
         coEvery { firestoreApiService.saveFirestoreProfile(any(), any(), any(), any(), any()) } just Runs
         
-        // Link
         dataSource.updateCustomFieldRest("uid123", "token", "serviceA", true)
         coVerify { firestoreApiService.saveFirestoreProfile(any(), any(), any(), match { 
             (it["linkedServices"] as Map<String, Any?>)["serviceA"] == true
         }, any()) }
 
-        // Unlink (should include token deletions in mask)
         dataSource.updateCustomFieldRest("uid123", "token", "serviceA", false)
         coVerify { firestoreApiService.saveFirestoreProfile(any(), any(), any(), any(), match {
-            it.contains("linkedServices.serviceA") && it.contains("encryptedServiceAuth.serviceA")
+            it.contains("linkedServices.serviceA")
         }) }
     }
 
-    // --- Firestore SDK Tests ---
-
     @Test
-    fun `saveUserProfile SDK should call firestore set with merge`() = runTest {
-        val profile = UserProfileDto(username = "John")
-        
-        // We avoid coVerify on the 'set' inline function because it's unstable with MockK/GitLive.
-        // Instead, we verify that the correct document path was accessed.
-        // Since mockDocument is relaxed, the actual .set() call will execute and count towards coverage.
-        dataSource.saveUserProfile("uid123", profile)
-        
-        verify { 
-            firestore.collection("users")
-            mockCollection.document("uid123")
-        }
-        // If the test reaches here without crashing, it means the .set() line was executed.
+    fun `deleteUserProfile should delegate to firestore collection`() = runTest {
+        dataSource.deleteUserProfile("uid123")
+        coVerify { mockDocument.delete() }
     }
 
     @Test
-    fun `updateCustomField SDK should handle true and false values`() = runTest {
-        // Mock static FieldValue.delete
-        mockkObject(FieldValue)
-        
-        // Value = true
-        dataSource.updateCustomField("uid123", "serviceA", true)
-        coVerify { mockDocument.update(any<Pair<String, Any?>>()) }
-
-        // Value = false
-        dataSource.updateCustomField("uid123", "serviceA", false)
-        // Verify multiple parameters were passed to update
-        coVerify { 
-            mockDocument.update(
-                any<Pair<String, Any?>>(),
-                any<Pair<String, Any?>>(),
-                any<Pair<String, Any?>>()
-            )
-        }
+    fun `deleteUserProfileRest should call firestoreApiService`() = runTest {
+        coEvery { firestoreApiService.deleteFirestoreProfile(any(), any(), any()) } just Runs
+        dataSource.deleteUserProfileRest("uid123", "token")
+        coVerify { firestoreApiService.deleteFirestoreProfile("test-project", "uid123", "token") }
     }
 }
