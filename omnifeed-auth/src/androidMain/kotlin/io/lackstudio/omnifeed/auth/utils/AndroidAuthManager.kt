@@ -13,7 +13,10 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import java.util.UUID
 
-class AndroidAuthManager(private val context: Context) : AuthManager {
+class AndroidAuthManager(
+    private val context: Context,
+    private val credentialManager: CredentialManager = CredentialManager.create(context)
+) : AuthManager {
 
     private var _redirectUrl: String? = null
     private var _clientId: String? = null
@@ -24,7 +27,6 @@ class AndroidAuthManager(private val context: Context) : AuthManager {
     override fun setSuccessHtml(html: String) { _successHtml = html }
 
     private val logger = Logger.withTag("AndroidAuthManager")
-    private val credentialManager = CredentialManager.create(context)
 
     override fun getRedirectUrl(): String {
         return _redirectUrl ?: ""
