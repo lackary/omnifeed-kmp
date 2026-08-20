@@ -63,6 +63,8 @@ suspend inline fun <T> toResult(
     } catch (e: Exception) { // Catch all other unexpected errors
         logger.e(e) { "Exception in toResult" }
         val exception = when (e) {
+            is RemoteException -> e
+            is CommonException -> e
             is HttpRequestTimeoutException,
             is ConnectTimeoutException,
             is SocketTimeoutException -> RemoteException.Network.Timeout(cause = e)
