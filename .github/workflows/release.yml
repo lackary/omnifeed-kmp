@@ -13,6 +13,10 @@ jobs:
     env:
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+      # Firebase and Google Auth secrets for potential builds/tests during release
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
 
     permissions:
       contents: write
@@ -33,6 +37,17 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+
+      - name: Decode Firebase Secrets (Android & iOS)
+        run: |
+          echo "Decoding Firebase Android configuration..."
+          # Recreate google-services.json for the Android sample app
+          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > sampleApp/androidApp/google-services.json
+          
+          echo "Decoding Firebase iOS configuration..."
+          # Ensure the directory exists and recreate GoogleService-Info.plist for the iOS sample app
+          mkdir -p sampleApp/iosApp/iosApp
+          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > sampleApp/iosApp/iosApp/GoogleService-Info.plist
 
       - name: Execute semantic release
         uses: cycjimmy/semantic-release-action@v6

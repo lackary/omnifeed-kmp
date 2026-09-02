@@ -70,6 +70,10 @@ jobs:
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
       GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      # Firebase and Google Auth secrets for BuildKonfig and dynamic file generation
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
     permissions:
       contents: read
       checks: write # For mikepenz/action-junit-report
@@ -90,6 +94,17 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      - name: Decode Firebase Secrets (Android & iOS)
+        run: |
+          echo "Decoding Firebase Android configuration..."
+          # Recreate google-services.json for the Android sample app
+          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > sampleApp/androidApp/google-services.json
+          
+          echo "Decoding Firebase iOS configuration..."
+          # Ensure the directory exists and recreate GoogleService-Info.plist for the iOS sample app
+          mkdir -p sampleApp/iosApp/iosApp
+          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > sampleApp/iosApp/iosApp/GoogleService-Info.plist
 
       - name: Create Dynamic Secrets XConfig File
         working-directory: './sampleApp/iosApp/Configuration'
