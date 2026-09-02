@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import app.cash.turbine.test
+import io.lackstudio.omnifeed.auth.data.remote.model.dto.UserProfileDto
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -386,6 +387,48 @@ class AuthRepositoryImplTest {
         // Verify local cache is also updated
         assertEquals(newUsername, localDataSource.getUser()?.username)
         coVerify { sdkUser.updateProfile(newUsername, any()) }
+    }
+
+    @Test
+    fun `updateUsername should NOT be overwritten by Firestore sync during update`() = runTest {
+        // Arrange
+        val newUsername = "Henry"
+        val oldUsername = "Yu Chan Huang"
+        val uid = "xTJd0jKdZdV57Ab5I3vL8PQYOqf1"
+        val idToken = "valid_token"
+        
+        val currentUser = User(id = uid, email = "lackary@gmail.com", username = oldUsername, photoUrl = null, idToken = idToken)
+        localDataSource.saveUser(currentUser)
+        
+        val sdkUser = mockk<FirebaseUser>()
+        every { remoteDataSource.currentUser } returns sdkUser
+        every { sdkUser.uid } returns uid
+        every { sdkUser.email } returns "lackary@gmail.com"
+        every { sdkUser.displayName } returns oldUsername
+        every { sdkUser.photoURL } returns null
+        every { sdkUser.providerData } returns emptyList()
+        coEvery { sdkUser.updateProfile(any(), any()) } just Runs
+        coEvery { sdkUser.getIdToken(any()) } returns idToken
+        
+        // MOCK THE BUG: Firestore still has the OLD name
+        val oldProfileDto = UserProfileDto(
+            username = oldUsername,
+            email = "lackary@gmail.com"
+        )
+        coEvery { remoteDataSource.getUserProfileRest(uid, idToken) } returns oldProfileDto
+        coEvery { remoteDataSource.saveUserProfileRest(uid, idToken, any()) } just Runs
+
+        // Act
+        val result = repository.updateUsername(newUsername)
+
+        // Assert
+        assertEquals(newUsername, result.username, "Username should be the NEW name, not the one from Firestore sync")
+        assertEquals(newUsername, localDataSource.getUser()?.username)
+        
+        // Verify that we saved the NEW name to Firestore
+        coVerify { 
+            remoteDataSource.saveUserProfileRest(uid, idToken, match { it.username == newUsername }) 
+        }
     }
 
     @Test

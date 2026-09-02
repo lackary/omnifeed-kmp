@@ -488,7 +488,7 @@ class AuthRepositoryImpl(
         val currentUserData = localDataSource.getUser() ?: currentUser.first() ?: throw Exception("No user logged in")
         val idToken = currentUserData.idToken ?: sdkUser?.getIdToken(false)
         
-        val updatedUser = if (sdkUser != null && !(idToken?.contains(".") == true)) {
+        val updatedUser = if (sdkUser != null && idToken?.contains(".") != true) {
             sdkUser.updateProfile(displayName = username)
             currentUserData.copy(username = username)
         } else if (idToken != null) {
@@ -498,9 +498,14 @@ class AuthRepositoryImpl(
         }
         
         val syncedUser = syncProfile(updatedUser, updatedUser.idToken ?: idToken ?: "")
-        saveUserToFirestore(syncedUser)
-        saveLocalUser(syncedUser)
-        return syncedUser
+        
+        // CRITICAL: Force the new username to be used, preventing syncProfile 
+        // from overwriting it with the old name from Firestore.
+        val finalUser = syncedUser.copy(username = username)
+        
+        saveUserToFirestore(finalUser)
+        saveLocalUser(finalUser)
+        return finalUser
     }
 
     override suspend fun unlinkProvider(providerId: String): User {
@@ -551,6 +556,17 @@ class AuthRepositoryImpl(
         return user
     }
 
+    /**
+     * Synchronizes the domain user with their Firestore profile.
+     * 
+     * NOTE ON PRIORITIZATION: This method prioritizes Firestore data (username/photoUrl) over the 
+     * values in [domainUser]. This is intentional for login flows (e.g., Google/Email sign-in) 
+     * where we want the user's custom Firestore profile to override provider defaults.
+     * 
+     * CAUTION FOR UPDATES: Because Firestore reads can be stale immediately after an update, 
+     * update methods (like updateUsername) must manually re-apply the new value after calling 
+     * [syncProfile] to prevent the stale Firestore value from overwriting the update.
+     */
     private suspend fun syncProfile(domainUser: User, idToken: String): User {
         // Fetch current Firestore profile to preserve existing services/fields
         val profileDto = remoteDataSource.getUserProfileRest(domainUser.id, idToken)
