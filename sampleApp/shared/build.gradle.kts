@@ -13,8 +13,8 @@ val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
 val unsplashSecretKeyName = "UNSPLASH_SECRET_KEY"
 val googleServicesWebClientIdName = "GOOGLE_SERVICES_WEB_CLIENT_ID"
 
-fun getFromLocalProperties(key: String, project: Project): String? {
-    val file = project.rootProject.file("local.properties")
+fun getFromPropertiesFile(fileName: String, key: String, project: Project): String? {
+    val file = project.rootProject.file(fileName)
     if (!file.exists()) return null
 
     val properties = Properties()
@@ -23,8 +23,10 @@ fun getFromLocalProperties(key: String, project: Project): String? {
 }
 
 fun resolveConfigValue(key: String, project: Project): String? {
-    // Read from file first, if not found then read from environment variables
-    return getFromLocalProperties(key, project) ?: System.getenv(key)
+    // Priority: .secrets -> local.properties -> Environment variables
+    return getFromPropertiesFile(".secrets", key, project)
+        ?: getFromPropertiesFile("local.properties", key, project)
+        ?: System.getenv(key)
 }
 
 buildscript {
