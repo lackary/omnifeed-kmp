@@ -59,12 +59,8 @@ class AuthRepositoryImpl(
             user
         }
         
-        if (finalUser?.id == currentManual?.id && 
-                   finalUser?.idToken == currentManual?.idToken &&
-                   finalUser?.lastSignInProvider == currentManual?.lastSignInProvider &&
-                   finalUser?.authProviders == currentManual?.authProviders && 
-                   finalUser?.linkedServices == currentManual?.linkedServices) {
-            // Avoid redundant updates if nothing meaningful changed
+        if (finalUser == currentManual) {
+            // Avoid redundant updates if nothing changed
             return
         }
         
