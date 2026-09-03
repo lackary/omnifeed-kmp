@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.unsplash.data.remote
+package io.lackstudio.omnifeed.unsplash.data.remote.resource
 
 import io.ktor.http.HttpStatusCode
 import io.lackstudio.omnifeed.unsplash.data.error.UnsplashApiException

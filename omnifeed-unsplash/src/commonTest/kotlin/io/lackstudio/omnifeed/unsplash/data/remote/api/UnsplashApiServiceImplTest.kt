@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.unsplash.data.api
+package io.lackstudio.omnifeed.unsplash.data.remote.api
 
 import io.lackstudio.omnifeed.unsplash.di.BaseUnsplashTest
 import io.lackstudio.omnifeed.unsplash.network.MOCK_COLLECTION_ID

@@ -1,4 +1,4 @@
-package io.lackstudio.omnifeed.unsplash.data.model.response
+package io.lackstudio.omnifeed.unsplash.data.remote.model.response
 
 import io.lackstudio.omnifeed.unsplash.data.remote.model.response.PhotoDetailResponse
 import io.lackstudio.omnifeed.unsplash.test.MockData
