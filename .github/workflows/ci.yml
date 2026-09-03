@@ -225,7 +225,7 @@ jobs:
           annotate_only: ${{ env.ACT == 'true' }}
 
       - name: Upload Test Report HTML
-        if: always()
+        if: always() && env.ACT != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: test-reports-html
