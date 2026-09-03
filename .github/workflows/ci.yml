@@ -101,6 +101,23 @@ jobs:
           # Recreate google-services.json for the Android sample app
           echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > sampleApp/androidApp/google-services.json
           
+          # Patch google-services.json if it doesn't contain the .dev package name used for debug builds
+          PACKAGE_NAME="io.lackstudio.omnifeed.app"
+          DEBUG_PACKAGE_NAME="${PACKAGE_NAME}.dev"
+          if ! grep -q "$DEBUG_PACKAGE_NAME" sampleApp/androidApp/google-services.json; then
+            echo "Patching google-services.json to include ${DEBUG_PACKAGE_NAME}..."
+            # Use a robust way to add the debug client config if only production exists
+            if command -v jq &> /dev/null; then
+              jq --arg prod "$PACKAGE_NAME" --arg dev "$DEBUG_PACKAGE_NAME" \
+                '.client += [.client[] | select(.client_info.android_client_info.package_name == $prod) | .client_info.android_client_info.package_name = $dev]' \
+                sampleApp/androidApp/google-services.json > sampleApp/androidApp/google-services.json.tmp && \
+                mv sampleApp/androidApp/google-services.json.tmp sampleApp/androidApp/google-services.json
+            else
+              # Fallback to simple sed if jq is not available
+              sed -i '' "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" sampleApp/androidApp/google-services.json
+            fi
+          fi
+
           echo "Decoding Firebase iOS configuration..."
           # Ensure the directory exists and recreate GoogleService-Info.plist for the iOS sample app
           mkdir -p sampleApp/iosApp/iosApp

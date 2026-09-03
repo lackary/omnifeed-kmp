@@ -110,7 +110,7 @@ kotlin {
         version = project.version.toString()
         summary = "OmniFeed Authentication Module"
         homepage = "https://github.com/lackary/omnifeed-kmp"
-        ios.deploymentTarget = "18.2"
+        ios.deploymentTarget = "18.5"
         framework {
             baseName = "OmniFeedAuth"
             isStatic = true
@@ -164,7 +164,7 @@ kotlin {
         }
         
         androidMain.dependencies {
-            implementation(project.dependencies.platform(libs.google.firebase.bom))
+            api(project.dependencies.platform(libs.google.firebase.bom))
             implementation(libs.google.firebase.auth)
             implementation(libs.google.firebase.common)
             implementation(libs.androidx.credentials)

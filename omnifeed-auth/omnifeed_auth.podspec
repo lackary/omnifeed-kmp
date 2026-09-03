@@ -8,7 +8,7 @@ Pod::Spec.new do |spec|
     spec.summary                  = 'OmniFeed Authentication Module'
     spec.vendored_frameworks      = 'build/cocoapods/framework/OmniFeedAuth.framework'
     spec.libraries                = 'c++'
-    spec.ios.deployment_target    = '18.2'
+    spec.ios.deployment_target    = '18.5'
     spec.dependency 'FirebaseAuth', '~> 12.14.0'
     spec.dependency 'FirebaseCore', '~> 12.14.0'
     spec.dependency 'FirebaseFirestore', '~> 12.14.0'

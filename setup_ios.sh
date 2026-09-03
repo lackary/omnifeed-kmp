@@ -9,6 +9,9 @@ cd "$(dirname "$0")"
 # This prevents old or incorrect resources/paths from affecting the new build.
 echo "🧹 [1/4] Cleaning previous builds..."
 ./gradlew clean
+rm -rf iosApp/Pods
+rm -f iosApp/Podfile.locky
+rm -rf ~/Library/Developer/Xcode/DerivedData/OmniFeed-* # Optional: clear specific DerivedData
 
 # --- Step 2: Create an empty resource directory ---
 # This is the key to the whole process!

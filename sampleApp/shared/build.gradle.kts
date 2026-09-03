@@ -1,8 +1,4 @@
-import org.jetbrains.compose.ExperimentalComposeLibrary
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
@@ -86,26 +82,16 @@ kotlin {
         }
     }
 
-//    listOf(
-//        iosArm64(),
-//        iosSimulatorArm64()
-//    ).forEach { iosTarget ->
-//        iosTarget.binaries.framework {
-//            baseName = "Shared"
-//            isStatic = true
-//        }
-//    }
-
     iosArm64()
     iosSimulatorArm64()
 
     cocoapods {
         name = "Shared"
-        version = "1.0.0" // Or any valid version number
-        summary = "Some description for the Shared Module"
-        homepage = "Link to the Shared Module homepage"
-        ios.deploymentTarget = "18.5" // Specify your iOS deployment target
-//        podfile = project.file("../iosApp/Podfile") // Adjust path if needed
+        version = project.version.toString()
+        summary = "Shared Module for OmniFeed"
+        homepage = "https://github.com/lackary/omnifeed-kmp"
+        ios.deploymentTarget = "18.2"
+        podfile = project.file("../iosApp/Podfile")
         framework {
             baseName = "Shared"
             isStatic = true
@@ -122,22 +108,27 @@ kotlin {
          * You MUST manually add them to your `iosApp/Podfile`.
          *
          * Example for your Podfile:
-         * pod 'FirebaseCore', '~> 12.4.0'
-         * pod 'FirebaseAuth', '~> 12.4.0'
+         * pod 'FirebaseCore', '~> 12.14.0'
+         * pod 'FirebaseAuth', '~> 12.14.0'
+         * pod 'FirebaseFirestore', '~> 12.14.0'
          * pod 'GoogleSignIn', '~> 9.0.0'
          */
-//        pod("FirebaseCore") {
-//            version = "~> 12.4.0"
-//            extraOpts += listOf("-compiler-option", "-fmodules")
-//        }
-//        pod("FirebaseAuth") {
-//            version = "~> 12.4.0"
-//            extraOpts += listOf("-compiler-option", "-fmodules")
-//        }
-//        pod("GoogleSignIn") {
-//            version = "~> 9.0.0"
-//            extraOpts += listOf("-compiler-option", "-fmodules")
-//        }
+        pod("FirebaseCore") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseAuth") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("GoogleSignIn") {
+            version = "~> 9.0.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseFirestore") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
 
     }
 

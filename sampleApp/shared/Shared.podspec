@@ -1,14 +1,18 @@
 Pod::Spec.new do |spec|
     spec.name                     = 'Shared'
-    spec.version                  = '1.0.0'
-    spec.homepage                 = 'Link to the Shared Module homepage'
+    spec.version                  = '0.12.9'
+    spec.homepage                 = 'https://github.com/lackary/omnifeed-kmp'
     spec.source                   = { :http=> ''}
     spec.authors                  = ''
     spec.license                  = ''
-    spec.summary                  = 'Some description for the Shared Module'
+    spec.summary                  = 'Shared Module for OmniFeed'
     spec.vendored_frameworks      = 'build/cocoapods/framework/Shared.framework'
     spec.libraries                = 'c++'
-    spec.ios.deployment_target    = '18.5'
+    spec.ios.deployment_target    = '18.2'
+    spec.dependency 'FirebaseAuth', '~> 12.14.0'
+    spec.dependency 'FirebaseCore', '~> 12.14.0'
+    spec.dependency 'FirebaseFirestore', '~> 12.14.0'
+    spec.dependency 'GoogleSignIn', '~> 9.0.0'
     if !Dir.exist?('build/cocoapods/framework/Shared.framework') || Dir.empty?('build/cocoapods/framework/Shared.framework')
         raise "
         Kotlin framework 'Shared' doesn't exist yet, so a proper Xcode project can't be generated.
