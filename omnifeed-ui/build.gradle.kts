@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 
 // Define the Package Name for this module
 val modulePackageName = "io.lackstudio.omnifeed.ui"
@@ -116,4 +117,9 @@ compose {
 configurations.matching { it.name.contains("Test") }.configureEach {
     exclude(group = "org.jogamp.gluegen")
     exclude(group = "org.jogamp.jogl")
+}
+
+// Prevent task failure when no target-specific tests are discovered for the WasmJs browser target
+tasks.named<KotlinJsTest>("wasmJsBrowserTest") {
+    failOnNoDiscoveredTests.set(false)
 }
