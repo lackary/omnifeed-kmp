@@ -1,3 +1,8 @@
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+
 plugins {
     //trick: for the same plugin versions in all sub-modules
     alias(libs.plugins.android.application) apply false
@@ -107,5 +112,15 @@ subprojects {
                 }
             }
         }
+    }
+}
+
+plugins.withType<YarnPlugin> {
+    the<YarnRootExtension>().apply {
+        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
+        yarnLockAutoReplace = true
+    }
+    tasks.withType<YarnLockStoreTask>().configureEach {
+        enabled = false
     }
 }
