@@ -1,3 +1,54 @@
+# [0.13.0](https://github.com/lackary/omnifeed-kmp/compare/0.12.9...0.13.0) (2026-09-04)
+
+
+### Bug Fixes
+
+* **auth:** add UID validation for Firestore operations ([d0ce941](https://github.com/lackary/omnifeed-kmp/commit/d0ce941190cda74c2fbe854ed9e6246b76f3d27c))
+* **auth:** call backend endpoint during custom service linking and enhance repository logging ([1cd29ce](https://github.com/lackary/omnifeed-kmp/commit/1cd29ceeb2cfb8a8bfecd0163853a92e4f5b7b9d))
+* **auth:** clear deep link buffer on sign-out ([0009d6e](https://github.com/lackary/omnifeed-kmp/commit/0009d6e16c7bbbe33a25d8a7b6b490cb80ad699c))
+* **auth:** ensure accurate provider information by syncing token data ([aeacca4](https://github.com/lackary/omnifeed-kmp/commit/aeacca4ca08748af2c7e1f327e44bba219ffc0b4))
+* **auth:** handle email collision and support account mapping in custom sign-in ([e2e9f29](https://github.com/lackary/omnifeed-kmp/commit/e2e9f29ac98ea65dd963c12dbbea66b652e3b4f2))
+* **auth:** prevent username updates from being overwritten by stale Firestore data ([89b3df0](https://github.com/lackary/omnifeed-kmp/commit/89b3df05e3eec4d272130005c528d9d9070a6e28))
+* **extension:** downgrade Node.js runtime and remove httpsTrigger allowInsecure ([e873ad9](https://github.com/lackary/omnifeed-kmp/commit/e873ad9ddcc2ae1675c4c6b7ad6e4903f447303f))
+* **extension:** synchronize profile info during account linking ([699537e](https://github.com/lackary/omnifeed-kmp/commit/699537e0dfd6695f4b981502677b2ab29c76fb21))
+
+
+### Features
+
+* **auth:** add script to encode Firebase configuration files to Base64 ([edafc2e](https://github.com/lackary/omnifeed-kmp/commit/edafc2ec8785e8b574e84d0098a38f90603cfea2))
+* **auth:** add user management use cases ([579386f](https://github.com/lackary/omnifeed-kmp/commit/579386fe83f84e33cd82a09556e0d9761d4677fe))
+* **auth:** clear service tokens when unlinking provider ([f943110](https://github.com/lackary/omnifeed-kmp/commit/f943110f8a7f10fc58c825265ef7c06caeebed6d))
+* **auth:** enhance error handling and standardize use case results ([373b3b1](https://github.com/lackary/omnifeed-kmp/commit/373b3b1a4f0ee51c1152ebf8dac2bfe234ba2305))
+* **auth:** enhance reliability and user experience of platform auth managers ([8785cea](https://github.com/lackary/omnifeed-kmp/commit/8785cea3b4b6bc946575bebc563b027f01a03955))
+* **auth:** externalize Google Auth Bridge JavaScript to resource file ([0a26518](https://github.com/lackary/omnifeed-kmp/commit/0a2651809120ec29e70a7f065ce9c5ea3d64cda5))
+* **auth:** implement advanced account management features ([55eacb0](https://github.com/lackary/omnifeed-kmp/commit/55eacb094ff1b8664eec1611f3d96bdf4d55b042))
+* **auth:** implement cross-platform Firebase Auth logic and refactor data models ([c3b1235](https://github.com/lackary/omnifeed-kmp/commit/c3b1235a45e41547693933312034a111bc0d8a2b))
+* **auth:** implement encrypted service token sync and profile consistency ([fbce716](https://github.com/lackary/omnifeed-kmp/commit/fbce7169488b2df6e786b66da1fb58ece195d37f))
+* **auth:** implement Firestore profile synchronization and REST fallback in JVM platform ([bbfaad0](https://github.com/lackary/omnifeed-kmp/commit/bbfaad02ff38c1e53243baf6b9dbe12d810294ea))
+* **auth:** implement Firestore REST API and refactor Firebase services ([b110cf3](https://github.com/lackary/omnifeed-kmp/commit/b110cf345cedbbd7515f9ce1c920790bf922e8ef))
+* **auth:** implement generic custom auth service and firebase extension ([3d8da16](https://github.com/lackary/omnifeed-kmp/commit/3d8da16a71529690f7e26c1168020b484a2f404b))
+* **auth:** implement local persistence and dynamic token resolution ([58f942b](https://github.com/lackary/omnifeed-kmp/commit/58f942bd4988f1751e8e62ae2efb0427c1db026f))
+* **auth:** implement multiplatform authentication manager ([35006ee](https://github.com/lackary/omnifeed-kmp/commit/35006ee0be80a62b76e3d893ceca21e090002764))
+* **auth:** implement multiplatform Firebase initialization ([91fe66e](https://github.com/lackary/omnifeed-kmp/commit/91fe66e6585d898587cc5250103e1867cf26685b))
+* **auth:** implement multiplatform local storage for auth persistence ([4d36e90](https://github.com/lackary/omnifeed-kmp/commit/4d36e90569cdf4fe3fff3d069af0314d1fedb796))
+* **auth:** implement OAuth popup sign-in for web platform ([b207c5a](https://github.com/lackary/omnifeed-kmp/commit/b207c5a8fb49f16a0dff0eb93e3109a20e72914e))
+* **auth:** implement re-authentication and enhance error handling ([f74b638](https://github.com/lackary/omnifeed-kmp/commit/f74b6381b7cafbd0c36d6c83e81060a3dbd329de))
+* **auth:** implement REST fallback for Google Sign-In ([275bfe7](https://github.com/lackary/omnifeed-kmp/commit/275bfe78eba3bd80524e3768410b870121621352))
+* **auth:** implement sticky identity enforcement and enhance token management ([32546b9](https://github.com/lackary/omnifeed-kmp/commit/32546b956a82991a10f5cae791efa07fa59b3c44))
+* **auth:** implement unified multiplatform authentication system ([f35a0cd](https://github.com/lackary/omnifeed-kmp/commit/f35a0cdd551ca631d11ae2c83298fb79b9b091a9))
+* **auth:** implement Unsplash account linking and status tracking ([921bbb6](https://github.com/lackary/omnifeed-kmp/commit/921bbb6576306c68d1fe37bb40f98f958101565a))
+* **auth:** implement update username functionality and enhance error handling ([74d6308](https://github.com/lackary/omnifeed-kmp/commit/74d63088e03ae0c888fdfba2a3103b2a0c7cd5c7))
+* **auth:** integrate Google Identity Services via JS bridge for web ([c2e261a](https://github.com/lackary/omnifeed-kmp/commit/c2e261a57469fce375cf633944fe753fe2cae1e0))
+* **auth:** introduce omnifeed-auth module ([6710aab](https://github.com/lackary/omnifeed-kmp/commit/6710aab99f706c167a669b85930b5693368eda01))
+* **auth:** migrate auth providers configuration to environment variables ([7e85a4c](https://github.com/lackary/omnifeed-kmp/commit/7e85a4ce048d0222b56446bd0b2638a24267e7c6))
+* **auth:** persist and synchronize user state during account linking and unlinking ([d1e2d46](https://github.com/lackary/omnifeed-kmp/commit/d1e2d46aed0cfd7b382207c9cf45b1dc47baf8a0))
+* **auth:** persist authenticated user sessions ([9077c1e](https://github.com/lackary/omnifeed-kmp/commit/9077c1e3f9d92ca7f84eb9be834ae13f25519944))
+* **auth:** populate Firebase user profile with third-party info ([84dbb25](https://github.com/lackary/omnifeed-kmp/commit/84dbb2513ddebd0b0927267e1f953adc596c1c26))
+* **auth:** refactor user profile schema and enhance data synchronization ([44be022](https://github.com/lackary/omnifeed-kmp/commit/44be02298198eb4dee04e502d4fd0ce4fb00e5f9))
+* **auth:** update WasmJs repository to match interface changes ([c6ae055](https://github.com/lackary/omnifeed-kmp/commit/c6ae0553e03263735c4c22007ca7e601053e900d))
+* **firebase:** add platform-specific friendly error message utility ([cf32712](https://github.com/lackary/omnifeed-kmp/commit/cf327129fd3bd62460187395639dc5e6aa05a82a))
+* **unsplash:** update user models with missing stats and null-safe private fields ([d1f5a92](https://github.com/lackary/omnifeed-kmp/commit/d1f5a923cb6ce87eda90f6883df33808b4e78229))
+
 ## [0.12.9](https://github.com/lackary/omnifeed-kmp/compare/0.12.8...0.12.9) (2026-06-01)
 
 
