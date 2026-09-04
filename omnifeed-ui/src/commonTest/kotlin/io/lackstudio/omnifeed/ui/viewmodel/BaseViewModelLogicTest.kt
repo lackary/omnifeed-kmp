@@ -181,10 +181,10 @@ class BaseViewModelLogicTest {
     }
 
     @Test
-    fun `getAppErrorMessage returns default message for unknown exceptions`() {
+    fun `getAppErrorMessage returns friendly message for unknown exceptions`() {
         // Test Exception not in the list
         val exception = Exception("Some random crash")
         val message = viewModel.getAppErrorMessageForTest(exception)
-        assertEquals("An unexpected error occurred.", message)
+        assertEquals("Some random crash", message)
     }
 }

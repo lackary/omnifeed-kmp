@@ -70,6 +70,10 @@ jobs:
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
       GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      # Firebase and Google Auth secrets for BuildKonfig and dynamic file generation
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
     permissions:
       contents: read
       checks: write # For mikepenz/action-junit-report
@@ -90,6 +94,34 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      - name: Decode Firebase Secrets (Android & iOS)
+        run: |
+          echo "Decoding Firebase Android configuration..."
+          # Recreate google-services.json for the Android sample app
+          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > sampleApp/androidApp/google-services.json
+          
+          # Patch google-services.json if it doesn't contain the .dev package name used for debug builds
+          PACKAGE_NAME="io.lackstudio.omnifeed.app"
+          DEBUG_PACKAGE_NAME="${PACKAGE_NAME}.dev"
+          if ! grep -q "$DEBUG_PACKAGE_NAME" sampleApp/androidApp/google-services.json; then
+            echo "Patching google-services.json to include ${DEBUG_PACKAGE_NAME}..."
+            # Use a robust way to add the debug client config if only production exists
+            if command -v jq &> /dev/null; then
+              jq --arg prod "$PACKAGE_NAME" --arg dev "$DEBUG_PACKAGE_NAME" \
+                '.client += [.client[] | select(.client_info.android_client_info.package_name == $prod) | .client_info.android_client_info.package_name = $dev]' \
+                sampleApp/androidApp/google-services.json > sampleApp/androidApp/google-services.json.tmp && \
+                mv sampleApp/androidApp/google-services.json.tmp sampleApp/androidApp/google-services.json
+            else
+              # Fallback to simple sed if jq is not available
+              sed -i '' "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" sampleApp/androidApp/google-services.json
+            fi
+          fi
+
+          echo "Decoding Firebase iOS configuration..."
+          # Ensure the directory exists and recreate GoogleService-Info.plist for the iOS sample app
+          mkdir -p sampleApp/iosApp/iosApp
+          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > sampleApp/iosApp/iosApp/GoogleService-Info.plist
 
       - name: Create Dynamic Secrets XConfig File
         working-directory: './sampleApp/iosApp/Configuration'
@@ -193,7 +225,7 @@ jobs:
           annotate_only: ${{ env.ACT == 'true' }}
 
       - name: Upload Test Report HTML
-        if: always()
+        if: always() && env.ACT != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: test-reports-html

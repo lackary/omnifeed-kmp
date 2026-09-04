@@ -45,7 +45,6 @@ import io.lackstudio.omnifeed.shared.ui.state.HomeUiState
 import io.lackstudio.omnifeed.shared.ui.viewmodel.AppViewModel
 import io.lackstudio.omnifeed.shared.utils.Environment
 import io.lackstudio.omnifeed.core.network.extension.hrefWithHost
-import io.lackstudio.omnifeed.ui.component.OAuthWebViewBottomSheet
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnifeed.unsplash.data.remote.model.request.AuthorizeRequest as UnsplashAuthorizeRequest
 import io.lackstudio.omnifeed.unsplash.utils.Environment as UnsplashEnvironment
@@ -190,46 +189,6 @@ fun AppScreenContent(
             }
 
             logger?.i { "authorizeRequestUrl = $authorizeRequestUrl" }
-
-            // Show the Bottom Sheet (OAuth Logic)
-            authUrlToShow?.let { url ->
-                OAuthWebViewBottomSheet(
-                    url = url,
-                    onDismissRequest = {
-                        authUrlToShow = null
-                    },
-                    onAuthCodeReceived = { code ->
-                        onIntent(HomeUiIntent.ExchangeOAuth(code))
-                    }
-                ) { onExecuteJavascript ->
-                    // Handle one-time events here
-                    LaunchedEffect(Unit) {
-                        eventFlow.collect { event ->
-                            logger?.d { "event $event" }
-                            when (event) {
-                                is HomeUiEvent.ShowAuthSuccess -> {
-                                    logger?.d { "ShowAuthSuccess" }
-                                    // val jsCall = "displayExchangeSuccess('${event.tokenType}')".trimIndent()
-                                    // onExecuteJavascript(jsCall)
-                                }
-
-                                is HomeUiEvent.ShowAuthError -> {
-                                    logger?.d { "ShowAuthError" }
-                                    val jsCall = "displayAuthError('${event.message}')".trimIndent()
-                                    onExecuteJavascript(jsCall)
-                                }
-
-                                is HomeUiEvent.ShowAuthProfile -> {
-                                    logger?.d { "ShowAuthProfile" }
-                                    val jsCall =
-                                        "displayUserInfo('${event.profileImageUrl}', '${event.username}')".trimIndent()
-                                    onExecuteJavascript(jsCall)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }

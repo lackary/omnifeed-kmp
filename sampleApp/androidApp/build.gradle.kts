@@ -22,12 +22,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "OmniFeed Sample App Dev")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            resValue("string", "app_name", "OmniFeed Sample App")
         }
     }
     compileOptions {
@@ -36,11 +41,13 @@ android {
     }
     buildFeatures {
         compose = true
+        resValues = true
     }
 }
 
 dependencies {
     implementation(project(":sampleApp:shared"))
+    implementation(platform(libs.google.firebase.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

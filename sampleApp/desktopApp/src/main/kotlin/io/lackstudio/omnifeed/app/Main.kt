@@ -13,7 +13,6 @@ import io.ktor.serialization.kotlinx.json.json
 import io.lackstudio.omnifeed.shared.di.initKoin
 import io.lackstudio.omnifeed.shared.helper.AppInitializer
 import io.lackstudio.omnifeed.shared.ui.screen.App
-import io.lackstudio.omnifeed.ui.component.webview.initKCEF
 
 @OptIn(KMPAuthInternalApi::class)
 fun main() = application {
@@ -42,8 +41,6 @@ fun main() = application {
         onCloseRequest = ::exitApplication,
         title = "Example App",
     ) {
-        initKCEF {
-            App()
-        }
+        App()
     }
 }

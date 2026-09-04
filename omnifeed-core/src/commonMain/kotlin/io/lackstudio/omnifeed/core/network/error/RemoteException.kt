@@ -18,7 +18,7 @@ sealed class RemoteException(
     sealed class Api(
         val code: Int,
         val errorBody: String? = null,
-        message: String? = null,
+        message: String? = (errorBody ?: "HTTP $code"),
         cause: Throwable? = null
     ) : RemoteException(message, cause) {
         class BadRequest(

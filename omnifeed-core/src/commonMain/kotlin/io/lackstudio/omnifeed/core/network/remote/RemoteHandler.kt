@@ -6,6 +6,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
+import kotlinx.io.IOException
 import kotlinx.serialization.SerializationException
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
@@ -62,11 +63,14 @@ suspend inline fun <T> toResult(
     } catch (e: Exception) { // Catch all other unexpected errors
         logger.e(e) { "Exception in toResult" }
         val exception = when (e) {
+            is RemoteException -> e
+            is CommonException -> e
             is HttpRequestTimeoutException,
             is ConnectTimeoutException,
             is SocketTimeoutException -> RemoteException.Network.Timeout(cause = e)
             is JsonConvertException,
             is SerializationException -> CommonException.Parsing.SerializationFailed(cause = e,)
+            is IOException -> RemoteException.Network.Unknown(cause = e)
             else -> RemoteException.RemoteUnknown(cause = e)
         }
         Result.failure(exception)

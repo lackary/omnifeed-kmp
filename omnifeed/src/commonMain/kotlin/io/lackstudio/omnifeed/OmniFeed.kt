@@ -1,5 +1,19 @@
 package io.lackstudio.omnifeed
 
+import io.lackstudio.omnifeed.auth.di.omnifeedAuthModule
+import io.lackstudio.omnifeed.auth.domain.usecase.DeleteAccountUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithEmailUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithGoogleUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithCustomServiceUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.UnlinkCustomServiceUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.ObserveUserUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithEmailUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithGoogleUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithCustomServiceUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.SignUpWithEmailUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.SignOutUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.UnlinkProviderUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.UpdatePasswordUseCase
 import io.lackstudio.omnifeed.core.OmniFeedConfig
 import io.lackstudio.omnifeed.core.di.coreModule
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
@@ -41,7 +55,8 @@ object OmniFeed {
                 unsplashModule(
                     tokenType = config.unsplash.tokenType, // or passed from config
                     token = config.unsplash.token // token strategy depends on implementation
-                )
+                ),
+                omnifeedAuthModule
             )
         }
     }
@@ -90,6 +105,21 @@ object OmniFeed {
     val exchangeOAuthUseCase: ExchangeOAuthUseCase get() = getDependency()
 
     val getMeUseCase: GetMeUseCase get() = getDependency()
+
+    // --- Auth APIs ---
+    val signInWithEmailUseCase: SignInWithEmailUseCase get() = getDependency()
+    val signUpWithEmailUseCase: SignUpWithEmailUseCase get() = getDependency()
+    val signInWithGoogleUseCase: SignInWithGoogleUseCase get() = getDependency()
+    val signInWithCustomServiceUseCase: SignInWithCustomServiceUseCase get() = getDependency()
+    val linkWithGoogleUseCase: LinkWithGoogleUseCase get() = getDependency()
+    val linkWithCustomServiceUseCase: LinkWithCustomServiceUseCase get() = getDependency()
+    val unlinkCustomServiceUseCase: UnlinkCustomServiceUseCase get() = getDependency()
+    val linkWithEmailUseCase: LinkWithEmailUseCase get() = getDependency()
+    val updatePasswordUseCase: UpdatePasswordUseCase get() = getDependency()
+    val unlinkProviderUseCase: UnlinkProviderUseCase get() = getDependency()
+    val observeUserUseCase: ObserveUserUseCase get() = getDependency()
+    val signOutUseCase: SignOutUseCase get() = getDependency()
+    val deleteAccountUseCase: DeleteAccountUseCase get() = getDependency()
 
     // This is typically a Singleton, ensuring the App and SDK share the same token state.
     val accessTokenProvider: AccessTokenProvider get() = getDependency()

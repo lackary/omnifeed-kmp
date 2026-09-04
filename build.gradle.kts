@@ -1,3 +1,8 @@
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+
 plugins {
     //trick: for the same plugin versions in all sub-modules
     alias(libs.plugins.android.application) apply false
@@ -65,8 +70,8 @@ subprojects {
         // Configure publishing
         extensions.configure<PublishingExtension> {
             publications.withType<MavenPublication> {
-                // 設定 Artifact ID
-                // 優先使用 gradle.properties 的設定，如果沒有則使用專案名稱 (資料夾名)
+                // Set Artifact ID
+                // Prefer the setting from gradle.properties; if not present, use the project name (folder name)
                 val explicitArtifactId = providers.gradleProperty("POM_ARTIFACT_ID").orNull
                 if (explicitArtifactId != null) {
                     artifactId = explicitArtifactId
@@ -107,5 +112,15 @@ subprojects {
                 }
             }
         }
+    }
+}
+
+plugins.withType<YarnPlugin> {
+    the<YarnRootExtension>().apply {
+        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
+        yarnLockAutoReplace = true
+    }
+    tasks.withType<YarnLockStoreTask>().configureEach {
+        enabled = false
     }
 }

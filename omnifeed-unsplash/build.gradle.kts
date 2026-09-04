@@ -69,10 +69,10 @@ kotlin {
 
     jvm()
 
-//    js {
-//        browser()
-//        binaries.executable()
-//    }
+    js {
+        browser()
+        binaries.executable()
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -126,28 +126,33 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.darwin)
         }
-
-        wasmJsMain.dependencies { }
     }
 }
 
 buildkonfig {
     packageName = "$modulePackageName.config"
-    val localProps = Properties()
-    val localPropsFile = rootProject.file("local.properties")
 
-    if (localPropsFile.exists()) {
-        localProps.load(localPropsFile.inputStream())
+    fun getFromPropertiesFile(fileName: String, key: String): String? {
+        val file = rootProject.file(fileName)
+        if (!file.exists()) return null
+        val props = Properties()
+        file.inputStream().use { props.load(it) }
+        return props.getProperty(key)
     }
 
-    val errorMessage = "not found. Please set it as an environment variable or in local.properties."
+    fun resolveConfigValue(key: String): String? {
+        // Priority: .secrets -> local.properties -> Environment variables
+        return getFromPropertiesFile(".secrets", key)
+            ?: getFromPropertiesFile("local.properties", key)
+            ?: System.getenv(key)
+    }
 
-    val unsplashAccessKey = System.getenv("UNSPLASH_ACCESS_KEY")
-        ?: localProps.getProperty("UNSPLASH_ACCESS_KEY")
+    val errorMessage = "not found. Please set it as an environment variable, in local.properties, or in .secrets."
+
+    val unsplashAccessKey = resolveConfigValue("UNSPLASH_ACCESS_KEY")
         ?: error("UNSPLASH_ACCESS_KEY $errorMessage")
 
-    val unsplashSecretKey = System.getenv("UNSPLASH_SECRET_KEY")
-        ?: localProps.getProperty("UNSPLASH_SECRET_KEY")
+    val unsplashSecretKey = resolveConfigValue("UNSPLASH_SECRET_KEY")
         ?: error("UNSPLASH_SECRET_KEY $errorMessage")
 
     defaultConfigs {

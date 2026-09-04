@@ -1,0 +1,45 @@
+name: omnifeed-auth-custom-service
+version: 0.13.0 # This should be updated to match your git tag
+specVersion: v1beta
+
+displayName: OmniFeed Custom Auth Service
+description: >-
+  Provides a generic endpoint to exchange third-party access tokens for Firebase Custom Tokens.
+  Supports multiple services via dynamic configuration.
+
+license: Apache-2.0
+
+# Define the resources (Functions) created by this extension
+resources:
+  - name: signInWithCustomService
+    type: firebaseextensions.v1beta.function
+    description: >-
+      HTTPS trigger to verify third-party tokens.
+    properties:
+      location: ${param:LOCATION}
+      runtime: nodejs20
+      httpsTrigger: {}
+
+# Parameters requested from the developer during installation
+params:
+  - param: LOCATION
+    label: Cloud Functions location
+    description: >-
+      Where do you want to deploy the functions? 
+      (e.g., us-central1, asia-east1)
+    type: select
+    options:
+      - label: Iowa (us-central1)
+        value: us-central1
+      - label: Taiwan (asia-east1)
+        value: asia-east1
+    default: us-central1
+    required: true
+
+  - param: AUTH_PROVIDERS_JSON
+    label: Auth Providers Configuration (JSON)
+    description: >-
+      A JSON string defining supported providers and their verify_urls.
+    type: string
+    example: '{"unsplash": {"verify_url": "https://api.unsplash.com/me"}}'
+    required: true

@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 
 // Define the Package Name for this module
 val modulePackageName = "io.lackstudio.omnifeed.ui"
@@ -56,10 +57,10 @@ kotlin {
 
     jvm()
 
-//    js {
-//        browser()
-//        binaries.executable()
-//    }
+    js {
+        browser()
+        binaries.executable()
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -77,7 +78,6 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.ktor.client.core)
             implementation(libs.lifecycle.viewmodel.compose)
-            implementation(libs.kevinnzou.compose.webview.multiplatform)
             implementation(project(":omnifeed-core"))
         }
         commonTest.dependencies {
@@ -117,4 +117,11 @@ compose {
 configurations.matching { it.name.contains("Test") }.configureEach {
     exclude(group = "org.jogamp.gluegen")
     exclude(group = "org.jogamp.jogl")
+}
+
+// Prevent browser launch failure in CI environments where ChromeHeadless is not installed,
+// and prevent task failure if no Wasm-specific tests are discovered.
+tasks.named<KotlinJsTest>("wasmJsBrowserTest") {
+    enabled = false
+    failOnNoDiscoveredTests.set(false)
 }

@@ -17,4 +17,24 @@ sealed class UseCaseResult<out T> {
      * @param exception The AppException instance that caused the operation to fail.
      */
     data class Error(val exception: Exception) : UseCaseResult<Nothing>() // Nothing indicates that this branch does not return any data
+
+    /**
+     * Executes the given [action] if the [UseCaseResult] is [UseCaseResult.Success].
+     */
+    inline fun onSuccess(action: (T) -> Unit): UseCaseResult<T> {
+        if (this is Success) {
+            action(data)
+        }
+        return this
+    }
+
+    /**
+     * Executes the given [action] if the [UseCaseResult] is [UseCaseResult.Error].
+     */
+    inline fun onFailure(action: (Exception) -> Unit): UseCaseResult<T> {
+        if (this is Error) {
+            action(exception)
+        }
+        return this
+    }
 }

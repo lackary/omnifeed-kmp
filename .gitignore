@@ -58,5 +58,22 @@ npm-debug.log*
 .npmrc
 .nvmrc
 
+# Firebase
+.firebaserc
+firebase-debug.log*
+.firebase/
+
+# Firebase configuration files
+**/google-services.json
+**/GoogleService-Info.plist
+**/google_services_web.json
+
 # CI need
 .secrets
+.firebase_paths
+
+# Common
+*.log
+
+# AI Assistant Artifacts
+.artifacts/

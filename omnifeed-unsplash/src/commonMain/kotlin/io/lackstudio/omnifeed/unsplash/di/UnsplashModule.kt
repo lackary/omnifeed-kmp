@@ -33,9 +33,11 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.GetUserPublicProfileUseCas
 import io.lackstudio.omnifeed.unsplash.domain.usecase.SearchCollectionsUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.SearchPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.SearchUsersUseCase
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 const val TAG_UNSPLASH_KTOR = "UnsplashKtor"
+private val unsplashHttpClient = named("UnsplashHttpClient")
 
 fun unsplashModule(tokenType: String, token: String) = module {
     single {
@@ -48,7 +50,7 @@ fun unsplashModule(tokenType: String, token: String) = module {
         baseUrl = Environment.BASE_API_URL,
     )
 
-    single {
+    single(unsplashHttpClient) {
         val unsplashLogger = get<Logger>().withTag(TAG_UNSPLASH_KTOR)
         KtorClientFactory.createHttpClient(
             engineFactory = provideHttpClientEngine(),
@@ -59,7 +61,7 @@ fun unsplashModule(tokenType: String, token: String) = module {
     }
     single<UnsplashApiService> {
         UnsplashApiServiceImpl(
-            get(),
+            get(unsplashHttpClient),
             get<Logger>().withTag("UnsplashApiServiceImpl")
         )
     }

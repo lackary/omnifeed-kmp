@@ -7,8 +7,5 @@ target 'iosApp' do
 
   # Pods for iosApp
   pod 'Shared', :path => '../shared'
-  pod 'FirebaseCore'
-  pod 'FirebaseAuth'
-  pod 'GoogleSignIn'
 
 end
