@@ -94,7 +94,7 @@ kotlin {
 
     android {
         namespace = modulePackageName
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 30
         withJava()
         withHostTestBuilder {}.configure {}

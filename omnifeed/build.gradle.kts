@@ -17,7 +17,7 @@ kotlin {
     // See: https://kotlinlang.org/docs/multiplatform-discover-project.html#targets
     android {
         namespace = "io.lackstudio.omnifeed"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 30
 
         withHostTestBuilder {

@@ -33,7 +33,7 @@ base {
 kotlin {
     android {
         namespace = modulePackageName
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 30
 
 //        withJava() //  Opt-in to enable Java source compilation
@@ -237,14 +237,15 @@ kotlin {
     }
 }
 
-// Resolve implicit dependency issues with AGP 9.0 + Gradle 9.1
-// Use afterEvaluate to ensure Android tasks are fully created
+// Resolve implicit dependency issues with AGP 9.0 + Gradle 9.1 + KSP
+// Use afterEvaluate to ensure Android and KSP tasks are fully created
 afterEvaluate {
+    val kspTasks = tasks.matching { it.name.contains("ksp", ignoreCase = true) }
     tasks.configureEach {
         // Catch all Lint-related tasks (including LintModelWriterTask)
-        // Use a broader "Lint" keyword here to ensure nothing is missed
-        if (name.contains("Lint")) {
+        if (name.contains("Lint", ignoreCase = true)) {
             dependsOn(generateMockData)
+            dependsOn(kspTasks)
         }
     }
 }

@@ -7,9 +7,7 @@ plugins {
 
 android {
     namespace = "io.lackstudio.omnifeed.app"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.lackstudio.omnifeed.app"
