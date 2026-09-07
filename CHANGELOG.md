@@ -1,3 +1,10 @@
+## [0.13.2](https://github.com/lackary/omnifeed-kmp/compare/0.13.1...0.13.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* **deps:** update dependency org.jetbrains.kotlin-wrappers:kotlin-browser to v2026.9.1 ([13d7060](https://github.com/lackary/omnifeed-kmp/commit/13d7060dfe58b899c0bbea89122d7d8061ca5769))
+
 ## [0.13.1](https://github.com/lackary/omnifeed-kmp/compare/0.13.0...0.13.1) (2026-09-06)
 
 
