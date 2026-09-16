@@ -1,5 +1,8 @@
 [versions]
 agp = "9.4.0"
+android-compileSdk = "37"
+android-minSdk = "30"
+android-targetSdk = "37"
 
 # Android
 androidxCore = "1.19.0"

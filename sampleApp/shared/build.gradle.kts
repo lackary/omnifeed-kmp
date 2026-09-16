@@ -62,8 +62,8 @@ buildkonfig {
 kotlin {
     android {
         namespace = modulePackageName
-        compileSdk = 37
-        minSdk = 30
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
         withJava() //  Opt-in to enable Java source compilation
         withHostTestBuilder {}.configure {}

@@ -13,11 +13,13 @@ fi
 # Configure Artifact Paths
 ARTIFACT_PATH="./build/act-artifacts"
 CACHE_PATH="./build/act-cache"
-# Note: In self-hosted mode, XDG_CACHE_HOME may affect other tools on your local machine.
-# It is recommended to override this only during act execution, or remove this line if necessary.
-export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
+## Note: In self-hosted mode, XDG_CACHE_HOME may affect other tools on your local machine.
+## It is recommended to override this only during act execution, or remove this line if necessary.
+#export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
+#export ANDROID_USER_HOME="$XDG_CACHE_HOME/.android"
 
-mkdir -p "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
+#mkdir -p "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
+mkdir -p "$ARTIFACT_PATH" "$CACHE_PATH"
 
 # ==============================================================================
 # 🔑 Secrets & Token Management (Merge Strategy)

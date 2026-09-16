@@ -30,6 +30,7 @@ tasks.register("setBuildVersion") {
     val pBuildNumber = project.providers.gradleProperty("buildNumber").orElse("")
 
     val gradlePropertiesFile = layout.projectDirectory.file("gradle.properties")
+    val xcconfigFile = layout.projectDirectory.file("sampleApp/iosApp/Configuration/Config.xcconfig")
 
     doLast {
         val newVersion = pNewVersion.get()
@@ -54,6 +55,24 @@ tasks.register("setBuildVersion") {
             }
             propertiesFile.writeText(newLines.joinToString("\n"))
             taskLogger.lifecycle("Updated gradle.properties -> version: $newVersion, code: $newBuildNumber")
+        }
+
+        // Update sampleApp/iosApp/Configuration/Config.xcconfig
+        val xcFile = xcconfigFile.asFile
+        if (xcFile.exists()) {
+            val lines = xcFile.readLines()
+            val newLines = lines.map { line ->
+                val trimmedLine = line.trim()
+                when {
+                    newVersion.isNotBlank() && trimmedLine.startsWith("MARKETING_VERSION=") -> "MARKETING_VERSION=$newVersion"
+                    newBuildNumber.isNotBlank() && trimmedLine.startsWith("CURRENT_PROJECT_VERSION=") -> "CURRENT_PROJECT_VERSION=$newBuildNumber"
+                    else -> line
+                }
+            }
+            xcFile.writeText(newLines.joinToString("\n"))
+            taskLogger.lifecycle("Updated Config.xcconfig -> MARKETING_VERSION: $newVersion, CURRENT_PROJECT_VERSION: $newBuildNumber")
+        } else {
+            taskLogger.warn("Warning: sampleApp/iosApp/Configuration/Config.xcconfig not found!")
         }
     }
 }

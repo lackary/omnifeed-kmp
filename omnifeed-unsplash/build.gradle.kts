@@ -33,8 +33,8 @@ base {
 kotlin {
     android {
         namespace = modulePackageName
-        compileSdk = 37
-        minSdk = 30
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
 //        withJava() //  Opt-in to enable Java source compilation
         // androidUnitTest
@@ -70,13 +70,25 @@ kotlin {
     jvm()
 
     js {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
         binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
         binaries.executable()
     }
 
@@ -248,9 +260,4 @@ afterEvaluate {
             dependsOn(kspTasks)
         }
     }
-}
-
-// Reason: Node.js v25 is unstable in CI environments, and there are currently no Wasm-specific tests
-tasks.named("wasmJsBrowserTest") {
-    enabled = false
 }

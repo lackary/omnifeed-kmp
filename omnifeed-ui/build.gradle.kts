@@ -23,8 +23,8 @@ base {
 kotlin {
     android {
         namespace = modulePackageName
-        compileSdk = 37
-        minSdk = 30
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
         withJava() //  Opt-in to enable Java source compilation
         withHostTestBuilder {}.configure {}
@@ -58,13 +58,25 @@ kotlin {
     jvm()
 
     js {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
         binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
         binaries.executable()
     }
 
@@ -121,7 +133,7 @@ configurations.matching { it.name.contains("Test") }.configureEach {
 
 // Prevent browser launch failure in CI environments where ChromeHeadless is not installed,
 // and prevent task failure if no Wasm-specific tests are discovered.
-tasks.named<KotlinJsTest>("wasmJsBrowserTest") {
-    enabled = false
-    failOnNoDiscoveredTests.set(false)
-}
+//tasks.named<KotlinJsTest>("wasmJsBrowserTest") {
+//    enabled = false
+//    failOnNoDiscoveredTests.set(false)
+//}
