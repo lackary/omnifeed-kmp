@@ -1,5 +1,5 @@
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
@@ -83,6 +83,15 @@ subprojects {
     afterEvaluate {
         println("   👉 Subproject [${name}] version: $version")
     }
+
+    // Ensure that all JS & WasmJs test tasks across every subproject module
+    // explicitly depend on all NPM install and Wasm tooling setup tasks completing first.
+    tasks.withType<KotlinJsTest>().configureEach {
+        dependsOn(rootProject.tasks.matching {
+            it.name.endsWith("NpmInstall") || it.name.endsWith("ToolingSetup")
+        })
+    }
+
     // Listen: Whenever a subproject applies the 'maven-publish' plugin, automatically inject POM settings for it
     plugins.withId("maven-publish") {
 
@@ -136,10 +145,7 @@ subprojects {
 
 plugins.withType<YarnPlugin> {
     the<YarnRootExtension>().apply {
-        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
-        yarnLockAutoReplace = true
-    }
-    tasks.withType<YarnLockStoreTask>().configureEach {
-        enabled = false
+        yarnLockMismatchReportProperty.set(YarnLockMismatchReport.WARNING)
+        yarnLockAutoReplaceProperty.set(true)
     }
 }
