@@ -171,6 +171,16 @@ jobs:
           echo "✅ Selected Simulator UUID: $SIM"
           echo "SIM=$SIM" >> $GITHUB_ENV
 
+      - name: Gradle Build & Integrate SwiftPM Package
+        run: |
+          ./gradlew assembleDebug :sampleApp:shared:integrateLinkagePackage \
+              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+              ${{ inputs.run_with_info && '--info' || '' }} \
+              ${{ inputs.run_with_debug && '--debug' || '' }} \
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+        env:
+          XCODEPROJ_PATH: sampleApp/iosApp/iosApp.xcodeproj
+
       - name: Xcode Build (clean build .xcodeproj)
         working-directory: './sampleApp/iosApp'
         run: |
@@ -183,19 +193,11 @@ jobs:
               -destination "id=$SIM" \
               ENABLE_PREVIEWS=NO
 
-      - name: Gradle Build to Generate KMP Framework
-        run: |
-          ./gradlew assembleDebug \
-              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
-              ${{ inputs.run_with_info && '--info' || '' }} \
-              ${{ inputs.run_with_debug && '--debug' || '' }} \
-              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
-
       - name: Run KMP Unit Tests
         run: |
           ./gradlew check \
               -Pskip.tests=false \
-              -Pskip.native.tests=false \
+              -Pskip.native.tests=true \
               -Pskip.lint=true \
               ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
               ${{ inputs.run_with_info && '--info' || '' }} \

@@ -169,7 +169,8 @@ read -p "🧹 Clean up artifacts? [y/N] " response
 response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 if [[ "$response" =~ ^(yes|y)$ ]]; then
     ./gradlew clean
-    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
+#    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
+    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH"
     echo "✨ Cleanup complete!"
 fi
 
