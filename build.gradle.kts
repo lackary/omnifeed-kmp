@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
 plugins {
+    base
     //trick: for the same plugin versions in all sub-modules
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
@@ -17,7 +18,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.devtool.ksp) apply false
     alias(libs.plugins.gms.google.services) apply false
-    alias(libs.plugins.kotlin.native.cocoapods) apply false
 }
 
 println("🚀 Debug: Root Project Version is [${rootProject.version}]")
@@ -147,5 +147,30 @@ plugins.withType<YarnPlugin> {
     the<YarnRootExtension>().apply {
         yarnLockMismatchReportProperty.set(YarnLockMismatchReport.WARNING)
         yarnLockAutoReplaceProperty.set(true)
+    }
+}
+
+tasks.named<Delete>("clean") {
+    setDelete(emptySet<Any>())
+    doFirst {
+        val buildDir = project.projectDir.resolve("build")
+        val symlink = project.projectDir.resolve("sampleApp/iosApp/KotlinMultiplatformLinkedPackage")
+        project.providers.exec {
+            commandLine("rm", "-rf", buildDir.absolutePath, symlink.absolutePath)
+            isIgnoreExitValue = true
+        }
+    }
+}
+
+allprojects {
+    tasks.matching { it.name == "cleanSwiftImportFingerprintArtifacts" }.configureEach {
+        (this as? Delete)?.setDelete(emptySet<Any>())
+        doFirst {
+            val syntheticDir = project.rootProject.projectDir.resolve("build/kotlin")
+            project.providers.exec {
+                commandLine("rm", "-rf", syntheticDir.absolutePath)
+                isIgnoreExitValue = true
+            }
+        }
     }
 }

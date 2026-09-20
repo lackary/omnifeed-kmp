@@ -144,25 +144,6 @@ jobs:
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_RELEASE_FILENAME}"
           echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_RELEASE_FILENAME}"
 
-      - name: Setup iOS Environment (Dummy Framework & Pods)
-        run: |
-          if [ -n "$ACT" ]; then
-            echo "Running in 'act' environment."
-            if ! command -v pod &> /dev/null; then
-              echo "CocoaPods not found. Installing via Homebrew..."
-              brew install cocoapods
-            else
-              echo "CocoaPods is already installed."
-            fi
-          else
-            echo "Running in CI environment. Installing CocoaPods..."
-            gem install cocoapods
-          fi
-
-          echo "Running Setup Script..."
-          chmod +x setup_ios.sh
-          ./setup_ios.sh
-
       # List simulators
       - name: List available simulators
         run: |
@@ -190,12 +171,12 @@ jobs:
           echo "✅ Selected Simulator UUID: $SIM"
           echo "SIM=$SIM" >> $GITHUB_ENV
 
-      - name: Xcode Build (clean build .xcworkspace)
+      - name: Xcode Build (clean build .xcodeproj)
         working-directory: './sampleApp/iosApp'
         run: |
-          echo "Building iOS target via .xcworkspace..."
+          echo "Building iOS target via .xcodeproj..."
           xcodebuild clean build \
-              -workspace "iosApp.xcworkspace" \
+              -project "iosApp.xcodeproj" \
               -scheme "iosApp" \
               -configuration "Debug" \
               -sdk iphonesimulator \

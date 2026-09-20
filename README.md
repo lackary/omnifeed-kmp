@@ -228,82 +228,16 @@ This setup ensures that your sensitive keys are kept out of source control and a
 
 ---
 
-## Kotlin CocoaPods Dependency Manager Setup Guide
+## Swift Package Manager (SPM) Integration Guide
 
-This guide outlines the steps to configure a Kotlin Multiplatform project with CocoaPods and how to set up the iOS environment using our automation script.
+This project uses Kotlin Multiplatform's native Swift Package Manager (`swiftPMDependencies {}`) and Direct Framework Embedding (`embedAndSignAppleFrameworkForXcode`) to manage iOS dependencies.
 
-### 1. Add Kotlin CocoaPods Dependency and Sync Gradle
+### Running the iOS Sample App
 
-First, ensure the Kotlin CocoaPods plugin is configured in your shared module's `build.gradle.kts`.
-
-```kotlin
-kotlin{
-   iosArm64()
-   iosSimulatorArm64()
-
-   cocoapods {
-      name = "Shared"
-      version = "1.0.0" // Or any valid version number
-      summary = "Some description for the Shared Module"
-      homepage = "Link to the Shared Module homepage"
-      ios.deploymentTarget = "18.5" // Specify your iOS deployment target
-      podfile = project.file("../iosApp/Podfile") // Adjust path if needed
-      framework {
-         baseName = "Shared"
-         isStatic = true
-      }
-   }
-}
-```
-
-### 2. Initialize Pods
-
-Define your dependencies in the `Podfile` located in your iOS project directory (`sampleApp/iosApp/Podfile`).
-
-```sh
-# Uncomment the next line to define a global platform for your project
-platform :ios, '18.5'
-
-target 'iosApp' do
-  # Comment the next line if you don't want to use dynamic frameworks
-  use_frameworks!
-
-  # Pods for iosApp
-  pod 'Shared', :path => '../Shared'
-  pod '${dependency_you_need}'
-
-end
-```
-
-### 3. One-Step Setup (Run the Script)
-
-Instead of manually generating dummy frameworks and running pod install commands, we use a script to handle the initialization automatically. This solves common issues like missing resources (`[CP] Copy Pods Resources`) or framework errors.
-
-Run the following command from the **project root directory**:
-
-```shell
-./setup_ios.sh
-```
-
-**What this script does:**
-1. **Cleans** old Gradle builds to ensure a fresh state.
-2. **Creates a dummy resource directory** to ensure CocoaPods generates the resource copy script.
-3. **Generates a dummy framework** for CocoaPods detection.
-4. **Runs `pod install`** with clean settings to ensure dependencies are linked correctly.
-
-### 4. Open Project
-
-Once the script finishes successfully:
-
-1. Open `sampleApp/iosApp/iosApp.xcworkspace` in Xcode.
-2. Select the `iosApp` target.
-3. **Run** the app (Cmd + R).
-
-**Note:** If you encounter any issues (e.g., missing resources), try running `./setup_ios.sh` again to reset the environment.
-
-### 5. Generate the Real Framework
-
-Finally, you can generate the real framework by building the project.
+1. Open `sampleApp/iosApp/iosApp.xcodeproj` in Xcode or select the `iosApp` run configuration in Android Studio.
+2. Select an iOS Simulator (e.g. `iPhone 16 Pro`).
+3. Press **Cmd + R** to run.
+4. Gradle automatically resolves Swift Package Manager dependencies and embeds the shared KMP framework into the iOS application.
 
 ---
 

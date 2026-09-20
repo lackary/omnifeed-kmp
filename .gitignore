@@ -34,8 +34,11 @@ captures/
 kcef-bundle/
 cache/
 
-# iOS/CocoaPods
+# iOS/SPM
 Pods/
+.swiftpm-locks/
+.swiftpm/
+**/KotlinMultiplatformLinkedPackage
 *.podspec.json
 *.xcworkspace
 *.xcuserdatad

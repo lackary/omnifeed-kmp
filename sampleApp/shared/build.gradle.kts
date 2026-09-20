@@ -41,7 +41,6 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.compose.hot.reload)
-    alias(libs.plugins.kotlin.native.cocoapods)
     alias(libs.plugins.buildkonfig)
 }
 
@@ -82,54 +81,33 @@ kotlin {
         }
     }
 
-    iosArm64()
-    iosSimulatorArm64()
+    swiftPMDependencies {
+        swiftPackage(
+            url = url("https://github.com/firebase/firebase-ios-sdk.git"),
+            version = from("12.14.0"),
+            products = listOf(
+                product("FirebaseCore"),
+                product("FirebaseAuth"),
+                product("FirebaseFirestore")
+            )
+        )
+        swiftPackage(
+            url = url("https://github.com/google/GoogleSignIn-iOS.git"),
+            version = from("9.0.0"),
+            products = listOf(
+                product("GoogleSignIn")
+            )
+        )
+    }
 
-    cocoapods {
-        name = "Shared"
-        version = project.version.toString()
-        summary = "Shared Module for OmniFeed"
-        homepage = "https://github.com/lackary/omnifeed-kmp"
-        ios.deploymentTarget = "18.2"
-        podfile = project.file("../iosApp/Podfile")
-        framework {
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
             baseName = "Shared"
             isStatic = true
         }
-
-        /**
-         * The necessary Firebase pods are already managed by the 'libs.mirzemehdi.kmpauthFirebase' library.
-         * Do NOT uncomment the pod definitions below.
-         *
-         * Doing so will cause a "symbol multiply defined" build error after a clean build,
-         * because the dependencies would be included twice.
-         *
-         * However, these pods are still required for the native iOS app to function correctly.
-         * You MUST manually add them to your `iosApp/Podfile`.
-         *
-         * Example for your Podfile:
-         * pod 'FirebaseCore', '~> 12.14.0'
-         * pod 'FirebaseAuth', '~> 12.14.0'
-         * pod 'FirebaseFirestore', '~> 12.14.0'
-         * pod 'GoogleSignIn', '~> 9.0.0'
-         */
-        pod("FirebaseCore") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseAuth") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("GoogleSignIn") {
-            version = "~> 9.0.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseFirestore") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-
     }
 
     // desktop
@@ -249,3 +227,21 @@ configurations.matching { it.name.contains("Test") }.configureEach {
     exclude(group = "org.jogamp.gluegen")
     exclude(group = "org.jogamp.jogl")
 }
+
+// Compatibility alias for IDE or legacy configurations
+tasks.register("syncFramework") {
+    description = "Compatibility alias for IDE or legacy Xcode configurations"
+    group = "build"
+    dependsOn(tasks.matching { it.name.startsWith("embedAndSignAppleFramework") })
+}
+
+tasks.matching { it.name == "cleanSwiftImportFingerprintArtifacts" }.configureEach {
+    doFirst {
+        val rootPath = project.rootDir.absolutePath
+        project.providers.exec {
+            commandLine("rm", "-rf", "$rootPath/build/kotlin")
+            isIgnoreExitValue = true
+        }
+    }
+}
+

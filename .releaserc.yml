@@ -16,10 +16,7 @@ plugins:
     - prepareCmd: >-
         ./gradlew setBuildVersion 
         -PnewVersion=${nextRelease.version} 
-        -PbuildNumber=${process.env.GITHUB_RUN_NUMBER} 
-        && ./gradlew :sampleApp:shared:podspec 
-        && ./gradlew :omnifeed-auth:podspec 
-        && ./setup_ios.sh
+        -PbuildNumber=${process.env.GITHUB_RUN_NUMBER}
 
   # Git Commit
   - - "@semantic-release/git"
@@ -27,9 +24,6 @@ plugins:
         - "CHANGELOG.md"
         - "gradle.properties"
         - "sampleApp/iosApp/Configuration/Config.xcconfig"
-        - "sampleApp/shared/Shared.podspec"
-        - "omnifeed-auth/omnifeed_auth.podspec"
-        - "sampleApp/iosApp/Podfile.lock"
       message: >-
         chore(release): ${nextRelease.version} [skip ci]
 
