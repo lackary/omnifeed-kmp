@@ -34,7 +34,7 @@ googleFirebaseBom = "34.19.0"
 
 # Firebase
 gitliveFirebase = "2.7.0"
-mirzemehdiKmpAuth = "2.3.1"
+mirzemehdiKmpAuth = "3.0.6"
 googleFirebaseCommon = "21.0.0"
 googleFirebaseAuth = "23.2.1"
 

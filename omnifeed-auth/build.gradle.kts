@@ -180,8 +180,6 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.gitlive.firebase.common)
             implementation(libs.gitlive.firebase.auth)
-            implementation(libs.mirzemehdi.kmpauth.google)
-            implementation(libs.mirzemehdi.kmpauth.uihelper)
         }
 
         webMain.dependencies {

@@ -2,6 +2,8 @@ import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 
 plugins {
     base
@@ -82,6 +84,31 @@ subprojects {
     version = rootProject.version
     afterEvaluate {
         println("   👉 Subproject [${name}] version: $version")
+
+        val pSkipLint = providers.gradleProperty("skip.lint").orNull?.toBoolean() == true
+        val pSkipTests = providers.gradleProperty("skip.tests").orNull?.toBoolean() == true
+        val pSkipNativeTests = providers.gradleProperty("skip.native.tests").orNull?.toBoolean() == true
+
+        if (pSkipLint) {
+            tasks.matching { it.name.contains(Regex("lint", RegexOption.IGNORE_CASE)) }.configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipTests) {
+            tasks.withType<Test>().configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipNativeTests) {
+            tasks.withType<KotlinNativeTest>().configureEach {
+                enabled = false
+            }
+            tasks.withType<KotlinNativeLink>().configureEach {
+                enabled = false
+            }
+        }
     }
 
     // Ensure that all JS & WasmJs test tasks across every subproject module

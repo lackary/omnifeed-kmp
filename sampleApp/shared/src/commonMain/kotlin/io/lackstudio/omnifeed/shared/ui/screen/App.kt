@@ -3,12 +3,9 @@ package io.lackstudio.omnifeed.shared.ui.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.Button
@@ -17,7 +14,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,12 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import co.touchlab.kermit.Logger
-import com.mmk.kmpauth.firebase.google.GoogleButtonUiContainerFirebase
-import com.mmk.kmpauth.uihelper.google.GoogleSignInButton
-import com.mmk.kmpauth.uihelper.google.GoogleSignInButtonIconOnly
-import dev.gitlive.firebase.auth.FirebaseUser
 import io.ktor.client.HttpClient
 import io.lackstudio.omnifeed.shared.generated.resources.Res
 import io.lackstudio.omnifeed.shared.generated.resources.compose_multiplatform
@@ -115,13 +106,6 @@ fun AppScreenContent(
     logger: Logger? = null, // Optional Logger for debugging UI
     onIntent: (HomeUiIntent) -> Unit
 ) {
-//    logger?.v{ "AppScreenContent" }
-//    logger?.d{ "AppScreenContent" }
-//    logger?.i{ "AppScreenContent" }
-//    logger?.w{ "AppScreenContent" }
-//    logger?.e{ "AppScreenContent" }
-//    logger?.a{ "AppScreenContent" }
-    // Use a nullable String to store the URL to be displayed. If it's null, the sheet is not shown.
     var authUrlToShow: String? by remember { mutableStateOf(null) }
 
     MaterialTheme {
@@ -153,19 +137,6 @@ fun AppScreenContent(
                         text = "Show Me Example!!",
                         modifier = Modifier.testTag("display_text")
                     )
-                }
-            }
-
-            var signedInUserName: String by remember { mutableStateOf("") }
-            val onFirebaseResult: (Result<FirebaseUser?>) -> Unit = { result ->
-                if (result.isSuccess) {
-                    val firebaseUser = result.getOrNull()
-                    signedInUserName =
-                        firebaseUser?.displayName ?: firebaseUser?.email ?: "Null User"
-                    logger?.d { "signedInUserName $signedInUserName" }
-                } else {
-                    signedInUserName = "Null User"
-                    logger?.e { "Error Result: ${result.exceptionOrNull()?.message}" }
                 }
             }
 
@@ -203,43 +174,6 @@ fun ButtonSignIn(
         modifier = modifier
     ) {
         Text(text = "Google Sign In")
-    }
-}
-
-@Composable
-fun AuthUiHelperButtonsAndFirebaseAuth(
-    modifier: Modifier = Modifier,
-    onFirebaseResult: (Result<FirebaseUser?>) -> Unit,
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-
-        //Google Sign-In Button and authentication with Firebase
-        GoogleButtonUiContainerFirebase(onResult = onFirebaseResult, linkAccount = false) {
-            GoogleSignInButton(
-                modifier = Modifier.fillMaxWidth().height(44.dp),
-                fontSize = 19.sp
-            ) { this.onClick() }
-        }
-    }
-}
-
-@Composable
-fun IconOnlyButtonsAndFirebaseAuth(
-    modifier: Modifier = Modifier,
-    onFirebaseResult: (Result<FirebaseUser?>) -> Unit,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
-    ) {
-
-        //Google Sign-In IconOnly Button and authentication with Firebase
-        GoogleButtonUiContainerFirebase(onResult = onFirebaseResult, linkAccount = false) {
-            GoogleSignInButtonIconOnly(onClick = { this.onClick() })
-        }
     }
 }
 

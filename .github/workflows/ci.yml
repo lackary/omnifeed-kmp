@@ -75,6 +75,7 @@ jobs:
       FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+      ANDROID_PREFS_ROOT: ""
     permissions:
       contents: read
       checks: write # For mikepenz/action-junit-report
@@ -133,8 +134,8 @@ jobs:
       - name: Create Dynamic Secrets XConfig File
         working-directory: './sampleApp/iosApp/Configuration'
         run: |
-          XCONFIG_DEBUG_FILENAME="Secrets-Debug.xconfig"
-          XCONFIG_RELEASE_FILENAME="Secrets-Release.xconfig"
+          XCONFIG_DEBUG_FILENAME="Secrets-Debug.xcconfig"
+          XCONFIG_RELEASE_FILENAME="Secrets-Release.xcconfig"
 
           echo "Creating ${XCONFIG_DEBUG_FILENAME} in CI..."
           echo "Creating ${XCONFIG_RELEASE_FILENAME} in CI..."
@@ -173,11 +174,19 @@ jobs:
 
       - name: Gradle Build & Integrate SwiftPM Package
         run: |
+          unset ANDROID_PREFS_ROOT
           ./gradlew assembleDebug :sampleApp:shared:integrateLinkagePackage \
               ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
               ${{ inputs.run_with_info && '--info' || '' }} \
               ${{ inputs.run_with_debug && '--debug' || '' }} \
               ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+
+          echo "Pre-generating synthetic SPM linkage project..."
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage || true
+
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage
         env:
           XCODEPROJ_PATH: sampleApp/iosApp/iosApp.xcodeproj
 
@@ -195,6 +204,7 @@ jobs:
 
       - name: Run KMP Unit Tests
         run: |
+          unset ANDROID_PREFS_ROOT
           ./gradlew check \
               -Pskip.tests=false \
               -Pskip.native.tests=true \
