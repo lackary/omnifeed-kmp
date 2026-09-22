@@ -1,3 +1,10 @@
+## [0.13.5](https://github.com/lackary/omnifeed-kmp/compare/0.13.4...0.13.5) (2026-09-22)
+
+
+### Bug Fixes
+
+* **ios:** pre-generate synthetic SPM package in Xcode build phase ([9f0c66f](https://github.com/lackary/omnifeed-kmp/commit/9f0c66fff989993a7fe24930828cfb1ef33567c5))
+
 ## [0.13.4](https://github.com/lackary/omnifeed-kmp/compare/0.13.3...0.13.4) (2026-09-14)
 
 
