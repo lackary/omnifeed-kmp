@@ -3,7 +3,6 @@ package io.lackstudio.omnifeed.app
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import co.touchlab.kermit.Logger
-import com.mmk.kmpauth.core.KMPAuthInternalApi
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -14,7 +13,6 @@ import io.lackstudio.omnifeed.shared.di.initKoin
 import io.lackstudio.omnifeed.shared.helper.AppInitializer
 import io.lackstudio.omnifeed.shared.ui.screen.App
 
-@OptIn(KMPAuthInternalApi::class)
 fun main() = application {
     System.setProperty("PID", ProcessHandle.current().pid().toString())
     AppInitializer.onApplicationStart()

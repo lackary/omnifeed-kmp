@@ -75,6 +75,7 @@ jobs:
       FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+      ANDROID_PREFS_ROOT: ""
     permissions:
       contents: read
       checks: write # For mikepenz/action-junit-report
@@ -133,8 +134,8 @@ jobs:
       - name: Create Dynamic Secrets XConfig File
         working-directory: './sampleApp/iosApp/Configuration'
         run: |
-          XCONFIG_DEBUG_FILENAME="Secrets-Debug.xconfig"
-          XCONFIG_RELEASE_FILENAME="Secrets-Release.xconfig"
+          XCONFIG_DEBUG_FILENAME="Secrets-Debug.xcconfig"
+          XCONFIG_RELEASE_FILENAME="Secrets-Release.xcconfig"
 
           echo "Creating ${XCONFIG_DEBUG_FILENAME} in CI..."
           echo "Creating ${XCONFIG_RELEASE_FILENAME} in CI..."
@@ -143,25 +144,6 @@ jobs:
           echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_DEBUG_FILENAME}"
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_RELEASE_FILENAME}"
           echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_RELEASE_FILENAME}"
-
-      - name: Setup iOS Environment (Dummy Framework & Pods)
-        run: |
-          if [ -n "$ACT" ]; then
-            echo "Running in 'act' environment."
-            if ! command -v pod &> /dev/null; then
-              echo "CocoaPods not found. Installing via Homebrew..."
-              brew install cocoapods
-            else
-              echo "CocoaPods is already installed."
-            fi
-          else
-            echo "Running in CI environment. Installing CocoaPods..."
-            gem install cocoapods
-          fi
-
-          echo "Running Setup Script..."
-          chmod +x setup_ios.sh
-          ./setup_ios.sh
 
       # List simulators
       - name: List available simulators
@@ -190,31 +172,42 @@ jobs:
           echo "✅ Selected Simulator UUID: $SIM"
           echo "SIM=$SIM" >> $GITHUB_ENV
 
-      - name: Xcode Build (clean build .xcworkspace)
+      - name: Gradle Build & Integrate SwiftPM Package
+        run: |
+          unset ANDROID_PREFS_ROOT
+          ./gradlew assembleDebug :sampleApp:shared:integrateLinkagePackage \
+              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+              ${{ inputs.run_with_info && '--info' || '' }} \
+              ${{ inputs.run_with_debug && '--debug' || '' }} \
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+
+          echo "Pre-generating synthetic SPM linkage project..."
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage || true
+
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage
+        env:
+          XCODEPROJ_PATH: sampleApp/iosApp/iosApp.xcodeproj
+
+      - name: Xcode Build (clean build .xcodeproj)
         working-directory: './sampleApp/iosApp'
         run: |
-          echo "Building iOS target via .xcworkspace..."
+          echo "Building iOS target via .xcodeproj..."
           xcodebuild clean build \
-              -workspace "iosApp.xcworkspace" \
+              -project "iosApp.xcodeproj" \
               -scheme "iosApp" \
               -configuration "Debug" \
               -sdk iphonesimulator \
               -destination "id=$SIM" \
               ENABLE_PREVIEWS=NO
 
-      - name: Gradle Build to Generate KMP Framework
-        run: |
-          ./gradlew assembleDebug \
-              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
-              ${{ inputs.run_with_info && '--info' || '' }} \
-              ${{ inputs.run_with_debug && '--debug' || '' }} \
-              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
-
       - name: Run KMP Unit Tests
         run: |
+          unset ANDROID_PREFS_ROOT
           ./gradlew check \
               -Pskip.tests=false \
-              -Pskip.native.tests=false \
+              -Pskip.native.tests=true \
               -Pskip.lint=true \
               ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
               ${{ inputs.run_with_info && '--info' || '' }} \

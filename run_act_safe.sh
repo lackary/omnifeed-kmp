@@ -91,10 +91,12 @@ choice=${choice:-1}
 
 # Hybrid Mode Configuration:
 # - We now use --secret-file $RUN_SECRETS to include everything
+unset ANDROID_PREFS_ROOT
 ACT_COMMON_ARGS="--platform macos-latest=-self-hosted \
 --platform ubuntu-latest=catthehacker/ubuntu:full-22.04 \
 --container-architecture linux/amd64 \
 --env ACT=true \
+--env ANDROID_PREFS_ROOT= \
 --secret-file $RUN_SECRETS \
 --artifact-server-path $ARTIFACT_PATH \
 --cache-server-path $CACHE_PATH"
@@ -169,7 +171,8 @@ read -p "🧹 Clean up artifacts? [y/N] " response
 response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 if [[ "$response" =~ ^(yes|y)$ ]]; then
     ./gradlew clean
-    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
+#    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
+    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH"
     echo "✨ Cleanup complete!"
 fi
 

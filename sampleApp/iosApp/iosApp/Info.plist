@@ -11,12 +11,10 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-                <!-- KMPAuth request -->
 				<string>$(REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
 	</array>
-    <!-- KMPAuth request -->
 	<key>GIDClientID</key>
 	<string>$(GOOGLE_CLIENT_ID)</string>
 </dict>

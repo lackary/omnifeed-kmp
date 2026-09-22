@@ -17,7 +17,6 @@ dependencies {
     implementation(libs.ktor.client.resources)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.touchlab.kermit)
-    implementation(libs.mirzemehdi.kmpauth.google)
 }
 
 compose.desktop {

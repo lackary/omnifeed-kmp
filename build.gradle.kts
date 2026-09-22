@@ -2,8 +2,11 @@ import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 
 plugins {
+    base
     //trick: for the same plugin versions in all sub-modules
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
@@ -17,7 +20,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.devtool.ksp) apply false
     alias(libs.plugins.gms.google.services) apply false
-    alias(libs.plugins.kotlin.native.cocoapods) apply false
 }
 
 println("🚀 Debug: Root Project Version is [${rootProject.version}]")
@@ -82,6 +84,31 @@ subprojects {
     version = rootProject.version
     afterEvaluate {
         println("   👉 Subproject [${name}] version: $version")
+
+        val pSkipLint = providers.gradleProperty("skip.lint").orNull?.toBoolean() == true
+        val pSkipTests = providers.gradleProperty("skip.tests").orNull?.toBoolean() == true
+        val pSkipNativeTests = providers.gradleProperty("skip.native.tests").orNull?.toBoolean() == true
+
+        if (pSkipLint) {
+            tasks.matching { it.name.contains(Regex("lint", RegexOption.IGNORE_CASE)) }.configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipTests) {
+            tasks.withType<Test>().configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipNativeTests) {
+            tasks.withType<KotlinNativeTest>().configureEach {
+                enabled = false
+            }
+            tasks.withType<KotlinNativeLink>().configureEach {
+                enabled = false
+            }
+        }
     }
 
     // Ensure that all JS & WasmJs test tasks across every subproject module
@@ -147,5 +174,30 @@ plugins.withType<YarnPlugin> {
     the<YarnRootExtension>().apply {
         yarnLockMismatchReportProperty.set(YarnLockMismatchReport.WARNING)
         yarnLockAutoReplaceProperty.set(true)
+    }
+}
+
+tasks.named<Delete>("clean") {
+    setDelete(emptySet<Any>())
+    doFirst {
+        val buildDir = project.projectDir.resolve("build")
+        val symlink = project.projectDir.resolve("sampleApp/iosApp/KotlinMultiplatformLinkedPackage")
+        project.providers.exec {
+            commandLine("rm", "-rf", buildDir.absolutePath, symlink.absolutePath)
+            isIgnoreExitValue = true
+        }
+    }
+}
+
+allprojects {
+    tasks.matching { it.name == "cleanSwiftImportFingerprintArtifacts" }.configureEach {
+        (this as? Delete)?.setDelete(emptySet<Any>())
+        doFirst {
+            val syntheticDir = project.rootProject.projectDir.resolve("build/kotlin")
+            project.providers.exec {
+                commandLine("rm", "-rf", syntheticDir.absolutePath)
+                isIgnoreExitValue = true
+            }
+        }
     }
 }

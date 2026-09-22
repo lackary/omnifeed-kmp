@@ -27,7 +27,6 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.kotlin.native.cocoapods)
     alias(libs.plugins.buildkonfig)
     id("maven-publish")
 }
@@ -103,33 +102,13 @@ kotlin {
         androidResources { enable = true }
     }
 
-    iosArm64()
-    iosSimulatorArm64()
-
-    cocoapods {
-        version = project.version.toString()
-        summary = "OmniFeed Authentication Module"
-        homepage = "https://github.com/lackary/omnifeed-kmp"
-        ios.deploymentTarget = "18.5"
-        framework {
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
             baseName = "OmniFeedAuth"
             isStatic = true
-        }
-        pod("GoogleSignIn") {
-            version = "~> 9.0.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseCore") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseAuth") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseFirestore") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
         }
     }
 

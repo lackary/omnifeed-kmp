@@ -1,15 +1,19 @@
 package io.lackstudio.omnifeed.shared.ui.screen
 
 import androidx.compose.ui.test.*
+import co.touchlab.kermit.Logger
+import io.ktor.client.HttpClient
+import io.lackstudio.omnifeed.OmniFeed
 import io.lackstudio.omnifeed.shared.di.viewModelModule
 import io.lackstudio.omnifeed.shared.platform.getUnsplashAccessKey
 import io.lackstudio.omnifeed.core.OmniFeedConfig
 import io.lackstudio.omnifeed.core.UnsplashConfig
-import io.lackstudio.omnifeed.core.di.coreModule
-import io.lackstudio.omnifeed.unsplash.di.unsplashModule
-import io.lackstudio.omnifeed.unsplash.utils.Environment.AUTH_SCHEME_PUBLIC
+import io.lackstudio.omnifeed.core.network.KtorClientFactory
+import io.lackstudio.omnifeed.core.network.KtorConfig
+import io.lackstudio.omnifeed.core.network.provideHttpClientEngine
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import org.koin.test.KoinTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -34,11 +38,19 @@ class AppTest : KoinTest {
                 token = getUnsplashAccessKey()
             )
         )
+        OmniFeed.initialize(config)
         startKoin {
             modules(
                 listOf(
-                    coreModule(config),
-                    unsplashModule(AUTH_SCHEME_PUBLIC, getUnsplashAccessKey()),
+                    module {
+                        single<Logger> { Logger.withTag("AppTest") }
+                        single<HttpClient> {
+                            KtorClientFactory.createHttpClient(
+                                engineFactory = provideHttpClientEngine(),
+                                ktorConfig = KtorConfig(baseUrl = "https://api.unsplash.com")
+                            )
+                        }
+                    },
                     viewModelModule
                 )
             )
@@ -50,7 +62,7 @@ class AppTest : KoinTest {
         stopKoin()
     }
 
-    @ExperimentalTestApi
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun testAppScreen() = runComposeUiTest {
         setContent {

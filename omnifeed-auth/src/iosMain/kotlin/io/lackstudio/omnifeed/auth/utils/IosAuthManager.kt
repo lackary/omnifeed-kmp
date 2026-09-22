@@ -1,16 +1,27 @@
 package io.lackstudio.omnifeed.auth.utils
 
 import co.touchlab.kermit.Logger
-import cocoapods.GoogleSignIn.GIDSignIn
-import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
-import platform.UIKit.UIViewController
-import platform.UIKit.UIWindow
 import kotlin.coroutines.resume
 
+interface GoogleSignInProvider {
+    fun signIn(completion: (GoogleAuthTokens?) -> Unit)
+    fun signOut() {}
+}
+
 class IosAuthManager : AuthManager {
+
+    companion object {
+        private var googleSignInProvider: GoogleSignInProvider? = null
+
+        fun setGoogleSignInProvider(provider: GoogleSignInProvider?) {
+            googleSignInProvider = provider
+        }
+
+        fun getGoogleSignInProvider(): GoogleSignInProvider? = googleSignInProvider
+    }
 
     private var _redirectUrl: String? = null
     private var _clientId: String? = null
@@ -42,41 +53,23 @@ class IosAuthManager : AuthManager {
         throw UnsupportedOperationException("OAuth popup is only supported on Web")
     }
 
-    @OptIn(ExperimentalForeignApi::class)
-    override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? =
-        suspendCancellableCoroutine { continuation ->
-            val rootViewController = getRootViewController()
-            if (rootViewController == null) {
-                continuation.resume(null)
-                return@suspendCancellableCoroutine
-            }
-
-            GIDSignIn.sharedInstance.signInWithPresentingViewController(rootViewController) { result, error ->
-                if (error != null) {
-                    logger.d { "iOS Google Sign-In Error: ${error.localizedDescription}" }
-                    continuation.resume(null)
-                } else {
-                    val idToken = result?.user?.idToken?.tokenString
-                    val accessToken = result?.user?.accessToken?.tokenString
-
-                    if (idToken != null) {
-                        continuation.resume(GoogleAuthTokens(idToken, accessToken))
-                    } else {
-                        continuation.resume(null)
-                    }
+    override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
+        val provider = googleSignInProvider
+        if (provider == null) {
+            logger.w { "googleSignInProvider is not configured in IosAuthManager" }
+            return null
+        }
+        return suspendCancellableCoroutine { continuation ->
+            provider.signIn { tokens ->
+                if (continuation.isActive) {
+                    continuation.resume(tokens)
                 }
             }
         }
-
-    @OptIn(ExperimentalForeignApi::class)
-    override suspend fun signOut() {
-        GIDSignIn.sharedInstance.signOut()
     }
 
-    private fun getRootViewController(): UIViewController? {
-        val keyWindow = UIApplication.sharedApplication.windows.asSequence()
-            .mapNotNull { it as? UIWindow }
-            .firstOrNull { it.isKeyWindow() }
-        return keyWindow?.rootViewController ?: UIApplication.sharedApplication.keyWindow?.rootViewController
+    override suspend fun signOut() {
+        logger.d { "iOS Google Sign-Out executed" }
+        googleSignInProvider?.signOut()
     }
 }

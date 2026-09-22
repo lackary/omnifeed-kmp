@@ -34,7 +34,7 @@ googleFirebaseBom = "34.19.0"
 
 # Firebase
 gitliveFirebase = "2.7.0"
-mirzemehdiKmpAuth = "2.3.1"
+mirzemehdiKmpAuth = "3.0.6"
 googleFirebaseCommon = "21.0.0"
 googleFirebaseAuth = "23.2.1"
 
@@ -185,7 +185,6 @@ kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.
 kotlin-Jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-kotlin-native-cocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-hot-reload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }

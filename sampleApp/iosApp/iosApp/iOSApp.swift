@@ -12,13 +12,19 @@ fileprivate let logger = Logger(
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        FirebaseApp.configure()
-        guard let webClientID: String = FirebaseApp.app()?.options.clientID else {
-            // Handle error: Incorrect filename or file not added to the Target
-            fatalError("Unable to read CLIENT_ID from GoogleService-Info.plist")
+        if let filePath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+           FileManager.default.fileExists(atPath: filePath) {
+            FirebaseApp.configure()
+            if let webClientID = FirebaseApp.app()?.options.clientID {
+                logger.debug("webClientID: \(webClientID)")
+                AppInitializer.shared.onApplicationStart(serverId: webClientID)
+            } else {
+                AppInitializer.shared.onApplicationStart(serverId: nil)
+            }
+        } else {
+            logger.warning("GoogleService-Info.plist missing, using default serverId from BuildKonfig")
+            AppInitializer.shared.onApplicationStart(serverId: nil)
         }
-        logger.debug("webClientID: \(webClientID)")
-        AppInitializer.shared.onApplicationStart(serverId: webClientID)
         
         return true
     }
@@ -28,8 +34,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey : Any] = [:]
     ) -> Bool {
-        
-        var handled = GIDSignIn.sharedInstance.handle(url)
+        let handled = GIDSignIn.sharedInstance.handle(url)
         if handled {
             return true
         }
@@ -40,11 +45,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 @main
 struct iOSApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
     init() {
         logger.info("iOSApp.swift")
         logger.debug("iOSApp.swift")
-        @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     }
+
     var body: some Scene {
         WindowGroup {
             ContentView().onOpenURL(perform: { url in

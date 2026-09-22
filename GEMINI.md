@@ -16,7 +16,7 @@ This document provides high-level context for Gemini to navigate the OmniFeed KM
     - `shared/`: Common UI and business logic for the sample apps.
 
 ## 2. Tech Stack & Versions
-- **KMP:** Targeting Android, iOS (CocoaPods), JVM (Desktop), and WasmJs (Web).
+- **KMP:** Targeting Android, iOS (SPM), JVM (Desktop), and WasmJs (Web).
 - **Network:** Ktor 3.x with ContentNegotiation (Serialization).
 - **DI:** Koin 4.x.
 - **Logging:** Kermit.
