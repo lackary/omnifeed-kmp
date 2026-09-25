@@ -15,11 +15,11 @@ let package = Package(
   dependencies: [
     .package(
       url: "https://github.com/firebase/firebase-ios-sdk.git",
-      from: "12.14.0"
+      from: "12.19.2"
     ),
     .package(
       url: "https://github.com/google/GoogleSignIn-iOS.git",
-      from: "9.0.0"
+      from: "9.2.0"
     )
   ],
   targets: [
