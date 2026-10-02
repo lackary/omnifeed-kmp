@@ -1,3 +1,11 @@
+## [0.13.6](https://github.com/lackary/omnifeed-kmp/compare/0.13.5...0.13.6) (2026-10-02)
+
+
+### Bug Fixes
+
+* **deps:** update non-major updates (patch & minor) ([c7c1916](https://github.com/lackary/omnifeed-kmp/commit/c7c191602885d187f48b5a817653532e48c1ab03))
+* **firebase-extension:** resolve typescript peer dependency conflict with eslint ([42b8c57](https://github.com/lackary/omnifeed-kmp/commit/42b8c577ee94f9796fdaf138dcd10af6ce754b22))
+
 ## [0.13.5](https://github.com/lackary/omnifeed-kmp/compare/0.13.4...0.13.5) (2026-09-22)
 
 
