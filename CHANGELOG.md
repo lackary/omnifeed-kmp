@@ -1,3 +1,11 @@
+## [0.13.7](https://github.com/lackary/omnifeed-kmp/compare/0.13.6...0.13.7) (2026-10-03)
+
+
+### Bug Fixes
+
+* **deps:** update major updates ([44c3708](https://github.com/lackary/omnifeed-kmp/commit/44c37087a4b1c357c8c8596edc1ac7197179f822))
+* **functions:** update typescript dependency version to ^5.8.0 ([33e6478](https://github.com/lackary/omnifeed-kmp/commit/33e64784a14bd62180423331c1279823814aafef))
+
 ## [0.13.6](https://github.com/lackary/omnifeed-kmp/compare/0.13.5...0.13.6) (2026-10-02)
 
 
