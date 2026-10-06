@@ -13,12 +13,7 @@ fi
 # Configure Artifact Paths
 ARTIFACT_PATH="./build/act-artifacts"
 CACHE_PATH="./build/act-cache"
-## Note: In self-hosted mode, XDG_CACHE_HOME may affect other tools on your local machine.
-## It is recommended to override this only during act execution, or remove this line if necessary.
-#export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
-#export ANDROID_USER_HOME="$XDG_CACHE_HOME/.android"
 
-#mkdir -p "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
 mkdir -p "$ARTIFACT_PATH" "$CACHE_PATH"
 
 # ==============================================================================
@@ -34,7 +29,6 @@ RUN_SECRETS=".secrets.run"    # Temp file for execution (User keys + Dynamic Tok
 if [ -f "$USER_SECRETS" ]; then
     echo "📝 Loading keys from $USER_SECRETS..."
     cat "$USER_SECRETS" >> "$RUN_SECRETS"
-    # Ensure there's a newline at the end to prevent variable concatenation
     echo "" >> "$RUN_SECRETS"
 else
     echo "⚠️  $USER_SECRETS not found. Creating a template..."
@@ -45,7 +39,6 @@ GOOGLE_SERVICES_WEB_CLIENT_ID=dummy_val
 GOOGLE_CLIENT_ID=dummy_val
 GOOGLE_REVERSED_CLIENT_ID=dummy_val
 EOF
-    # Copy the template to run secrets as well
     cat "$USER_SECRETS" >> "$RUN_SECRETS"
     echo "" >> "$RUN_SECRETS"
     echo "⚠️  Template created. Some tests may fail without real keys."
@@ -58,12 +51,8 @@ else
     RAW_TOKEN=$(gh auth token 2>/dev/null)
     if [ -n "$RAW_TOKEN" ]; then
         echo "✅ GitHub Token auto-detected from 'gh'."
-
-        # 🔥 Appending Tokens to the temp secrets file
         echo "# --- Dynamic Tokens ---" >> "$RUN_SECRETS"
         echo "GITHUB_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
-
-        # 👇 This is the fix for your Release Workflow!
         echo "SEMANTIC_RELEASE_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
     else
         echo "⚠️  gh is installed but not logged in."
@@ -75,26 +64,24 @@ fi
 # ==============================================================================
 echo ""
 echo "Select Workflow:"
-echo "  1) Build & Test (CI)"
-echo "     - Runs .github/workflows/ci.yml"
-echo "     - Uses local Mac environment"
-echo ""
-echo "  2) Release Workflow"
-echo "     - Runs .github/workflows/release.yml"
+echo "  1) Full CI (.github/workflows/ci.yml)"
+echo "     - Runs all jobs in CI workflow"
+echo "  2) KMP Unit Tests Only (-j test)"
+echo "     - Fast local check for unit tests"
+echo "  3) Release Workflow (.github/workflows/release.yml)"
 echo "     - Simulates semantic-release"
-echo ""
-echo "  3) Release Logic Check (Host Mode)"
+echo "  4) Release Logic Check (Host Mode)"
 echo "     - Runs semantic-release directly (Fastest, no docker)"
 echo ""
-read -p "Enter option [1, 2, or 3] (Default 1): " choice
+read -p "Enter option [1, 2, 3, or 4] (Default 1): " choice
 choice=${choice:-1}
 
-# Hybrid Mode Configuration:
-# - We now use --secret-file $RUN_SECRETS to include everything
+# Hybrid / Self-Hosted Mode Configuration:
+# - Map ubuntu-latest to -self-hosted so local act runs on macOS host natively (No Docker required)
 unset ANDROID_PREFS_ROOT
 ACT_COMMON_ARGS="--platform macos-latest=-self-hosted \
---platform ubuntu-latest=catthehacker/ubuntu:full-22.04 \
---container-architecture linux/amd64 \
+--platform macos-26=-self-hosted \
+--platform ubuntu-latest=-self-hosted \
 --env ACT=true \
 --env ANDROID_PREFS_ROOT= \
 --secret-file $RUN_SECRETS \
@@ -105,16 +92,21 @@ echo ""
 echo "------------------------------------------"
 
 if [ "$choice" == "1" ]; then
-    echo "🔵 Running: Build & Test (CI)..."
-    # ✅ Update: Pointing to the renamed ci.yml
+    echo "🔵 Running: Build & Test (Full CI)..."
     CMD="act push -W .github/workflows/ci.yml $ACT_COMMON_ARGS"
     echo "👉 Executing: act ..."
     eval "$CMD 2>&1 | tee act_execution.log"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "2" ]; then
-    echo "🟣 Running: Release Workflow (Container Mode)..."
+    echo "🔵 Running: KMP Unit Tests Only..."
+    CMD="act push -W .github/workflows/ci.yml -j test $ACT_COMMON_ARGS"
+    echo "👉 Executing: act ..."
+    eval "$CMD 2>&1 | tee act_execution.log"
+    ACT_EXIT_CODE=${PIPESTATUS[0]}
 
+elif [ "$choice" == "3" ]; then
+    echo "🟣 Running: Release Workflow (Container Mode)..."
     echo "⚠️  [SAFETY CHECK] You are about to run the Release Workflow locally."
     echo "   Ensure 'dry_run' logic is active in your YAML."
     echo ""
@@ -130,13 +122,12 @@ elif [ "$choice" == "2" ]; then
     eval "$CMD 2>&1 | tee act_execution.log"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
 
-elif [ "$choice" == "3" ]; then
+elif [ "$choice" == "4" ]; then
     echo "🟢 Running: Release Logic Check..."
     if ! command -v npm &> /dev/null; then
         echo "❌ Error: npm missing."
         exit 1
     fi
-    # Use the token we captured earlier
     export GITHUB_TOKEN=$RAW_TOKEN
     export GITHUB_RUN_NUMBER=9999
 
@@ -171,7 +162,6 @@ read -p "🧹 Clean up artifacts? [y/N] " response
 response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 if [[ "$response" =~ ^(yes|y)$ ]]; then
     ./gradlew clean
-#    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH" "$XDG_CACHE_HOME"
     rm -rf "$ARTIFACT_PATH" "$CACHE_PATH"
     echo "✨ Cleanup complete!"
 fi
