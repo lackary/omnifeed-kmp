@@ -230,6 +230,7 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Build Desktop Package
+        shell: bash
         run: |
           ./gradlew ${{ matrix.task }} \
               -Dorg.gradle.vfs.watch=false \
