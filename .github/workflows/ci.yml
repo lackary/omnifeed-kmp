@@ -62,150 +62,41 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
-  ci:
-    name: Build and Test
-    runs-on: macos-26
+  test:
+    name: Run KMP Unit Tests
+    runs-on: ubuntu-latest
     env:
-      CHROME_BIN: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
       GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
-      # Firebase and Google Auth secrets for BuildKonfig and dynamic file generation
       FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
       ANDROID_PREFS_ROOT: ""
-    permissions:
-      contents: read
-      checks: write # For mikepenz/action-junit-report
-      pull-requests: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Fix macOS GPG Socket Length for act
-        if: ${{ env.ACT }}
-        run: |
-          mkdir -p /tmp/act_runner_temp
-          echo "RUNNER_TEMP=/tmp/act_runner_temp" >> $GITHUB_ENV
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v6
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
         with:
-          java-version: '25'
-          distribution: 'temurin'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Decode Firebase Secrets (Android & iOS)
-        run: |
-          echo "Decoding Firebase Android configuration..."
-          # Recreate google-services.json for the Android sample app
-          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > sampleApp/androidApp/google-services.json
-          
-          # Patch google-services.json if it doesn't contain the .dev package name used for debug builds
-          PACKAGE_NAME="io.lackstudio.omnifeed.app"
-          DEBUG_PACKAGE_NAME="${PACKAGE_NAME}.dev"
-          if ! grep -q "$DEBUG_PACKAGE_NAME" sampleApp/androidApp/google-services.json; then
-            echo "Patching google-services.json to include ${DEBUG_PACKAGE_NAME}..."
-            # Use a robust way to add the debug client config if only production exists
-            if command -v jq &> /dev/null; then
-              jq --arg prod "$PACKAGE_NAME" --arg dev "$DEBUG_PACKAGE_NAME" \
-                '.client += [.client[] | select(.client_info.android_client_info.package_name == $prod) | .client_info.android_client_info.package_name = $dev]' \
-                sampleApp/androidApp/google-services.json > sampleApp/androidApp/google-services.json.tmp && \
-                mv sampleApp/androidApp/google-services.json.tmp sampleApp/androidApp/google-services.json
-            else
-              # Fallback to simple sed if jq is not available
-              sed -i '' "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" sampleApp/androidApp/google-services.json
-            fi
-          fi
-
-          echo "Decoding Firebase iOS configuration..."
-          # Ensure the directory exists and recreate GoogleService-Info.plist for the iOS sample app
-          mkdir -p sampleApp/iosApp/iosApp
-          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > sampleApp/iosApp/iosApp/GoogleService-Info.plist
-
-      - name: Create Dynamic Secrets XConfig File
-        working-directory: './sampleApp/iosApp/Configuration'
-        run: |
-          XCONFIG_DEBUG_FILENAME="Secrets-Debug.xcconfig"
-          XCONFIG_RELEASE_FILENAME="Secrets-Release.xcconfig"
-
-          echo "Creating ${XCONFIG_DEBUG_FILENAME} in CI..."
-          echo "Creating ${XCONFIG_RELEASE_FILENAME} in CI..."
-          
-          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_DEBUG_FILENAME}"
-          echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_DEBUG_FILENAME}"
-          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_RELEASE_FILENAME}"
-          echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_RELEASE_FILENAME}"
-
-      # List simulators
-      - name: List available simulators
-        run: |
-          echo "=== RUNTIMES ==="
-          xcrun simctl list runtimes
-          echo "=== DEVICES ==="
-          xcrun simctl list devices
-
-      # Automatically find an available simulator
-      - name: Select an available simulator
-        id: find-sim
-        run: |
-          set -e
-          SIM=$(xcrun simctl list devices | \
-            grep -E "iPhone" | \
-            grep -v unavailable | \
-            grep -v "(Booted)" | \
-            sed -nE 's/.*\(([0-9A-F-]{36})\).*/\1/p' | \
-            head -n 1)
-
-          if [ -z "$SIM" ]; then
-            echo "❌ No available iPhone simulators found"
-            exit 1
-          fi
-          echo "✅ Selected Simulator UUID: $SIM"
-          echo "SIM=$SIM" >> $GITHUB_ENV
-
-      - name: Gradle Build & Integrate SwiftPM Package
-        run: |
-          unset ANDROID_PREFS_ROOT
-          ./gradlew assembleDebug :sampleApp:shared:integrateLinkagePackage \
-              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
-              ${{ inputs.run_with_info && '--info' || '' }} \
-              ${{ inputs.run_with_debug && '--debug' || '' }} \
-              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
-
-          echo "Pre-generating synthetic SPM linkage project..."
-          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
-          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage || true
-
-          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
-          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage
-        env:
-          XCODEPROJ_PATH: sampleApp/iosApp/iosApp.xcodeproj
-
-      - name: Xcode Build (clean build .xcodeproj)
-        working-directory: './sampleApp/iosApp'
-        run: |
-          echo "Building iOS target via .xcodeproj..."
-          xcodebuild clean build \
-              -project "iosApp.xcodeproj" \
-              -scheme "iosApp" \
-              -configuration "Debug" \
-              -sdk iphonesimulator \
-              -destination "id=$SIM" \
-              ENABLE_PREVIEWS=NO
+          firebase-android-base64: ${{ secrets.FIREBASE_ANDROID_BASE64 }}
+          firebase-ios-base64: ${{ secrets.FIREBASE_IOS_BASE64 }}
+          google-client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google-reversed-client-id: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
 
       - name: Run KMP Unit Tests
         run: |
           unset ANDROID_PREFS_ROOT
           ./gradlew check \
+              -Dorg.gradle.vfs.watch=false \
               -Pskip.tests=false \
               -Pskip.native.tests=true \
               -Pskip.lint=true \
@@ -231,3 +122,202 @@ jobs:
           name: test-reports-html
           path: '**/build/reports/tests/'
           retention-days: 5
+
+  build-android:
+    name: Build Android Sample App
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+      GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+      ANDROID_PREFS_ROOT: ""
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          firebase-android-base64: ${{ secrets.FIREBASE_ANDROID_BASE64 }}
+          google-client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google-reversed-client-id: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+
+      - name: Build Android Sample
+        run: |
+          unset ANDROID_PREFS_ROOT
+          ./gradlew :sampleApp:androidApp:assembleDebug \
+              -Dorg.gradle.vfs.watch=false \
+              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+              ${{ inputs.run_with_info && '--info' || '' }} \
+              ${{ inputs.run_with_debug && '--debug' || '' }} \
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+
+  build-web:
+    name: Build Web Sample App
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+      GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+      ANDROID_PREFS_ROOT: ""
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build Web Sample
+        run: |
+          unset ANDROID_PREFS_ROOT
+          ./gradlew compileKotlinWasmJs wasmJsDevelopmentExecutableCompileSync \
+              -Dorg.gradle.vfs.watch=false \
+              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+              ${{ inputs.run_with_info && '--info' || '' }} \
+              ${{ inputs.run_with_debug && '--debug' || '' }} \
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+
+  build-desktop:
+    name: Build Desktop (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: Linux
+            os: ubuntu-latest
+            task: :sampleApp:desktopApp:packageDeb
+            artifact-name: desktop-linux-deb
+            artifact-path: sampleApp/desktopApp/build/compose/binaries/main/deb/*.deb
+          - target: macOS
+            os: macos-latest
+            task: :sampleApp:desktopApp:packageDmg
+            artifact-name: desktop-macos-dmg
+            artifact-path: sampleApp/desktopApp/build/compose/binaries/main/dmg/*.dmg
+          - target: Windows
+            os: windows-latest
+            task: :sampleApp:desktopApp:packageMsi
+            artifact-name: desktop-windows-msi
+            artifact-path: sampleApp/desktopApp/build/compose/binaries/main/msi/*.msi
+    env:
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+      GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+      ANDROID_PREFS_ROOT: ""
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build Desktop Package
+        run: |
+          ./gradlew ${{ matrix.task }} \
+              -Dorg.gradle.vfs.watch=false \
+              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+              ${{ inputs.run_with_info && '--info' || '' }} \
+              ${{ inputs.run_with_debug && '--debug' || '' }} \
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+
+      - name: Upload Desktop Package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-path }}
+
+  build-ios:
+    name: Build iOS Sample App
+    runs-on: macos-26
+    needs: test
+    env:
+      CHROME_BIN: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+      GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+      ANDROID_PREFS_ROOT: ""
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          firebase-ios-base64: ${{ secrets.FIREBASE_IOS_BASE64 }}
+          google-client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google-reversed-client-id: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+
+      - name: List available simulators
+        run: |
+          echo "=== RUNTIMES ==="
+          xcrun simctl list runtimes
+          echo "=== DEVICES ==="
+          xcrun simctl list devices
+
+      - name: Select an available simulator
+        id: find-sim
+        run: |
+          set -e
+          SIM=$(xcrun simctl list devices | \
+            grep -E "iPhone" | \
+            grep -v unavailable | \
+            grep -v "(Booted)" | \
+            sed -nE 's/.*\(([0-9A-F-]{36})\).*/\1/p' | \
+            head -n 1)
+
+          if [ -z "$SIM" ]; then
+            echo "❌ No available iPhone simulators found"
+            exit 1
+          fi
+          echo "✅ Selected Simulator UUID: $SIM"
+          echo "SIM=$SIM" >> $GITHUB_ENV
+
+      - name: Gradle Build & Integrate SwiftPM Package
+        run: |
+          unset ANDROID_PREFS_ROOT
+          ./gradlew assembleDebug :sampleApp:shared:integrateLinkagePackage \
+              -Dorg.gradle.vfs.watch=false \
+              ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+              ${{ inputs.run_with_info && '--info' || '' }} \
+              ${{ inputs.run_with_debug && '--debug' || '' }} \
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+
+          echo "Pre-generating synthetic SPM linkage project..."
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage -Dorg.gradle.vfs.watch=false || true
+
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage -Dorg.gradle.vfs.watch=false
+        env:
+          XCODEPROJ_PATH: sampleApp/iosApp/iosApp.xcodeproj
+
+      - name: Xcode Build (clean build .xcodeproj)
+        working-directory: './sampleApp/iosApp'
+        run: |
+          echo "Building iOS target via .xcodeproj..."
+          xcodebuild clean build \
+              -project "iosApp.xcodeproj" \
+              -scheme "iosApp" \
+              -configuration "Debug" \
+              -sdk iphonesimulator \
+              -destination "id=$SIM" \
+              ENABLE_PREVIEWS=NO
