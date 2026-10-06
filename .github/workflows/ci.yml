@@ -265,6 +265,7 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
         with:
+          firebase-android-base64: ${{ secrets.FIREBASE_ANDROID_BASE64 }}
           firebase-ios-base64: ${{ secrets.FIREBASE_IOS_BASE64 }}
           google-client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
           google-reversed-client-id: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
@@ -297,7 +298,7 @@ jobs:
       - name: Gradle Build & Integrate SwiftPM Package
         run: |
           unset ANDROID_PREFS_ROOT
-          ./gradlew assembleDebug :sampleApp:shared:integrateLinkagePackage \
+          ./gradlew :sampleApp:shared:integrateLinkagePackage \
               -Dorg.gradle.vfs.watch=false \
               ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
               ${{ inputs.run_with_info && '--info' || '' }} \
