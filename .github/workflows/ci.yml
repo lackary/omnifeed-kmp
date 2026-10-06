@@ -67,6 +67,9 @@ permissions:
   checks: write
   pull-requests: write
 
+env:
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072M -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dorg.gradle.caching=true"
+
 jobs:
   test:
     name: Run KMP Unit Tests
