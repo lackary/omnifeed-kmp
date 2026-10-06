@@ -98,7 +98,7 @@ jobs:
       - name: Run KMP Unit Tests
         run: |
           unset ANDROID_PREFS_ROOT
-          ./gradlew check \
+          ./gradlew allTests \
               -Dorg.gradle.vfs.watch=false \
               -Pskip.tests=false \
               -Pskip.native.tests=true \
