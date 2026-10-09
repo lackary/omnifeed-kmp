@@ -312,6 +312,11 @@ jobs:
 
           ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
           ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage -Dorg.gradle.vfs.watch=false
+
+          if [ -d "sampleApp/shared/iosApp/KotlinMultiplatformLinkedPackage" ] && [ ! -d "sampleApp/iosApp/KotlinMultiplatformLinkedPackage" ]; then
+            echo "Syncing sampleApp/shared/iosApp/KotlinMultiplatformLinkedPackage to sampleApp/iosApp/..."
+            cp -R sampleApp/shared/iosApp/KotlinMultiplatformLinkedPackage sampleApp/iosApp/
+          fi
         env:
           XCODEPROJ_PATH: sampleApp/iosApp/iosApp.xcodeproj
 
