@@ -55,7 +55,7 @@ composeMaterial = "1.7.3"
 kermit = "2.2.0"
 
 # KSafe
-ksafe = "3.2.0"
+ksafe = "3.3.0"
 
 # JVM
 slf4j = "2.0.20"
