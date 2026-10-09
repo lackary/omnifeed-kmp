@@ -238,6 +238,35 @@ class AuthRepositoryImplTest {
     }
 
     @Test
+    fun `signInWithCustomService in zero-backend mode should succeed via anonymous session`() = runTest {
+        // Arrange
+        val serviceName = "unsplash"
+        val accessToken = "raw_access_token"
+        val mockFirebaseUser = mockk<FirebaseUser>()
+
+        every { mockFirebaseUser.uid } returns "anon_uid_123"
+        every { mockFirebaseUser.email } returns null
+        every { mockFirebaseUser.displayName } returns null
+        every { mockFirebaseUser.photoURL } returns null
+        every { mockFirebaseUser.providerData } returns emptyList()
+        coEvery { mockFirebaseUser.getIdToken(any()) } returns "anon_id_token"
+
+        every { remoteDataSource.currentUser } returns null
+        coEvery { remoteDataSource.signInAnonymously() } returns mockFirebaseUser
+        coEvery { remoteDataSource.getUserProfileRest(any(), any()) } returns null
+        coEvery { remoteDataSource.saveUserProfileRest(any(), any(), any()) } just Runs
+        coEvery { remoteDataSource.updateCustomFieldRest(any(), any(), any(), any()) } just Runs
+
+        // Act
+        val result = repository.signInWithCustomService(serviceName, accessToken)
+
+        // Assert
+        assertEquals("anon_uid_123", result.id)
+        assertEquals(true, result.linkedServices[serviceName])
+        assertEquals(accessToken, localDataSource.getServiceToken(result.id, serviceName))
+    }
+
+    @Test
     fun `signOut should clear local and remote`() = runTest {
         // Arrange
         val user = User(id = "uid123", email = "test@test.com", username = "Test", photoUrl = null)

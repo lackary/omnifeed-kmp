@@ -55,6 +55,11 @@ class AuthRemoteDataSourceImpl(
         return result.user ?: throw Exception("Login with custom token failed: User is null")
     }
 
+    override suspend fun signInAnonymously(): FirebaseUser {
+        val result = firebaseAuth.signInAnonymously()
+        return result.user ?: throw Exception("Anonymous login failed: User is null")
+    }
+
     override suspend fun signOut() {
         firebaseAuth.signOut()
     }
@@ -62,6 +67,12 @@ class AuthRemoteDataSourceImpl(
     override suspend fun fetchFirebaseCustomToken(endpoint: String, customAccessToken: String, provider: String): String {
         return handleAuthApi(name = "fetchFirebaseCustomToken") {
             authApiService.fetchFirebaseCustomToken(endpoint, customAccessToken, provider)
+        }
+    }
+
+    override suspend fun fetchCustomUserProfile(verifyUrl: String, accessToken: String): CustomUserProfile {
+        return handleAuthApi(name = "fetchCustomUserProfile") {
+            authApiService.fetchCustomUserProfile(verifyUrl, accessToken)
         }
     }
 
