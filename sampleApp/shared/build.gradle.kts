@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import java.util.Properties
+import java.nio.file.Files
 
 val modulePackageName = "io.lackstudio.omnifeed.shared"
 val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
@@ -186,6 +187,36 @@ tasks.withType<Test>().configureEach {
         println("Disabling JVM/Android unit test ($name) because -Pskip.tests is set.")
         enabled = false
     }
+}
+
+// Sync SPM Linkage Package to sampleApp/iosApp folder for Xcode compatibility
+val syncLinkedPackageTask = tasks.register("syncLinkedPackage") {
+    description = "Syncs synthetic SPM package to sampleApp/iosApp/ directory for Xcode via symlink"
+    group = "build"
+    val srcDir = rootProject.layout.projectDirectory.dir("sampleApp/shared/sampleApp/iosApp/KotlinMultiplatformLinkedPackage").asFile
+    val destDir = rootProject.layout.projectDirectory.dir("sampleApp/iosApp/KotlinMultiplatformLinkedPackage").asFile
+
+    doLast {
+        if (srcDir.exists()) {
+            val destPath = destDir.toPath()
+            val srcPath = srcDir.toPath()
+            if (destDir.exists() && !Files.isSymbolicLink(destPath)) {
+                destDir.deleteRecursively()
+            }
+            if (!destDir.exists() && !Files.isSymbolicLink(destPath)) {
+                try {
+                    Files.createSymbolicLink(destPath, srcPath)
+                } catch (e: Exception) {
+                    // Fallback to copy if symlink is not supported
+                    srcDir.copyRecursively(destDir, overwrite = true)
+                }
+            }
+        }
+    }
+}
+
+tasks.matching { it.name.contains("SwiftPM") || it.name.contains("Linkage") }.configureEach {
+    finalizedBy(syncLinkedPackageTask)
 }
 
 // Skip Kotlin/Native tests

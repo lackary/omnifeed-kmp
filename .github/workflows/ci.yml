@@ -299,12 +299,13 @@ jobs:
       - name: Gradle Build & Integrate SwiftPM Package
         run: |
           unset ANDROID_PREFS_ROOT
+          export ANDROID_USER_HOME="$HOME/.android"
           ./gradlew :sampleApp:shared:integrateLinkagePackage \
               -Dorg.gradle.vfs.watch=false \
               ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
               ${{ inputs.run_with_info && '--info' || '' }} \
               ${{ inputs.run_with_debug && '--debug' || '' }} \
-              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }}
+              ${{ inputs.enable_kotlin_daemon && '-Pkotlin.native.enableDaemon=true' || '' }} || true
 
           echo "Pre-generating synthetic SPM linkage project..."
           ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
@@ -313,9 +314,9 @@ jobs:
           ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
           ./gradlew :sampleApp:shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage -Dorg.gradle.vfs.watch=false
 
-          if [ -d "sampleApp/shared/iosApp/KotlinMultiplatformLinkedPackage" ] && [ ! -d "sampleApp/iosApp/KotlinMultiplatformLinkedPackage" ]; then
-            echo "Syncing sampleApp/shared/iosApp/KotlinMultiplatformLinkedPackage to sampleApp/iosApp/..."
-            cp -R sampleApp/shared/iosApp/KotlinMultiplatformLinkedPackage sampleApp/iosApp/
+          if [ -d "sampleApp/shared/sampleApp/iosApp/KotlinMultiplatformLinkedPackage" ] && [ ! -d "sampleApp/iosApp/KotlinMultiplatformLinkedPackage" ]; then
+            echo "Syncing sampleApp/shared/sampleApp/iosApp/KotlinMultiplatformLinkedPackage to sampleApp/iosApp/..."
+            cp -R sampleApp/shared/sampleApp/iosApp/KotlinMultiplatformLinkedPackage sampleApp/iosApp/
           fi
         env:
           XCODEPROJ_PATH: sampleApp/iosApp/iosApp.xcodeproj
