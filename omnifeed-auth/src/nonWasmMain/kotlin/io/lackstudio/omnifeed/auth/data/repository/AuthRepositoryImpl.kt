@@ -353,6 +353,9 @@ class AuthRepositoryImpl(
             val linkedUser = result.user?.toDomain() ?: throw Exception("Google linking failed: User is null")
             
             val finalUser = linkedUser.copy(
+                username = currentUserData.username?.takeIf { it.isNotBlank() } ?: linkedUser.username,
+                email = currentUserData.email?.takeIf { it.isNotBlank() } ?: linkedUser.email,
+                photoUrl = currentUserData.photoUrl?.takeIf { it.isNotBlank() } ?: linkedUser.photoUrl,
                 authProviders = currentUserData.authProviders.toMutableMap().apply { 
                     putAll(linkedUser.authProviders)
                     put(AuthProvider.GOOGLE.id, true) 
@@ -462,26 +465,24 @@ class AuthRepositoryImpl(
             put(serviceName, true)
         }
         
-        // CRITICAL: Carry over the current idToken if the refreshedUser has none (very common on REST sync)
-        // AND Preserve Sticky Identity (lastSignInProvider)
-        var updatedUser = refreshedUser.copy(
+        // CRITICAL: Preserve existing profile fields (username, email, photoUrl) if present,
+        // only filling in missing values from newly linked service profile
+        val updatedUser = refreshedUser.copy(
+            username = user.username?.takeIf { it.isNotBlank() }
+                ?: fetchedProfile?.username?.takeIf { it.isNotBlank() }
+                ?: extractedUsername?.takeIf { it.isNotBlank() }
+                ?: refreshedUser.username,
+            email = user.email?.takeIf { it.isNotBlank() }
+                ?: fetchedProfile?.email?.takeIf { it.isNotBlank() }
+                ?: extractedEmail?.takeIf { it.isNotBlank() }
+                ?: refreshedUser.email,
+            photoUrl = user.photoUrl?.takeIf { it.isNotBlank() }
+                ?: fetchedProfile?.photoUrl?.takeIf { it.isNotBlank() }
+                ?: refreshedUser.photoUrl,
             linkedServices = updatedLinkedServices,
             idToken = refreshedUser.idToken ?: currentToken,
             lastSignInProvider = refreshedUser.lastSignInProvider ?: user.lastSignInProvider
         )
-        if (fetchedProfile != null) {
-            if (!fetchedProfile.username.isNullOrBlank()) updatedUser = updatedUser.copy(username = fetchedProfile.username)
-            if (!fetchedProfile.email.isNullOrBlank()) updatedUser = updatedUser.copy(email = fetchedProfile.email)
-            if (!fetchedProfile.photoUrl.isNullOrBlank()) updatedUser = updatedUser.copy(photoUrl = fetchedProfile.photoUrl)
-        }
-        if (updatedUser.username.isNullOrBlank() && !extractedUsername.isNullOrBlank()) {
-            logger.i { "✅ linkWithCustomService: Setting username from extracted token -> '$extractedUsername'" }
-            updatedUser = updatedUser.copy(username = extractedUsername)
-        }
-        if (updatedUser.email.isNullOrBlank() && !extractedEmail.isNullOrBlank()) {
-            logger.i { "✅ linkWithCustomService: Setting email from extracted token -> '$extractedEmail'" }
-            updatedUser = updatedUser.copy(email = extractedEmail)
-        }
 
         logger.i { "🚀 linkWithCustomService: FINAL UPDATED USER TO SAVE -> id=${updatedUser.id}, username='${updatedUser.username}', email='${updatedUser.email}', photoUrl='${updatedUser.photoUrl}'" }
 
@@ -516,6 +517,9 @@ class AuthRepositoryImpl(
         val idToken = result.user?.getIdToken(false) ?: linkedUser.idToken
 
         val finalUser = linkedUser.copy(
+            username = currentUserData.username?.takeIf { it.isNotBlank() } ?: linkedUser.username,
+            email = currentUserData.email?.takeIf { it.isNotBlank() } ?: linkedUser.email,
+            photoUrl = currentUserData.photoUrl?.takeIf { it.isNotBlank() } ?: linkedUser.photoUrl,
             idToken = idToken,
             authProviders = currentUserData.authProviders.toMutableMap().apply {
                 putAll(linkedUser.authProviders)
@@ -672,8 +676,11 @@ class AuthRepositoryImpl(
         
         val linkedUser = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken)
         
-        // CRITICAL: Preserve Sticky Identity (lastSignInProvider) and linked services
+        // CRITICAL: Preserve Sticky Identity (lastSignInProvider), linked services, and existing profile fields
         val finalUser = linkedUser.copy(
+            username = currentUserData.username?.takeIf { it.isNotBlank() } ?: linkedUser.username,
+            email = currentUserData.email?.takeIf { it.isNotBlank() } ?: linkedUser.email,
+            photoUrl = currentUserData.photoUrl?.takeIf { it.isNotBlank() } ?: linkedUser.photoUrl,
             linkedServices = currentUserData.linkedServices,
             lastSignInProvider = currentUserData.lastSignInProvider ?: linkedUser.lastSignInProvider
         )
