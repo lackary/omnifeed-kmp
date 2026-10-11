@@ -68,6 +68,9 @@ firebase-debug.log*
 .firebase/
 extensions/*.env
 extensions/*.local
+legacy/extensions/*.env
+legacy/extensions/*.local
+legacy/**/node_modules/
 
 # AI Assistant Artifacts & Common
 .artifacts/
