@@ -223,34 +223,115 @@ class AuthRepositoryImpl(
     override suspend fun signInWithCustomService(serviceName: String, accessToken: String): User {
         val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
         
-        // Extract raw token if it's JSON (for Cloud Function verification)
-        val rawAccessToken = try {
-            if (accessToken.trim().startsWith("{")) {
-                Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
-                    ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
-                    ?: accessToken
-            } else accessToken
-        } catch (_: Exception) { accessToken }
+        logger.i { "🔍 signInWithCustomService STARTED: service=$serviceName, tokenLength=${accessToken.length}, isJson=${accessToken.trim().startsWith("{")}" }
 
-        val customToken = remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
-        
-        val user = try {
-            val firebaseUser = remoteDataSource.signInWithCustomToken(customToken)
-            if (!firebaseUser.uid.isValidUid()) {
-                remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+        // Extract raw token and metadata if it's JSON (for Cloud Function verification & profile extraction)
+        val (rawAccessToken, extractedUsername, extractedEmail) = try {
+            if (accessToken.trim().startsWith("{")) {
+                val json = Json.parseToJsonElement(accessToken).jsonObject
+                val token = json["access_token"]?.jsonPrimitive?.contentOrNull
+                    ?: json["accessToken"]?.jsonPrimitive?.contentOrNull
+                    ?: accessToken
+                val uname = json["username"]?.jsonPrimitive?.contentOrNull
+                    ?: json["user_name"]?.jsonPrimitive?.contentOrNull
+                    ?: json["name"]?.jsonPrimitive?.contentOrNull
+                val email = json["email"]?.jsonPrimitive?.contentOrNull
+                logger.i { "✅ signInWithCustomService Parsed JSON -> username='$uname', email='$email'" }
+                Triple(token, uname, email)
             } else {
+                logger.i { "⚠️ signInWithCustomService: accessToken is plain string (NOT JSON)" }
+                Triple(accessToken, null, null)
+            }
+        } catch (e: Exception) {
+            logger.w(e) { "❌ signInWithCustomService: Failed to parse accessToken JSON" }
+            Triple(accessToken, null, null)
+        }
+
+        val customToken = if (config.authEndpoint.isNotBlank()) {
+            try {
+                remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
+            } catch (e: Exception) {
+                logger.w(e) { "Failed to fetch custom token for $serviceName, falling back to zero-backend mode" }
+                null
+            }
+        } else null
+        
+        logger.i { "ℹ️ signInWithCustomService: authEndpoint='${config.authEndpoint}', isZeroBackendMode=${customToken == null}" }
+
+        val user = if (customToken != null) {
+            try {
+                val firebaseUser = remoteDataSource.signInWithCustomToken(customToken)
+                if (!firebaseUser.uid.isValidUid()) {
+                    remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+                } else {
+                    val freshToken = try { firebaseUser.getIdToken(true) } catch(_: Exception) { null }
+                    firebaseUser.toDomain(forceToken = freshToken)
+                }
+            } catch (_: Exception) {
+                remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+            }
+        } else {
+            // Client-Side Zero-Backend Mode
+            val activeUser = remoteDataSource.currentUser
+            val firebaseUser = if (activeUser != null && activeUser.uid.isValidUid()) {
+                activeUser
+            } else {
+                try {
+                    remoteDataSource.signInAnonymously()
+                } catch (e: Exception) {
+                    logger.w(e) { "Anonymous sign in failed or not available, fallback to local user session" }
+                    null
+                }
+            }
+            if (firebaseUser != null) {
                 val freshToken = try { firebaseUser.getIdToken(true) } catch(_: Exception) { null }
                 firebaseUser.toDomain(forceToken = freshToken)
+            } else {
+                localDataSource.getUser() ?: User(
+                    id = "custom:$serviceName",
+                    email = null,
+                    username = null,
+                    photoUrl = null
+                )
             }
-        } catch (_: Exception) {
-            remoteDataSource.signInWithCustomTokenRest(customToken, serviceName, rawAccessToken)
+        }
+
+        logger.i { "ℹ️ signInWithCustomService: user before profile merge -> id=${user.id}, username='${user.username}', email='${user.email}'" }
+
+        var fetchedProfile: io.lackstudio.omnifeed.auth.data.remote.api.CustomUserProfile? = null
+        if (customToken == null && rawAccessToken.isNotBlank()) {
+            val verifyUrl = if (serviceName == "unsplash") "https://api.unsplash.com/me" else ""
+            if (verifyUrl.isNotBlank()) {
+                try {
+                    logger.i { "🔍 Zero-Backend Mode: Fetching custom service profile from $verifyUrl" }
+                    fetchedProfile = remoteDataSource.fetchCustomUserProfile(verifyUrl, rawAccessToken)
+                    logger.i { "✅ Zero-Backend Mode: Fetched profile -> username='${fetchedProfile.username}', email='${fetchedProfile.email}', photoUrl='${fetchedProfile.photoUrl}'" }
+                } catch (e: Exception) {
+                    logger.w(e) { "⚠️ Zero-Backend Mode: Failed to fetch profile from $verifyUrl" }
+                }
+            }
         }
 
         val updatedLinkedServices = user.linkedServices.toMutableMap().apply {
             put(serviceName, true)
         }
-        val finalUser = user.copy(linkedServices = updatedLinkedServices)
+        var finalUser = user.copy(linkedServices = updatedLinkedServices)
+        if (fetchedProfile != null) {
+            if (!fetchedProfile.username.isNullOrBlank()) finalUser = finalUser.copy(username = fetchedProfile.username)
+            if (!fetchedProfile.email.isNullOrBlank()) finalUser = finalUser.copy(email = fetchedProfile.email)
+            if (!fetchedProfile.photoUrl.isNullOrBlank()) finalUser = finalUser.copy(photoUrl = fetchedProfile.photoUrl)
+        }
+        if (finalUser.username.isNullOrBlank() && !extractedUsername.isNullOrBlank()) {
+            logger.i { "✅ signInWithCustomService: Merging username '$extractedUsername' into user profile" }
+            finalUser = finalUser.copy(username = extractedUsername)
+        }
+        if (finalUser.email.isNullOrBlank() && !extractedEmail.isNullOrBlank()) {
+            logger.i { "✅ signInWithCustomService: Merging email '$extractedEmail' into user profile" }
+            finalUser = finalUser.copy(email = extractedEmail)
+        }
         
+        logger.i { "🚀 signInWithCustomService: FINAL USER TO SAVE -> id=${finalUser.id}, username='${finalUser.username}', email='${finalUser.email}', photoUrl='${finalUser.photoUrl}'" }
+
         // CRITICAL: Ensure Token is preserved
         val userToSave = if (finalUser.idToken == null) finalUser.copy(idToken = localDataSource.getUser()?.idToken) else finalUser
         
@@ -272,6 +353,9 @@ class AuthRepositoryImpl(
             val linkedUser = result.user?.toDomain() ?: throw Exception("Google linking failed: User is null")
             
             val finalUser = linkedUser.copy(
+                username = currentUserData.username?.takeIf { it.isNotBlank() } ?: linkedUser.username,
+                email = currentUserData.email?.takeIf { it.isNotBlank() } ?: linkedUser.email,
+                photoUrl = currentUserData.photoUrl?.takeIf { it.isNotBlank() } ?: linkedUser.photoUrl,
                 authProviders = currentUserData.authProviders.toMutableMap().apply { 
                     putAll(linkedUser.authProviders)
                     put(AuthProvider.GOOGLE.id, true) 
@@ -295,21 +379,46 @@ class AuthRepositoryImpl(
         val config = customServices[serviceName] ?: throw Exception("Service $serviceName not configured")
         val currentToken = user.idToken ?: localDataSource.getUser()?.idToken
         
-        // Extract raw token if it's JSON (for verification)
-        val rawAccessToken = try {
-            if (accessToken.trim().startsWith("{")) {
-                Json.parseToJsonElement(accessToken).jsonObject["access_token"]?.jsonPrimitive?.content 
-                    ?: Json.parseToJsonElement(accessToken).jsonObject["accessToken"]?.jsonPrimitive?.content
-                    ?: accessToken
-            } else accessToken
-        } catch (_: Exception) { accessToken }
+        logger.i { "🔍 linkWithCustomService STARTED: service=$serviceName, tokenLength=${accessToken.length}, isJson=${accessToken.trim().startsWith("{")}" }
 
-        val customToken = remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
+        // Extract raw token and metadata if it's JSON (for verification & profile extraction)
+        val (rawAccessToken, extractedUsername, extractedEmail) = try {
+            if (accessToken.trim().startsWith("{")) {
+                val json = Json.parseToJsonElement(accessToken).jsonObject
+                val token = json["access_token"]?.jsonPrimitive?.contentOrNull
+                    ?: json["accessToken"]?.jsonPrimitive?.contentOrNull
+                    ?: accessToken
+                val uname = json["username"]?.jsonPrimitive?.contentOrNull
+                    ?: json["user_name"]?.jsonPrimitive?.contentOrNull
+                    ?: json["name"]?.jsonPrimitive?.contentOrNull
+                val email = json["email"]?.jsonPrimitive?.contentOrNull
+                logger.i { "✅ linkWithCustomService Parsed JSON -> username='$uname', email='$email'" }
+                Triple(token, uname, email)
+            } else {
+                logger.i { "⚠️ linkWithCustomService: accessToken is plain string (NOT JSON)" }
+                Triple(accessToken, null, null)
+            }
+        } catch (e: Exception) {
+            logger.w(e) { "❌ linkWithCustomService: Failed to parse accessToken JSON" }
+            Triple(accessToken, null, null)
+        }
+
+        val customToken = if (config.authEndpoint.isNotBlank()) {
+            try {
+                remoteDataSource.fetchFirebaseCustomToken(config.authEndpoint, rawAccessToken, serviceName)
+            } catch (e: Exception) {
+                logger.w(e) { "Failed to fetch custom token for linking $serviceName, falling back to zero-backend mode" }
+                null
+            }
+        } else null
+
+        logger.i { "ℹ️ linkWithCustomService: authEndpoint='${config.authEndpoint}', isZeroBackendMode=${customToken == null}" }
+
         localDataSource.saveServiceToken(user.id, serviceName, accessToken)
 
         // CRITICAL FIX: If we are already logged in as this custom service user,
         // we MUST re-sign in to refresh the 'auth_time' for sensitive operations like updatePassword.
-        val refreshedUser = if (user.id.startsWith("custom:$serviceName")) {
+        val refreshedUser = if (customToken != null && user.id.startsWith("custom:$serviceName")) {
             logger.i { "Refreshing Firebase session for custom service user: ${user.id}" }
             try {
                 val firebaseUser = remoteDataSource.signInWithCustomToken(customToken)
@@ -334,19 +443,49 @@ class AuthRepositoryImpl(
             }
         }
 
+        logger.i { "ℹ️ linkWithCustomService: refreshedUser before profile merge -> id=${refreshedUser.id}, username='${refreshedUser.username}', email='${refreshedUser.email}'" }
+
+        var fetchedProfile: io.lackstudio.omnifeed.auth.data.remote.api.CustomUserProfile? = null
+        if (customToken == null && rawAccessToken.isNotBlank()) {
+            val verifyUrl = if (serviceName == "unsplash") "https://api.unsplash.com/me" else ""
+            if (verifyUrl.isNotBlank()) {
+                try {
+                    logger.i { "🔍 Zero-Backend Mode: Fetching custom service profile from $verifyUrl" }
+                    fetchedProfile = remoteDataSource.fetchCustomUserProfile(verifyUrl, rawAccessToken)
+                    logger.i { "✅ Zero-Backend Mode: Fetched profile -> username='${fetchedProfile.username}', email='${fetchedProfile.email}', photoUrl='${fetchedProfile.photoUrl}'" }
+                } catch (e: Exception) {
+                    logger.w(e) { "⚠️ Zero-Backend Mode: Failed to fetch profile from $verifyUrl" }
+                }
+            }
+        }
+
         updateCustomField(refreshedUser, serviceName, true)
         
         val updatedLinkedServices = refreshedUser.linkedServices.toMutableMap().apply {
             put(serviceName, true)
         }
         
-        // CRITICAL: Carry over the current idToken if the refreshedUser has none (very common on REST sync)
-        // AND Preserve Sticky Identity (lastSignInProvider)
+        // CRITICAL: Preserve existing profile fields (username, email, photoUrl) if present,
+        // only filling in missing values from newly linked service profile
         val updatedUser = refreshedUser.copy(
+            username = user.username?.takeIf { it.isNotBlank() }
+                ?: fetchedProfile?.username?.takeIf { it.isNotBlank() }
+                ?: extractedUsername?.takeIf { it.isNotBlank() }
+                ?: refreshedUser.username,
+            email = user.email?.takeIf { it.isNotBlank() }
+                ?: fetchedProfile?.email?.takeIf { it.isNotBlank() }
+                ?: extractedEmail?.takeIf { it.isNotBlank() }
+                ?: refreshedUser.email,
+            photoUrl = user.photoUrl?.takeIf { it.isNotBlank() }
+                ?: fetchedProfile?.photoUrl?.takeIf { it.isNotBlank() }
+                ?: refreshedUser.photoUrl,
             linkedServices = updatedLinkedServices,
             idToken = refreshedUser.idToken ?: currentToken,
             lastSignInProvider = refreshedUser.lastSignInProvider ?: user.lastSignInProvider
         )
+
+        logger.i { "🚀 linkWithCustomService: FINAL UPDATED USER TO SAVE -> id=${updatedUser.id}, username='${updatedUser.username}', email='${updatedUser.email}', photoUrl='${updatedUser.photoUrl}'" }
+
         saveUserToFirestore(updatedUser)
         saveLocalUser(updatedUser)
         return updatedUser
@@ -378,6 +517,9 @@ class AuthRepositoryImpl(
         val idToken = result.user?.getIdToken(false) ?: linkedUser.idToken
 
         val finalUser = linkedUser.copy(
+            username = currentUserData.username?.takeIf { it.isNotBlank() } ?: linkedUser.username,
+            email = currentUserData.email?.takeIf { it.isNotBlank() } ?: linkedUser.email,
+            photoUrl = currentUserData.photoUrl?.takeIf { it.isNotBlank() } ?: linkedUser.photoUrl,
             idToken = idToken,
             authProviders = currentUserData.authProviders.toMutableMap().apply {
                 putAll(linkedUser.authProviders)
@@ -534,8 +676,11 @@ class AuthRepositoryImpl(
         
         val linkedUser = remoteDataSource.linkWithGoogleRest(idToken, firebaseIdToken)
         
-        // CRITICAL: Preserve Sticky Identity (lastSignInProvider) and linked services
+        // CRITICAL: Preserve Sticky Identity (lastSignInProvider), linked services, and existing profile fields
         val finalUser = linkedUser.copy(
+            username = currentUserData.username?.takeIf { it.isNotBlank() } ?: linkedUser.username,
+            email = currentUserData.email?.takeIf { it.isNotBlank() } ?: linkedUser.email,
+            photoUrl = currentUserData.photoUrl?.takeIf { it.isNotBlank() } ?: linkedUser.photoUrl,
             linkedServices = currentUserData.linkedServices,
             lastSignInProvider = currentUserData.lastSignInProvider ?: linkedUser.lastSignInProvider
         )

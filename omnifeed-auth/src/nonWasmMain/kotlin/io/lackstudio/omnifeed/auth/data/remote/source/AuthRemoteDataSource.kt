@@ -15,10 +15,12 @@ interface AuthRemoteDataSource {
     suspend fun signUpWithEmail(email: String, password: String): FirebaseUser
     suspend fun signInWithCredential(credential: AuthCredential): FirebaseUser
     suspend fun signInWithCustomToken(token: String): FirebaseUser
+    suspend fun signInAnonymously(): FirebaseUser
     suspend fun signOut()
     
     // REST fallbacks / Helpers
     suspend fun fetchFirebaseCustomToken(endpoint: String, customAccessToken: String, provider: String): String
+    suspend fun fetchCustomUserProfile(verifyUrl: String, accessToken: String): io.lackstudio.omnifeed.auth.data.remote.api.CustomUserProfile
     suspend fun signInWithGoogleRest(idToken: String): User
     suspend fun signInWithCustomTokenRest(customToken: String, serviceName: String, accessToken: String): User
     suspend fun linkWithGoogleRest(idToken: String, currentFirebaseIdToken: String): User
