@@ -1,3 +1,10 @@
+## [0.13.8](https://github.com/lackary/omnifeed-kmp/compare/0.13.7...0.13.8) (2026-10-11)
+
+
+### Bug Fixes
+
+* **auth:** preserve existing user profile fields during account linking ([b40f9c9](https://github.com/lackary/omnifeed-kmp/commit/b40f9c9846e3af6b8554c172b5148ce23bb5ed3d))
+
 ## [0.13.7](https://github.com/lackary/omnifeed-kmp/compare/0.13.6...0.13.7) (2026-10-03)
 
 
