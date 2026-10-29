@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
 android-compileSdk = "37"
 android-minSdk = "30"
 android-targetSdk = "37"
@@ -15,15 +15,15 @@ androidxComposeBom = "2026.09.00"
 androidxCredential = "1.6.0"
 
 # Jetbrains
-kotlin = "2.4.20"
-kotlinGradlePlugin = "2.4.20"
-kotlinxSerialization = "1.11.0"
+kotlin = "2.4.21"
+kotlinGradlePlugin = "2.4.21"
+kotlinxSerialization = "1.12.0"
 kotlinxCoroutines = "1.11.0"
 kotlinxDatetime = "0.8.0-0.6.x-compat"
 lifecycle = "2.11.0"
 composeHotReload = "1.2.0"
-composeMultiplatform = "1.12.1"
-kotlin-wrappers = "2026.9.3"
+composeMultiplatform = "1.12.2"
+kotlin-wrappers = "2026.10.5"
 
 # Google
 googleServices = "4.5.0"
@@ -42,7 +42,7 @@ googleFirebaseAuth = "23.2.1"
 junit = "4.13.2"
 
 # 3rd Party
-ktor = "3.6.0"
+ktor = "3.6.1"
 koin = "4.2.2"
 kevinnzouComposeWebviewMultiplatform = "2.0.3"
 
@@ -59,7 +59,7 @@ ksafe = "3.3.0"
 
 # JVM
 slf4j = "2.0.20"
-logback = "1.6.5"
+logback = "1.6.6"
 
 #kopykat = "0.13.0"
 mapstruct = "1.6.3"
@@ -74,7 +74,7 @@ mockk = "1.14.11"
 
 turbine = "1.2.1"
 robolectric = "4.17"
-kotlinStdlib = "2.4.20"
+kotlinStdlib = "2.4.21"
 runner = "1.7.0"
 core = "1.7.0"
 
