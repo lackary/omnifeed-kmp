@@ -8,6 +8,9 @@
   "schedule": ["before 4am on Monday"],
   "prConcurrentLimit": 2,
   "prHourlyLimit": 1,
+  "ignorePaths": [
+    "legacy/**"
+  ],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
