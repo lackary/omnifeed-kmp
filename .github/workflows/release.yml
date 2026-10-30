@@ -67,7 +67,7 @@ jobs:
           echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > sampleApp/iosApp/iosApp/GoogleService-Info.plist
 
       - name: Execute semantic release
-        uses: cycjimmy/semantic-release-action@v6
+        uses: cycjimmy/semantic-release-action@v8.1.4
         with:
           semantic_version: 25
           dry_run: ${{ env.ACT == 'true' }}

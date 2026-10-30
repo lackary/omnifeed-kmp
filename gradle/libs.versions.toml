@@ -30,7 +30,7 @@ googleServices = "4.5.0"
 googleGms = "22.0.0"
 googleId = "1.2.1"
 googleKsp = "2.3.12"
-googleFirebaseBom = "34.19.0"
+googleFirebaseBom = "35.1.0"
 
 # Firebase
 gitliveFirebase = "2.7.0"
