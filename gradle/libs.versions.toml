@@ -23,13 +23,13 @@ kotlinxDatetime = "0.8.0-0.6.x-compat"
 lifecycle = "2.11.0"
 composeHotReload = "1.2.0"
 composeMultiplatform = "1.12.2"
-kotlin-wrappers = "2026.10.5"
+kotlin-wrappers = "2026.11.0"
 
 # Google
 googleServices = "4.5.0"
 googleGms = "22.0.0"
 googleId = "1.2.1"
-googleKsp = "2.3.12"
+googleKsp = "2.3.13"
 googleFirebaseBom = "35.1.0"
 
 # Firebase
