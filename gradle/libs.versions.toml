@@ -1,5 +1,5 @@
 [versions]
-agp = "9.5.0"
+agp = "9.5.1"
 android-compileSdk = "37"
 android-minSdk = "30"
 android-targetSdk = "37"
@@ -23,7 +23,7 @@ kotlinxDatetime = "0.8.0-0.6.x-compat"
 lifecycle = "2.11.0"
 composeHotReload = "1.2.0"
 composeMultiplatform = "1.12.2"
-kotlin-wrappers = "2026.11.0"
+kotlin-wrappers = "2026.11.1"
 
 # Google
 googleServices = "4.5.0"
@@ -33,7 +33,7 @@ googleKsp = "2.3.13"
 googleFirebaseBom = "35.1.0"
 
 # Firebase
-gitliveFirebase = "2.7.0"
+gitliveFirebase = "2.8.0"
 mirzemehdiKmpAuth = "3.0.6"
 googleFirebaseCommon = "21.0.0"
 googleFirebaseAuth = "23.2.1"
@@ -64,13 +64,13 @@ logback = "1.6.6"
 #kopykat = "0.13.0"
 mapstruct = "1.6.3"
 
-buildkonfig = "0.23.0"
+buildkonfig = "0.24.0"
 #buildkonfigGradlePlugin = "latest_version"
 
 # test version
 kotlinxCoroutinesTest = "1.11.0"
 #ktorClientMock = "2.3.2"
-mockk = "1.14.11"
+mockk = "1.14.12"
 
 turbine = "1.2.1"
 robolectric = "4.17"
